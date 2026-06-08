@@ -122,7 +122,7 @@ function RefSec({unit,ref,setRef,sP,setSP,dP,setDP,sT,setST}){
   const rc=RCOL[ref]||'#94a3b8';
   return(
     <div className="card" style={{borderColor:rc+'44'}}>
-      <div className="slbl" style={{color:rc}}>Refrigerant — {ref}</div>
+      <div className="slbl" style={{color:rc}}>Refrigerant - {ref}</div>
       <div className="field">
         <div className="lbl"><span>Refrigerant</span></div>
         <select value={ref} onChange={e=>setRef(e.target.value)}>{REFS.map(r=><option key={r}>{r}</option>)}</select>
@@ -541,7 +541,7 @@ function App(){
           <div style={{fontFamily:'Syne,sans-serif',fontSize:'clamp(16px,3vw,24px)',fontWeight:700,color:'#94a3b8',marginBottom:3}}>Cooling and EER Calculator</div>
           <div style={{fontSize:11,color:'#475569',letterSpacing:'.08em',marginBottom:18}}>by Simen Olsen Allum</div>
           <div className="modes">
-            {[{id:"aa",icon:"💨",label:"Air / Air",sub:"Luft til luft"},{id:"al",icon:"🌊",label:"Air / Liquid",sub:"Luft til vann"},{id:"ll",icon:"🔄",label:"Liquid / Liquid",sub:"Vann til vann"}].map(m=>(
+            {[{id:"aa",icon:"A/A",label:"Air / Air",sub:"Luft til luft"},{id:"al",icon:"A/L",label:"Air / Liquid",sub:"Luft til vann"},{id:"ll",icon:"L/L",label:"Liquid / Liquid",sub:"Vann til vann"}].map(m=>(
               <button key={m.id} className={"mbt"+(mode===m.id?" on":"")} onClick={()=>setMode(m.id)}>
                 <span className="mi">{m.icon}</span>
                 <span className="ml">{m.label}</span>
