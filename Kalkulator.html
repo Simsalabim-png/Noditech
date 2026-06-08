@@ -141,7 +141,7 @@ function RefSec({unit,refr,setRefr,sP,setSP,dP,setDP,sT,setST}){
         <div className="lbl"><span>Suction Gas Temperature</span><span className="utag">deg {unit}</span></div>
         <input type="number" min={-60} max={100} step={0.1} value={sT} onChange={e=>setST(parseFloat(e.target.value)||0)}/>
       </div>
-      {ref!=="Other"&&(
+      {refr!=="Other"&&(
         <div className="three" style={{marginTop:12}}>
           <div style={{background:'rgba(0,0,0,.2)',borderRadius:10,padding:'13px 15px'}}>
             <div className="rn">Evap Temp</div>
@@ -160,7 +160,7 @@ function RefSec({unit,refr,setRefr,sP,setSP,dP,setDP,sT,setST}){
           </div>
         </div>
       )}
-      {ref!=="Other"&&pr!=null&&(
+      {refr!=="Other"&&pr!=null&&(
         <div className="irow" style={{borderColor:rc+'44',background:rc+'11',marginTop:12}}>
           <span><span className="ik">P-ratio</span><span className="iv" style={{color:rc}}>{fmt(pr,2)}</span></span>
           <span><span className="ik">Suction</span><span className="iv" style={{color:rc}}>{fmt(sP,1)}</span><span className="iu"> bar g</span></span>
