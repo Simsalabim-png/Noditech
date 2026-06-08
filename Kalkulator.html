@@ -112,20 +112,20 @@ function satT(ref,pBar){
 const REFS=['R32','R290','R410A','R22','R134a','R407C','R404A','Other'];
 const RCOL={R32:'#a855f7',R290:'#f97316',R410A:'#38bdf8',R22:'#fbbf24',R134a:'#22c55e',R407C:'#f472b6',R404A:'#60a5fa',Other:'#94a3b8'};
 
-function RefSec({unit,ref,setRef,sP,setSP,dP,setDP,sT,setST}){
+function RefSec({unit,refr,setRefr,sP,setSP,dP,setDP,sT,setST}){
   const toC=v=>unit==="F"?(v-32)*5/9:v;
   const sC=unit==="F"?toC(sT):sT;
-  const tE=ref!=="Other"?satT(ref,sP):null;
-  const tC=ref!=="Other"?satT(ref,dP):null;
+  const tE=refr!=="Other"?satT(refr,sP):null;
+  const tC=refr!=="Other"?satT(refr,dP):null;
   const sh=tE!=null?sC-tE:null;
   const pr=dP>0&&sP>0?(dP+1.01325)/(sP+1.01325):null;
-  const rc=RCOL[ref]||'#94a3b8';
+  const rc=RCOL[refr]||'#94a3b8';
   return(
     <div className="card" style={{borderColor:rc+'44'}}>
-      <div className="slbl" style={{color:rc}}>Refrigerant - {ref}</div>
+      <div className="slbl" style={{color:rc}}>Refrigerant - {refr}</div>
       <div className="field">
         <div className="lbl"><span>Refrigerant</span></div>
-        <select value={ref} onChange={e=>setRef(e.target.value)}>{REFS.map(r=><option key={r}>{r}</option>)}</select>
+        <select value={refr} onChange={e=>setRefr(e.target.value)}>{REFS.map(r=><option key={r}>{r}</option>)}</select>
       </div>
       <div className="two">
         <div className="field">
@@ -188,7 +188,7 @@ function AirAir({unit,job,uid,setLog,setShowLog}){
   const qs=Q*sr,ql=Q-qs;
   const mn=unit==="F"?23:-5,mx=unit==="F"?113:45,ec=eCol(eer);
   function save(){
-    const tE=ref!=="Other"?satT(ref,sP):null;const sC=unit==="F"?C(sT):sT;const sh=tE!=null?sC-tE:null;const tCond=ref!=="Other"?satT(ref,dP):null;
+    const tE=refr!=="Other"?satT(refr,sP):null;const sC=unit==="F"?C(sT):sT;const sh=tE!=null?sC-tE:null;const tCond=ref!=="Other"?satT(ref,dP):null;
     setLog(p=>[{id:Date.now(),date:new Date().toLocaleString(),mode:'Air/Air',job:job||"--",uid:uid||"--",ref,t1:fmt(F(eC),2),t2:fmt(F(lC),2),wb1:d(wE,2),wb2:d(wL,2),rh1:fmt(eRH,1),rh2:fmt(lRH,1),af,pw:fmt(pw,2),Q:fmt(Q,2),eer:fmt(eer,2),tE:tE!=null?fmt(tE,1):"--",sh:sh!=null?fmt(sh,1):"--",tC:tCond!=null?fmt(tCond,1):"--",sP:fmt(sP,1),dP:fmt(dP,1),unit},...p]);
     setShowLog(true);
   }
@@ -267,7 +267,7 @@ function AirAir({unit,job,uid,setLog,setShowLog}){
         <span><span className="ik">W</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(WO*1000,2)}</span><span className="iu"> g/kg</span></span>
       </div>
     </div>
-    <RefSec unit={unit} ref={ref} setRef={setRef} sP={sP} setSP={setSP} dP={dP} setDP={setDP} sT={sT} setST={setST}/>
+    <RefSec unit={unit} refr={ref} setRefr={setRef} sP={sP} setSP={setSP} dP={dP} setDP={setDP} sT={sT} setST={setST}/>
     <div className="card">
       <div className="slbl">Airflow and Electrical Input</div>
       <div className="two">
@@ -320,7 +320,7 @@ function AirLiquid({unit,job,uid,setLog,setShowLog}){
   const eer=pw>0?Qa/pw:0,bal=Qa>0?((Qw-Qa)/Qa)*100:0;
   const mn=unit==="F"?23:-5,mx=unit==="F"?113:45,ec=eCol(eer);
   function save(){
-    const tE=ref!=="Other"?satT(ref,sP):null;const sC=unit==="F"?C(sT):sT;const sh=tE!=null?sC-tE:null;const tCond=ref!=="Other"?satT(ref,dP):null;
+    const tE=refr!=="Other"?satT(refr,sP):null;const sC=unit==="F"?C(sT):sT;const sh=tE!=null?sC-tE:null;const tCond=ref!=="Other"?satT(ref,dP):null;
     setLog(p=>[{id:Date.now(),date:new Date().toLocaleString(),mode:'Air/Liquid',job:job||"--",uid:uid||"--",ref,t1:fmt(F(eC),2),t2:fmt(F(lC),2),wb1:d(wBE,2),wb2:d(wBL,2),rh1:fmt(eRH,1),rh2:fmt(lRH,1),wTi:fmt(F(wTiC),2),wTo:fmt(F(wToC),2),wF:fmt(wF,3),af,pw:fmt(pw,2),Q:fmt(Qa,2),Qw:fmt(Qw,2),eer:fmt(eer,2),tE:tE!=null?fmt(tE,1):"--",sh:sh!=null?fmt(sh,1):"--",tC:tCond!=null?fmt(tCond,1):"--",sP:fmt(sP,1),dP:fmt(dP,1),unit},...p]);
     setShowLog(true);
   }
@@ -391,7 +391,7 @@ function AirLiquid({unit,job,uid,setLog,setShowLog}){
         </div>
       </div>
     </div>
-    <RefSec unit={unit} ref={ref} setRef={setRef} sP={sP} setSP={setSP} dP={dP} setDP={setDP} sT={sT} setST={setST}/>
+    <RefSec unit={unit} refr={ref} setRefr={setRef} sP={sP} setSP={setSP} dP={dP} setDP={setDP} sT={sT} setST={setST}/>
     <div className="res">
       <div className="rl2">Results</div>
       <div className="rg">
@@ -435,7 +435,7 @@ function LiqLiq({unit,job,uid,setLog,setShowLog}){
   const eer=pw>0?Qc/pw:0,bal=Qc>0?((Qh-Qc)/Qc)*100:0;
   const ec=eCol(eer);
   function save(){
-    const tE=ref!=="Other"?satT(ref,sP):null;const sC=unit==="F"?C(sT):sT;const sh=tE!=null?sC-tE:null;const tCond=ref!=="Other"?satT(ref,dP):null;
+    const tE=refr!=="Other"?satT(refr,sP):null;const sC=unit==="F"?C(sT):sT;const sh=tE!=null?sC-tE:null;const tCond=ref!=="Other"?satT(ref,dP):null;
     setLog(p=>[{id:Date.now(),date:new Date().toLocaleString(),mode:'Liq/Liq',job:job||"--",uid:uid||"--",ref,t1:fmt(F(cTiC),2),t2:fmt(F(cToC),2),wb1:"--",wb2:"--",rh1:"--",rh2:"--",wTi:fmt(F(hTiC),2),wTo:fmt(F(hToC),2),wF:fmt(hF,3),af:"--",pw:fmt(pw,2),Q:fmt(Qc,2),Qw:fmt(Qh,2),eer:fmt(eer,2),tE:tE!=null?fmt(tE,1):"--",sh:sh!=null?fmt(sh,1):"--",tC:tCond!=null?fmt(tCond,1):"--",sP:fmt(sP,1),dP:fmt(dP,1),unit},...p]);
     setShowLog(true);
   }
@@ -488,7 +488,7 @@ function LiqLiq({unit,job,uid,setLog,setShowLog}){
       <div className="bar-l"><span>COP: <strong style={{color:ec}}>{fmt(eer,2)} - {eLbl(eer)}</strong></span></div>
       <div className="bar-t"><div className="bar-f" style={{width:Math.min(100,(eer/6)*100)+'%',background:ec}}/></div>
     </div>
-    <RefSec unit={unit} ref={ref} setRef={setRef} sP={sP} setSP={setSP} dP={dP} setDP={setDP} sT={sT} setST={setST}/>
+    <RefSec unit={unit} refr={ref} setRefr={setRef} sP={sP} setSP={setSP} dP={dP} setDP={setDP} sT={sT} setST={setST}/>
     <div className="res">
       <div className="rl2">Results</div>
       <div className="rg">
