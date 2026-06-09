@@ -254,8 +254,8 @@ function AirAir({unit,job,uid,setLog,setShowLog}){
       <div className="slbl" style={{color:'#fbbf24'}}>Outdoor Unit - Ambient (Condenser)</div>
       <div className="two">
         <div className="field"><div className="lbl"><span>Ambient DB</span><span className="utag">deg {unit}</span></div>
-          <input type="number" min={mn} max={mx} step={0.01} value={oDB} onChange={e=>setODB(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}}/>
-          <input type="range" min={mn} max={mx} step={0.1} value={oDB} onChange={e=>setODB(parseFloat(e.target.value))}/>
+          <input type="number" min={mn} max={mx} step={0.01} value={oDB} onChange={e=>setODB(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}} max={unit==="F"?140:60}/>
+          <input type="range" min={mn} max={mx} step={0.1} value={oDB} onChange={e=>setODB(parseFloat(e.target.value))} max={unit==="F"?140:60}/>
         </div>
         <div className="field"><div className="lbl"><span>Relative Humidity</span><span className="utag">%</span></div>
           <input type="number" min={0} max={100} step={0.01} value={oRH} onChange={e=>setORH(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}}/>
