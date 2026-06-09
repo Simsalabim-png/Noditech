@@ -201,8 +201,8 @@ function AirAir({unit,job,uid,setLog,setShowLog}){
           <input type="range" min={mn} max={mx} step={0.1} value={eDB} onChange={e=>setEDB(parseFloat(e.target.value))}/>
         </div>
         <div className="field"><div className="lbl"><span>Relative Humidity</span><span className="utag">%</span></div>
-          <input type="number" min={5} max={100} step={0.1} value={eRH} onChange={e=>setERH(parseFloat(e.target.value)||0)}/>
-          <input type="range" min={5} max={100} step={0.1} value={eRH} onChange={e=>setERH(parseFloat(e.target.value))}/>
+          <input type="number" min={0} max={100} step={0.01} value={eRH} onChange={e=>setERH(parseFloat(e.target.value)||0)}/>
+          <input type="range" min={0} max={100} step={0.01} value={eRH} onChange={e=>setERH(parseFloat(e.target.value))}/>
         </div>
       </div>
       <div className="irow">
@@ -220,8 +220,8 @@ function AirAir({unit,job,uid,setLog,setShowLog}){
           <input type="range" min={mn} max={mx} step={0.1} value={lDB} onChange={e=>setLDB(parseFloat(e.target.value))}/>
         </div>
         <div className="field"><div className="lbl"><span>Leaving RH</span><span className="utag">% measured</span></div>
-          <input type="number" min={5} max={100} step={0.1} value={lRH} onChange={e=>setLRH(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(56,189,248,.4)'}}/>
-          <input type="range" min={5} max={100} step={0.1} value={lRH} onChange={e=>setLRH(parseFloat(e.target.value))}/>
+          <input type="number" min={0} max={100} step={0.01} value={lRH} onChange={e=>setLRH(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(56,189,248,.4)'}}/>
+          <input type="range" min={0} max={100} step={0.01} value={lRH} onChange={e=>setLRH(parseFloat(e.target.value))}/>
         </div>
       </div>
       {lDB>=eDB&&<div className="warn">Leaving DB must be below entering DB</div>}
@@ -333,8 +333,8 @@ function AirLiquid({unit,job,uid,setLog,setShowLog}){
           <input type="range" min={mn} max={mx} step={0.1} value={eDB} onChange={e=>setEDB(parseFloat(e.target.value))}/>
         </div>
         <div className="field"><div className="lbl"><span>Relative Humidity</span><span className="utag">%</span></div>
-          <input type="number" min={5} max={100} step={0.1} value={eRH} onChange={e=>setERH(parseFloat(e.target.value)||0)}/>
-          <input type="range" min={5} max={100} step={0.1} value={eRH} onChange={e=>setERH(parseFloat(e.target.value))}/>
+          <input type="number" min={0} max={100} step={0.01} value={eRH} onChange={e=>setERH(parseFloat(e.target.value)||0)}/>
+          <input type="range" min={0} max={100} step={0.01} value={eRH} onChange={e=>setERH(parseFloat(e.target.value))}/>
         </div>
       </div>
       <div className="irow">
@@ -351,8 +351,8 @@ function AirLiquid({unit,job,uid,setLog,setShowLog}){
           <input type="range" min={mn} max={mx} step={0.1} value={lDB} onChange={e=>setLDB(parseFloat(e.target.value))}/>
         </div>
         <div className="field"><div className="lbl"><span>Leaving RH</span><span className="utag">% measured</span></div>
-          <input type="number" min={5} max={100} step={0.1} value={lRH} onChange={e=>setLRH(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(56,189,248,.4)'}}/>
-          <input type="range" min={5} max={100} step={0.1} value={lRH} onChange={e=>setLRH(parseFloat(e.target.value))}/>
+          <input type="number" min={0} max={100} step={0.01} value={lRH} onChange={e=>setLRH(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(56,189,248,.4)'}}/>
+          <input type="range" min={0} max={100} step={0.01} value={lRH} onChange={e=>setLRH(parseFloat(e.target.value))}/>
         </div>
       </div>
       <div className="irow" style={{marginTop:10}}>
