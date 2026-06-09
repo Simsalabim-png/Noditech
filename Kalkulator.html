@@ -327,22 +327,22 @@ function AirLiquid({unit,job,uid,setLog,setShowLog}){
     setShowLog(true);
   }
   return(<>
-    <div className="card">
-      <div className="slbl">Air Side Inn - Return Air</div>
+    <div className="card" style={{borderColor:'rgba(251,191,36,.18)'}}>
+      <div className="slbl" style={{color:'#fbbf24'}}>Ambient - Entering Air (Outdoor)</div>
       <div className="two">
-        <div className="field"><div className="lbl"><span>Dry-Bulb</span><span className="utag">deg {unit}</span></div>
-          <input type="number" min={mn} max={mx} step={0.01} value={eDB} onChange={e=>setEDB(parseFloat(e.target.value)||0)}/>
-          <input type="range" min={mn} max={mx} step={0.1} value={eDB} onChange={e=>setEDB(parseFloat(e.target.value))}/>
+        <div className="field"><div className="lbl"><span>Ambient Dry-Bulb <span className="badge bd">DB</span></span><span className="utag">deg {unit}</span></div>
+          <input type="number" min={mn} max={unit==="F"?140:60} step={0.01} value={eDB} onChange={e=>setEDB(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}}/>
+          <input type="range" min={mn} max={unit==="F"?140:60} step={0.1} value={eDB} onChange={e=>setEDB(parseFloat(e.target.value))}/>
         </div>
-        <div className="field"><div className="lbl"><span>Relative Humidity</span><span className="utag">%</span></div>
-          <input type="number" min={0} max={100} step={0.01} value={eRH} onChange={e=>setERH(parseFloat(e.target.value)||0)}/>
+        <div className="field"><div className="lbl"><span>Ambient Relative Humidity</span><span className="utag">%</span></div>
+          <input type="number" min={0} max={100} step={0.01} value={eRH} onChange={e=>setERH(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}}/>
           <input type="range" min={0} max={100} step={0.01} value={eRH} onChange={e=>setERH(parseFloat(e.target.value))}/>
         </div>
       </div>
-      <div className="irow">
-        <span><span className="ik">WBinn</span><span className="iv">{d(wBE,2)} deg {unit}</span></span>
-        <span><span className="ik">h_inn</span><span className="iv">{fmt(hE)}</span><span className="iu"> kJ/kg</span></span>
-        <span><span className="ik">v</span><span className="iv">{fmt(vE,4)}</span><span className="iu"> m3/kg</span></span>
+      <div className="irow" style={{borderColor:'rgba(251,191,36,.25)',background:'rgba(251,191,36,.06)'}}>
+        <span><span className="ik">WB</span><span className="iv" style={{color:'#fbbf24'}}>{d(wBE,2)} deg {unit}</span></span>
+        <span><span className="ik">h_inn</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(hE)}</span><span className="iu"> kJ/kg</span></span>
+        <span><span className="ik">v</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(vE,4)}</span><span className="iu"> m3/kg</span></span>
       </div>
     </div>
     <div className="card" style={{borderColor:'rgba(56,189,248,.2)'}}>
