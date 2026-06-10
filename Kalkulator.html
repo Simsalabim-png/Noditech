@@ -874,8 +874,9 @@ function EnergyRating({mode}){
   });
   const ISEER=CSEC>0?CSTL/CSEC:0;
   function iseerStars(v){
-    if(v>=5.00)return{stars:5,label:"5 Star",color:"#22c55e"};
-    if(v>=4.50)return{stars:4,label:"4 Star",color:"#86efac"};
+    // BEE Label Period 6 — effective 2025-2026
+    if(v>=5.20)return{stars:5,label:"5 Star",color:"#22c55e"};
+    if(v>=4.70)return{stars:4,label:"4 Star",color:"#86efac"};
     if(v>=4.00)return{stars:3,label:"3 Star",color:"#facc15"};
     if(v>=3.50)return{stars:2,label:"2 Star",color:"#fb923c"};
     return{stars:1,label:"1 Star",color:"#f87171"};
@@ -1069,7 +1070,7 @@ function EnergyRating({mode}){
             <RatingCard title="India BEE" value={fn(ISEER,2)} label="ISEER"
               badge={indiaRating.label} badgeColor={indiaRating.color} sub={stars(indiaRating.stars)}
               color={indiaRating.color}
-              notes={<><div>CSTL: {fn(CSTL/1000,1)} kWh/yr</div><div>CSEC: {fn(CSEC,1)} kWh/yr</div><div style={{color:'#64748b',marginTop:4}}>IS 1391 Pt2 · 20 bins · 24–43°C</div></>}/>
+              notes={<><div>CSTL: {fn(CSTL/1000,1)} kWh/yr</div><div>CSEC: {fn(CSEC,1)} kWh/yr</div><div style={{color:'#64748b',marginTop:4}}>IS 1391 Pt2 · BEE LP6 2025-26</div></>}/>
             <RatingCard title="EU ErP / EN 14825" value={fn(SEER_EU,2)} label="SEER"
               badge={euRating_AA.cls} badgeBg={euRating_AA.bg} badgeColor={euRating_AA.color} sub="EU Energy Label"
               color="#38bdf8"
