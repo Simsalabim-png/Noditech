@@ -863,14 +863,26 @@ function EnergyRating({mode}){
   function coolLoad(t){return (capFull35/1000)*((t-T0)/(T100-T0));}
   let CSTL=0,CSEC=0;
   indiaBins.forEach(({t,h})=>{
-    const load=coolLoad(t);if(load<=0)return;
+    const bldLoad=coolLoad(t);if(bldLoad<=0)return;
     const capF=capFullT(t)/1000,capH=capHalfT(t)/1000;
     const powF=powFullT(t)/1000,powH=powHalfT(t)/1000;
     const eerF=powF>0?capF/powF:0;
+    const eerH=powH>0?capH/powH:0;
+    // CSTL = heat actually removed = min(building load, AC capacity)
+    const load=Math.min(bldLoad,capF);
     CSTL+=load*h;
-    if(load<=capH){const X=load/capH;CSEC+=(powH/(1-Cd*(1-X)))*h;}
-    else if(load<=capF){const X=(load-capH)/(capF-capH);CSEC+=(powH+X*(powF-powH))*h;}
-    else{CSEC+=(capF/eerF)*h;}
+    // CSEC: E = load / (EER * PLF) for part-load, load/EER for interpolated
+    if(load<=capH){
+      const X=load/capH;
+      const PLF=1-Cd*(1-X);
+      CSEC+=(load/(eerH*PLF))*h;
+    } else if(bldLoad<=capF){
+      const X=(load-capH)/(capF-capH);
+      const eerInterp=eerH+X*(eerF-eerH);
+      CSEC+=(load/eerInterp)*h;
+    } else {
+      CSEC+=(capF/eerF)*h;
+    }
   });
   const ISEER=CSEC>0?CSTL/CSEC:0;
   function iseerStars(v){
