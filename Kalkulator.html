@@ -820,34 +820,51 @@ function toggleGuide(id){
 
 // ── Energy Rating Calculator ─────────────────────────────────────────────
 function EnergyRating({mode}){
-  // A/A inputs
-  const [capFull35, setCapFull35] = React.useState(5103);
-  const [powFull35, setPowFull35] = React.useState(1224);
-  const [capHalf35, setCapHalf35] = React.useState(2496);
-  const [powHalf35, setPowHalf35] = React.useState(483);
-  const [capFull29, setCapFull29] = React.useState(5496);
-  const [powFull29, setPowFull29] = React.useState(1119);
-  const [capB,      setCapB]      = React.useState(5800);
-  const [powB,      setPowB]      = React.useState(950);
-  // A/L + L/L inputs — EER at 4 load points
+  const [open,    setOpen]    = React.useState(false);
+  const [tab,     setTab]     = React.useState('iseer'); // iseer | eu | us
+
+  // ── ISEER inputs (India BEE IS 1391 Part 2) ──────────────────────────
+  // Full load: 35°C out / 27°C in / 19°C WB
+  // Half load: 35°C out / 27°C in / 19°C WB (locked 50%)
+  // Curve ref: 29°C out / full load only
+  const [i_capF35, setI_capF35] = React.useState(5103);
+  const [i_powF35, setI_powF35] = React.useState(1224);
+  const [i_capH35, setI_capH35] = React.useState(2496);
+  const [i_powH35, setI_powH35] = React.useState(483);
+  const [i_capF29, setI_capF29] = React.useState(5496);
+  const [i_powF29, setI_powF29] = React.useState(1119);
+  const [i_Cd,     setI_Cd]     = React.useState(0.25);
+
+  // ── EU SEER inputs (EN 14825 / ErP Reg 2016/2281) ────────────────────
+  // Full load: 35°C out / 27°C in / 19°C WB
+  // Curve ref: 29°C out / full load only (for bin interpolation)
+  // EU does NOT use half load test — uses bin interpolation only
+  const [e_capF35, setE_capF35] = React.useState(5103);
+  const [e_powF35, setE_powF35] = React.useState(1224);
+  const [e_capF29, setE_capF29] = React.useState(5496);
+  const [e_powF29, setE_powF29] = React.useState(1119);
+  const [e_Cd,     setE_Cd]     = React.useState(0.25);
+
+  // ── US SEER2 inputs (AHRI 210/240-2023) ──────────────────────────────
+  // A-test: 95°F (35°C) out / 80°F (26.7°C) in / 67°F WB
+  // B-test: 82°F (27.8°C) out / 80°F in / 65°F WB
+  const [u_capA,   setU_capA]   = React.useState(5103);
+  const [u_powA,   setU_powA]   = React.useState(1224);
+  const [u_capB,   setU_capB]   = React.useState(5800);
+  const [u_powB,   setU_powB]   = React.useState(950);
+  const [u_Cd,     setU_Cd]     = React.useState(0.25);
+
+  // ── A/L + L/L shared EER inputs ──────────────────────────────────────
   const [eer100, setEer100] = React.useState(3.0);
   const [eer75,  setEer75]  = React.useState(3.8);
   const [eer50,  setEer50]  = React.useState(4.5);
   const [eer25,  setEer25]  = React.useState(5.2);
-  // Chilled water temps
-  const [cwSupply, setCwSupply] = React.useState(7);
-  const [cwReturn, setCwReturn] = React.useState(12);
-  const [Cd, setCd] = React.useState(0.25);
-  const [open, setOpen] = React.useState(false);
 
+  const isAA=mode==="aa", isAL=mode==="al", isLL=mode==="ll";
   function fn(n,d=2){if(!isFinite(n)||isNaN(n))return"--";return n.toFixed(d);}
-  function stars(n){return "★".repeat(n)+"☆".repeat(5-n);}
+  function stars(n){return"★".repeat(n)+"☆".repeat(5-n);}
 
-  const isAA = mode==="aa";
-  const isAL = mode==="al";
-  const isLL = mode==="ll";
-
-  // ── A/A: ISEER ───────────────────────────────────────────────────────
+  // ── ISEER calculation ─────────────────────────────────────────────────
   const indiaBins=[
     {t:24,h:146},{t:25,h:163},{t:26,h:177},{t:27,h:183},
     {t:28,h:167},{t:29,h:150},{t:30,h:125},{t:31,h:104},
@@ -855,38 +872,26 @@ function EnergyRating({mode}){
     {t:36,h:36},{t:37,h:28},{t:38,h:22},{t:39,h:16},
     {t:40,h:12},{t:41,h:9},{t:42,h:6},{t:43,h:3},
   ];
-  const T0=23,Tb=35,Tc=29,T100=43;
-  function capFullT(t){return capFull35+(capFull29-capFull35)*(Tb-t)/(Tb-Tc);}
-  function powFullT(t){return powFull35+(powFull29-powFull35)*(Tb-t)/(Tb-Tc);}
-  function capHalfT(t){return capFullT(t)*(capFull35>0?capHalf35/capFull35:0.5);}
-  function powHalfT(t){return powFullT(t)*(powFull35>0?powHalf35/powFull35:0.5);}
-  function coolLoad(t){return (capFull35/1000)*((t-T0)/(T100-T0));}
+  const T0=23,Tb=35,Tc=29;
+  const i_capFullT=t=>i_capF35+(i_capF29-i_capF35)*(Tb-t)/(Tb-Tc);
+  const i_powFullT=t=>i_powF35+(i_powF29-i_powF35)*(Tb-t)/(Tb-Tc);
+  const i_capHalfT=t=>i_capF29>0?i_capFullT(t)*(i_capH35/i_capF35):i_capFullT(t)*0.5;
+  const i_powHalfT=t=>i_powF29>0?i_powFullT(t)*(i_powH35/i_powF35):i_powFullT(t)*0.5;
+  const coolLoad=t=>t>T0?(i_capF35/1000)*(t-T0)/(Tb-T0):0;
   let CSTL=0,CSEC=0;
   indiaBins.forEach(({t,h})=>{
-    const bldLoad=coolLoad(t);if(bldLoad<=0)return;
-    const capF=capFullT(t)/1000,capH=capHalfT(t)/1000;
-    const powF=powFullT(t)/1000,powH=powHalfT(t)/1000;
-    const eerF=powF>0?capF/powF:0;
-    const eerH=powH>0?capH/powH:0;
-    // CSTL = heat actually removed = min(building load, AC capacity)
-    const load=Math.min(bldLoad,capF);
+    const bld=coolLoad(t);if(bld<=0)return;
+    const cF=i_capFullT(t)/1000,cH=i_capHalfT(t)/1000;
+    const pF=i_powFullT(t)/1000,pH=i_powHalfT(t)/1000;
+    const eerF=cF/pF,eerH=cH/pH;
+    const load=Math.min(bld,cF);
     CSTL+=load*h;
-    // CSEC: E = load / (EER * PLF) for part-load, load/EER for interpolated
-    if(load<=capH){
-      const X=load/capH;
-      const PLF=1-Cd*(1-X);
-      CSEC+=(load/(eerH*PLF))*h;
-    } else if(bldLoad<=capF){
-      const X=(load-capH)/(capF-capH);
-      const eerInterp=eerH+X*(eerF-eerH);
-      CSEC+=(load/eerInterp)*h;
-    } else {
-      CSEC+=(capF/eerF)*h;
-    }
+    if(load<=cH){const X=load/cH;CSEC+=(load/(eerH*(1-i_Cd*(1-X))))*h;}
+    else if(bld<=cF){const X=(load-cH)/(cF-cH);CSEC+=(load/(eerH+X*(eerF-eerH)))*h;}
+    else{CSEC+=(cF/eerF)*h;}
   });
   const ISEER=CSEC>0?CSTL/CSEC:0;
   function iseerStars(v){
-    // BEE Label Period 6 — effective 2025-2026
     if(v>=5.20)return{stars:5,label:"5 Star",color:"#22c55e"};
     if(v>=4.70)return{stars:4,label:"4 Star",color:"#86efac"};
     if(v>=4.00)return{stars:3,label:"3 Star",color:"#facc15"};
@@ -895,20 +900,20 @@ function EnergyRating({mode}){
   }
   const indiaRating=iseerStars(ISEER);
 
-  // ── A/A: EU SEER (EN 14825) ──────────────────────────────────────────
+  // ── EU SEER calculation ───────────────────────────────────────────────
   const euBins=[{t:20,h:205},{t:25,h:227},{t:30,h:225},{t:35,h:270}];
-  function capEU(t){return capFull35+(capFull29-capFull35)*(35-t)/(35-29);}
-  function powEU(t){return powFull35+(powFull29-powFull35)*(35-t)/(35-29);}
-  const Pref=capFull35/1000;
+  const e_capT=t=>e_capF35+(e_capF29-e_capF35)*(35-t)/(35-29);
+  const e_powT=t=>e_powF35+(e_powF29-e_powF35)*(35-t)/(35-29);
+  const Pref=e_capF35/1000;
   let CSTL_EU=0,CSEC_EU=0;
   euBins.forEach(({t,h})=>{
     const pl=Math.max(0,(t-16)/(35-16));
     const load=Pref*pl;if(load<=0)return;
-    const cap=Math.min(capEU(t)/1000,Pref);
-    const pow=powEU(t)/1000;
+    const cap=Math.min(e_capT(t)/1000,Pref);
+    const pow=e_powT(t)/1000;
     const eer=pow>0?cap/pow:0;
     CSTL_EU+=load*h;
-    if(load<=cap){const X=load/cap;CSEC_EU+=(load/eer/(1-Cd*(1-X)))*h;}
+    if(load<=cap){const X=load/cap;CSEC_EU+=(load/(eer*(1-e_Cd*(1-X))))*h;}
     else{CSEC_EU+=(cap/eer)*h;}
   });
   const SEER_EU=CSEC_EU>0?CSTL_EU/CSEC_EU:0;
@@ -922,31 +927,30 @@ function EnergyRating({mode}){
     if(v>=3.6)return{cls:"D",   color:"#ea580c",bg:"#fff7ed"};
     return{cls:"E",color:"#dc2626",bg:"#fef2f2"};
   }
-  const euRating_AA=euClass(SEER_EU);
+  const euRating=euClass(SEER_EU);
 
-  // ── A/A: US SEER2 (AHRI 210/240) ─────────────────────────────────────
+  // ── US SEER2 calculation ──────────────────────────────────────────────
   const indoorCorr=0.997;
-  const capA=capFull35*indoorCorr,powA=powFull35*indoorCorr;
   const usBins=[
     {t:67,h:214},{t:72,h:231},{t:77,h:243},{t:82,h:253},
     {t:87,h:234},{t:92,h:189},{t:97,h:128},{t:102,h:63},{t:107,h:12},
   ];
-  function capUS_W(f){return capA+(capB-capA)*(95-f)/(95-82);}
-  function powUS_W(f){return powA+(powB-powA)*(95-f)/(95-82);}
-  const refCapUS=capA/1000;
+  const u_capAt=f=>u_capA*indoorCorr+(u_capB-u_capA*indoorCorr)*(95-f)/(95-82);
+  const u_powAt=f=>u_powA*indoorCorr+(u_powB-u_powA*indoorCorr)*(95-f)/(95-82);
+  const refCapUS=(u_capA*indoorCorr)/1000;
   let CSTL_US=0,CSEC_US=0;
   usBins.forEach(({t,h})=>{
     const pl=Math.max(0,(t-65)/(95-65));
     const load=refCapUS*pl;if(load<=0)return;
-    const cap=Math.min(capUS_W(t)/1000,refCapUS);
-    const pow=powUS_W(t)/1000;
+    const cap=Math.min(u_capAt(t)/1000,refCapUS);
+    const pow=u_powAt(t)/1000;
     const eer=pow>0?cap/pow:0;
     CSTL_US+=load*h;
-    if(load<=cap){const X=load/cap;CSEC_US+=(load/eer/(1-Cd*(1-X)))*h;}
+    if(load<=cap){const X=load/cap;CSEC_US+=(load/(eer*(1-u_Cd*(1-X))))*h;}
     else{CSEC_US+=(cap/eer)*h;}
   });
   const SEER_US=CSEC_US>0?(CSTL_US/CSEC_US)*3.412:0;
-  const EER_US_AA=(capA/powA)*3.412;
+  const EER_US=(u_capA*indoorCorr/u_powA/indoorCorr)*3.412;
   function usClass(v){
     if(v>=22)return{cls:"Energy Star",detail:"Top tier",    color:"#15803d",bg:"#dcfce7"};
     if(v>=18)return{cls:"High Eff.",  detail:"Above std",   color:"#65a30d",bg:"#f7fee7"};
@@ -954,15 +958,11 @@ function EnergyRating({mode}){
     if(v>=14)return{cls:"Marginal",   detail:"Near min",    color:"#ea580c",bg:"#fff7ed"};
     return{cls:"Below Min",detail:"Fails DOE min",color:"#dc2626",bg:"#fef2f2"};
   }
-  const usRating_AA=usClass(SEER_US);
+  const usRating=usClass(SEER_US);
 
-  // ── A/L: ESEER (EN 14825) + IPLV (AHRI 550/590) ──────────────────────
-  // ESEER = 0.03*EER100 + 0.33*EER75 + 0.41*EER50 + 0.23*EER25
-  // Test conditions: CW 7°C supply / 12°C return, outdoor 35/30/25/20°C
-  const ESEER_AL = 0.03*eer100 + 0.33*eer75 + 0.41*eer50 + 0.23*eer25;
-  // IPLV (AHRI 550/590) = 0.01*A + 0.42*B + 0.45*C + 0.12*D
-  // A=100% (35°C), B=75% (26.7°C), C=50% (18.3°C), D=25% (12.8°C)
-  const IPLV_AL = 0.01*eer100 + 0.42*eer75 + 0.45*eer50 + 0.12*eer25;
+  // ── Chiller ESEER / IPLV ──────────────────────────────────────────────
+  const ESEER=0.03*eer100+0.33*eer75+0.41*eer50+0.23*eer25;
+  const IPLV =0.01*eer100+0.42*eer75+0.45*eer50+0.12*eer25;
   function euClassChiller(v){
     if(v>=6.4)return{cls:"A+++",color:"#166534",bg:"#bbf7d0"};
     if(v>=5.5)return{cls:"A++", color:"#15803d",bg:"#dcfce7"};
@@ -973,56 +973,44 @@ function EnergyRating({mode}){
     if(v>=3.0)return{cls:"D",   color:"#ea580c",bg:"#fff7ed"};
     return{cls:"E",color:"#dc2626",bg:"#fef2f2"};
   }
-  const euRating_AL=euClassChiller(ESEER_AL);
   function iplvClass(v){
     if(v>=5.0)return{cls:"High Eff.",color:"#15803d"};
     if(v>=3.8)return{cls:"Standard", color:"#65a30d"};
     if(v>=3.0)return{cls:"Min req.", color:"#ca8a04"};
     return{cls:"Below min",color:"#dc2626"};
   }
-  const iplvRating_AL=iplvClass(IPLV_AL);
+  const euChillerRating=euClassChiller(ESEER);
+  const iplvRating=iplvClass(IPLV);
 
-  // ── L/L: ESEER (EN 14511) + IPLV (AHRI 550/590) ──────────────────────
-  // Same weighted formula but different test conditions:
-  // EU: Condenser water 30°C in / 35°C out at full load
-  // US: Condenser water 29.4/23.9/18.3/12.8°C at 100/75/50/25%
-  const ESEER_LL = 0.03*eer100 + 0.33*eer75 + 0.41*eer50 + 0.23*eer25;
-  const IPLV_LL  = 0.01*eer100 + 0.42*eer75 + 0.45*eer50 + 0.12*eer25;
-  const euRating_LL=euClassChiller(ESEER_LL);
-  const iplvRating_LL=iplvClass(IPLV_LL);
+  // ── Tab button style ──────────────────────────────────────────────────
+  function tabStyle(id){
+    const on=tab===id;
+    const cols={iseer:'#fbbf24',eu:'#38bdf8',us:'#a855f7'};
+    const c=cols[id]||'#38bdf8';
+    return{flex:1,padding:'8px 6px',borderRadius:7,border:'1px solid',
+      borderColor:on?c:'rgba(255,255,255,.08)',
+      background:on?`rgba(${id==='iseer'?'245,158,11':id==='eu'?'56,189,248':'139,92,246'},.12)`:'rgba(255,255,255,.02)',
+      color:on?c:'#475569',fontFamily:'DM Mono,monospace',fontSize:11,cursor:'pointer',
+      transition:'all .2s'};
+  }
 
-  // ── Render helpers ────────────────────────────────────────────────────
-  function NumInput({label,val,set,utag}){
+  function Num({label,val,set,utag,step=1}){
     return(
       <div className="field">
         <div className="lbl"><span>{label}</span><span className="utag">{utag}</span></div>
-        <input type="number" step={1} value={val} onChange={e=>set(parseFloat(e.target.value)||0)}/>
-      </div>
-    );
-  }
-  function RatingCard({title,value,label,sub,badge,badgeBg,badgeColor,detail,color,notes}){
-    return(
-      <div style={{background:'rgba(0,0,0,.25)',borderRadius:12,padding:'16px 14px',border:'1px solid '+color+'44'}}>
-        <div style={{fontSize:9,letterSpacing:'.15em',textTransform:'uppercase',color,marginBottom:10}}>{title}</div>
-        <div style={{fontFamily:'Syne,sans-serif',fontSize:30,fontWeight:800,color,lineHeight:1}}>{value}</div>
-        <div style={{fontSize:10,color:'#64748b',marginTop:2,marginBottom:10}}>{label}</div>
-        <div style={{background:badgeBg||'rgba(0,0,0,.2)',borderRadius:8,padding:'8px 10px',textAlign:'center',border:'1px solid '+badgeColor+'66'}}>
-          <div style={{fontFamily:'Syne,sans-serif',fontSize:badge.length>6?13:18,fontWeight:700,color:badgeColor}}>{badge}</div>
-          {sub&&<div style={{fontSize:10,color:'#64748b',marginTop:2}}>{sub}</div>}
-        </div>
-        {notes&&<div style={{marginTop:10,fontSize:9,color:'#475569',lineHeight:1.7}}>{notes}</div>}
+        <input type="number" step={step} value={val} onChange={e=>set(parseFloat(e.target.value)||0)}/>
       </div>
     );
   }
 
-  const modeLabel = isAA?"Air / Air":isAL?"Air / Liquid":"Liquid / Liquid";
+  const modeLabel=isAA?"Air / Air":isAL?"Air / Liquid":"Liquid / Liquid";
 
   return(
-    <div className="card" style={{borderColor:'rgba(56,189,248,.2)',marginTop:14}}>
+    <div className="card" style={{borderColor:'rgba(56,189,248,.15)',marginTop:14}}>
       <button className="guide-btn" onClick={()=>setOpen(v=>!v)} style={{marginBottom:open?14:0}}>
         <span>Energy Rating — {modeLabel} &nbsp;
           <span style={{fontSize:10,opacity:.6}}>
-            {isAA?"ISEER · SEER (EU) · SEER2 (US)":"ESEER (EU EN 14511) · IPLV (US AHRI 550/590)"}
+            {isAA?"ISEER · SEER (EU) · SEER2 (US)":"ESEER (EU) · IPLV (US)"}
           </span>
         </span>
         <span style={{transition:'transform .2s',transform:open?'rotate(180deg)':'none'}}>&#9660;</span>
@@ -1030,105 +1018,191 @@ function EnergyRating({mode}){
 
       {open&&isAA&&(
         <div>
-          {/* Test condition badges */}
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:14}}>
-            <div style={{background:'rgba(245,158,11,.07)',border:'1px solid rgba(245,158,11,.2)',borderRadius:8,padding:'8px 10px',fontSize:9,color:'#fbbf24',lineHeight:1.6}}>
-              <strong>ISEER (IS 1391 Part 2)</strong><br/>
-              Full: 35°C out / 27°C in / 19°C WB<br/>
-              Half: 35°C out / 27°C in (locked 50%)<br/>
-              Curve: 29°C out / full load only
-            </div>
-            <div style={{background:'rgba(56,189,248,.07)',border:'1px solid rgba(56,189,248,.2)',borderRadius:8,padding:'8px 10px',fontSize:9,color:'#7dd3fc',lineHeight:1.6}}>
-              <strong>EU EN 14825 / ErP</strong><br/>
-              Full: 35°C out / 27°C in / 19°C WB<br/>
-              Part: 30/25/20°C out / 27°C in<br/>
-              Curve: 29°C ref
-            </div>
-            <div style={{background:'rgba(139,92,246,.07)',border:'1px solid rgba(139,92,246,.2)',borderRadius:8,padding:'8px 10px',fontSize:9,color:'#c4b5fd',lineHeight:1.6}}>
-              <strong>US AHRI 210/240</strong><br/>
-              A: 95°F out / 80°F in / 67°F WB<br/>
-              B: 82°F out / 80°F in / 65°F WB<br/>
-              Indoor = 26.7°C (not 27°C)
-            </div>
-          </div>
-          <div className="slbl">Test Point Data — Air / Air</div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14,marginBottom:14}}>
-            <div>
-              <div style={{fontSize:9,color:'#fbbf24',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:8}}>35°C — Full load</div>
-              <NumInput label="Capacity" val={capFull35} set={setCapFull35} utag="W"/>
-              <NumInput label="Power" val={powFull35} set={setPowFull35} utag="W"/>
-              <div style={{fontSize:9,color:'#fbbf24',letterSpacing:'.1em',textTransform:'uppercase',margin:'10px 0 8px'}}>35°C — Half load (locked 50%)</div>
-              <NumInput label="Capacity" val={capHalf35} set={setCapHalf35} utag="W"/>
-              <NumInput label="Power" val={powHalf35} set={setPowHalf35} utag="W"/>
-            </div>
-            <div>
-              <div style={{fontSize:9,color:'#38bdf8',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:8}}>29°C — Curve reference (full only)</div>
-              <div style={{fontSize:9,color:'#64748b',marginBottom:8,lineHeight:1.5}}>Used to interpolate capacity across bins. Half load scaled proportionally.</div>
-              <NumInput label="Capacity full" val={capFull29} set={setCapFull29} utag="W"/>
-              <NumInput label="Power full" val={powFull29} set={setPowFull29} utag="W"/>
-              <div className="field" style={{marginTop:8}}>
-                <div className="lbl"><span>Degradation coeff. Cd</span><span className="utag">0–1</span></div>
-                <input type="number" min={0} max={1} step={0.01} value={Cd} onChange={e=>setCd(parseFloat(e.target.value)||0)}/>
+          {/* Results summary — always visible */}
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:16}}>
+            {/* ISEER card */}
+            <div style={{background:'rgba(0,0,0,.25)',borderRadius:12,padding:'14px',border:'1px solid rgba(245,158,11,.25)',cursor:'pointer',outline:tab==='iseer'?'2px solid #fbbf24':'none'}} onClick={()=>setTab('iseer')}>
+              <div style={{fontSize:9,letterSpacing:'.12em',textTransform:'uppercase',color:'#fbbf24',marginBottom:8}}>India BEE — ISEER</div>
+              <div style={{fontFamily:'Syne,sans-serif',fontSize:28,fontWeight:800,color:indiaRating.color,lineHeight:1}}>{fn(ISEER,2)}</div>
+              <div style={{fontSize:10,color:'#64748b',marginTop:2,marginBottom:8}}>ISEER</div>
+              <div style={{background:'rgba(0,0,0,.3)',borderRadius:7,padding:'7px',textAlign:'center'}}>
+                <div style={{fontSize:16,color:indiaRating.color}}>{stars(indiaRating.stars)}</div>
+                <div style={{fontFamily:'Syne,sans-serif',fontSize:12,fontWeight:700,color:indiaRating.color}}>{indiaRating.label}</div>
+              </div>
+              <div style={{fontSize:9,color:'#475569',marginTop:8,lineHeight:1.6}}>
+                <div>CSTL: {fn(CSTL/1000,2)} kWh/yr</div>
+                <div>CSEC: {fn(CSEC,2)} kWh/yr</div>
+                <div style={{color:'#64748b',marginTop:2}}>5★≥5.20 · 4★≥4.70 · 3★≥4.00</div>
               </div>
             </div>
-            <div>
-              <div style={{fontSize:9,color:'#c4b5fd',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:8}}>82°F / 27.8°C — US B-test only</div>
-              <div style={{fontSize:9,color:'#64748b',marginBottom:8,lineHeight:1.5}}>Full load at 82°F. Indoor = 80°F (26.7°C). Only used for US SEER2.</div>
-              <NumInput label="Capacity" val={capB} set={setCapB} utag="W"/>
-              <NumInput label="Power" val={powB} set={setPowB} utag="W"/>
+            {/* EU card */}
+            <div style={{background:'rgba(0,0,0,.25)',borderRadius:12,padding:'14px',border:'1px solid rgba(56,189,248,.25)',cursor:'pointer',outline:tab==='eu'?'2px solid #38bdf8':'none'}} onClick={()=>setTab('eu')}>
+              <div style={{fontSize:9,letterSpacing:'.12em',textTransform:'uppercase',color:'#38bdf8',marginBottom:8}}>EU ErP / EN 14825</div>
+              <div style={{fontFamily:'Syne,sans-serif',fontSize:28,fontWeight:800,color:'#38bdf8',lineHeight:1}}>{fn(SEER_EU,2)}</div>
+              <div style={{fontSize:10,color:'#64748b',marginTop:2,marginBottom:8}}>SEER</div>
+              <div style={{background:euRating.bg,borderRadius:7,padding:'7px',textAlign:'center',border:'1px solid '+euRating.color}}>
+                <div style={{fontFamily:'Syne,sans-serif',fontSize:20,fontWeight:800,color:euRating.color}}>{euRating.cls}</div>
+                <div style={{fontSize:10,color:euRating.color}}>EU Energy Label</div>
+              </div>
+              <div style={{fontSize:9,color:'#475569',marginTop:8,lineHeight:1.6}}>
+                <div>A+++≥8.5 · A++≥6.1 · A+≥5.6</div>
+                <div>A≥5.1 · B≥4.6 · C≥4.1</div>
+                <div style={{color:'#64748b',marginTop:2}}>Strasbourg bins · No half-load test</div>
+              </div>
+            </div>
+            {/* US card */}
+            <div style={{background:'rgba(0,0,0,.25)',borderRadius:12,padding:'14px',border:'1px solid rgba(139,92,246,.25)',cursor:'pointer',outline:tab==='us'?'2px solid #a855f7':'none'}} onClick={()=>setTab('us')}>
+              <div style={{fontSize:9,letterSpacing:'.12em',textTransform:'uppercase',color:'#a855f7',marginBottom:8}}>US AHRI 210/240</div>
+              <div style={{fontFamily:'Syne,sans-serif',fontSize:28,fontWeight:800,color:'#a855f7',lineHeight:1}}>{fn(SEER_US,1)}</div>
+              <div style={{fontSize:10,color:'#64748b',marginTop:2,marginBottom:8}}>SEER2 (BTU/Wh)</div>
+              <div style={{background:'rgba(139,92,246,.1)',borderRadius:7,padding:'7px',textAlign:'center',border:'1px solid rgba(139,92,246,.3)'}}>
+                <div style={{fontFamily:'Syne,sans-serif',fontSize:13,fontWeight:700,color:usRating.color}}>{usRating.cls}</div>
+                <div style={{fontSize:10,color:'#64748b'}}>{usRating.detail}</div>
+              </div>
+              <div style={{fontSize:9,color:'#475569',marginTop:8,lineHeight:1.6}}>
+                <div>EER (95F): {fn(EER_US,2)} BTU/Wh</div>
+                <div>E-Star≥22 · Min≥14</div>
+                <div style={{color:'#64748b',marginTop:2}}>Fort Worth TX bins · Indoor 80°F</div>
+              </div>
             </div>
           </div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
-            <RatingCard title="India BEE" value={fn(ISEER,2)} label="ISEER"
-              badge={indiaRating.label} badgeColor={indiaRating.color} sub={stars(indiaRating.stars)}
-              color={indiaRating.color}
-              notes={<><div>CSTL: {fn(CSTL/1000,1)} kWh/yr</div><div>CSEC: {fn(CSEC,1)} kWh/yr</div><div style={{color:'#64748b',marginTop:4}}>IS 1391 Pt2 · BEE LP6 2025-26</div></>}/>
-            <RatingCard title="EU ErP / EN 14825" value={fn(SEER_EU,2)} label="SEER"
-              badge={euRating_AA.cls} badgeBg={euRating_AA.bg} badgeColor={euRating_AA.color} sub="EU Energy Label"
-              color="#38bdf8"
-              notes={<><div>A+++&gt;8.5 · A++&gt;6.1 · A+&gt;5.6</div><div>A&gt;5.1 · B&gt;4.6 · C&gt;4.1</div><div style={{color:'#64748b',marginTop:4}}>EN 14825 · Strasbourg · 4 bins</div></>}/>
-            <RatingCard title="US AHRI 210/240" value={fn(SEER_US,1)} label="SEER2 (BTU/Wh)"
-              badge={usRating_AA.cls} badgeBg={usRating_AA.bg} badgeColor={usRating_AA.color} sub={usRating_AA.detail}
-              color="#a855f7"
-              notes={<><div>EER (95F): {fn(EER_US_AA,2)} BTU/Wh</div><div>E-Star&gt;22 · Min&gt;14</div><div style={{color:'#64748b',marginTop:4}}>AHRI 210/240 · FW TX · 9 bins</div></>}/>
+
+          {/* Tab selector */}
+          <div style={{display:'flex',gap:6,marginBottom:14}}>
+            <button style={tabStyle('iseer')} onClick={()=>setTab('iseer')}>India ISEER inputs</button>
+            <button style={tabStyle('eu')}    onClick={()=>setTab('eu')}>EU SEER inputs</button>
+            <button style={tabStyle('us')}    onClick={()=>setTab('us')}>US SEER2 inputs</button>
           </div>
-          <div className="irow" style={{marginTop:12}}>
-            <span><span className="ik">EER full 35°C</span><span className="iv">{fn(capFull35/powFull35,2)}</span></span>
-            <span><span className="ik">EER half 35°C</span><span className="iv">{fn(capHalf35/powHalf35,2)}</span></span>
-            <span><span className="ik">EER full 29°C</span><span className="iv">{fn(capFull29/powFull29,2)}</span></span>
-            <span><span className="ik">EER US (BTU/Wh)</span><span className="iv">{fn(EER_US_AA,2)}</span></span>
-          </div>
+
+          {/* ISEER inputs */}
+          {tab==='iseer'&&(
+            <div style={{background:'rgba(245,158,11,.05)',border:'1px solid rgba(245,158,11,.15)',borderRadius:10,padding:'14px 16px'}}>
+              <div style={{fontSize:9,color:'#fbbf24',letterSpacing:'.15em',textTransform:'uppercase',marginBottom:12}}>
+                ISEER Test Data — IS 1391 Part 2
+              </div>
+              <div style={{fontSize:9,color:'#64748b',marginBottom:12,lineHeight:1.6}}>
+                Full + half load at 35°C. Curve reference at 29°C (full load only — half load scaled proportionally).
+                Indoor: 27°C DB / 19°C WB for all tests.
+              </div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14}}>
+                <div>
+                  <div style={{fontSize:9,color:'#fbbf24',marginBottom:6,textTransform:'uppercase',letterSpacing:'.08em'}}>35°C — Full load</div>
+                  <Num label="Capacity" val={i_capF35} set={setI_capF35} utag="W"/>
+                  <Num label="Power" val={i_powF35} set={setI_powF35} utag="W"/>
+                  <div style={{fontSize:9,color:'#94a3b8',marginTop:4}}>EER: {fn(i_capF35/i_powF35,3)}</div>
+                </div>
+                <div>
+                  <div style={{fontSize:9,color:'#fbbf24',marginBottom:6,textTransform:'uppercase',letterSpacing:'.08em'}}>35°C — Half load (locked 50%)</div>
+                  <Num label="Capacity" val={i_capH35} set={setI_capH35} utag="W"/>
+                  <Num label="Power" val={i_powH35} set={setI_powH35} utag="W"/>
+                  <div style={{fontSize:9,color:'#94a3b8',marginTop:4}}>EER: {fn(i_capH35/i_powH35,3)}</div>
+                </div>
+                <div>
+                  <div style={{fontSize:9,color:'#fbbf24',marginBottom:6,textTransform:'uppercase',letterSpacing:'.08em'}}>29°C — Curve ref (full only)</div>
+                  <Num label="Capacity" val={i_capF29} set={setI_capF29} utag="W"/>
+                  <Num label="Power" val={i_powF29} set={setI_powF29} utag="W"/>
+                  <div style={{fontSize:9,color:'#94a3b8',marginTop:4}}>EER: {fn(i_capF29/i_powF29,3)}</div>
+                  <Num label="Degradation coeff. Cd" val={i_Cd} set={setI_Cd} utag="0–1" step={0.01}/>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* EU inputs */}
+          {tab==='eu'&&(
+            <div style={{background:'rgba(56,189,248,.05)',border:'1px solid rgba(56,189,248,.15)',borderRadius:10,padding:'14px 16px'}}>
+              <div style={{fontSize:9,color:'#38bdf8',letterSpacing:'.15em',textTransform:'uppercase',marginBottom:12}}>
+                EU SEER Test Data — EN 14825 / ErP Reg 2016/2281
+              </div>
+              <div style={{fontSize:9,color:'#64748b',marginBottom:12,lineHeight:1.6}}>
+                EU uses full load test at 35°C and a 29°C reference point for bin interpolation.
+                No half-load test — EU uses continuous capacity interpolation across 4 Strasbourg bins.
+                Indoor: 27°C DB / 19°C WB.
+              </div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14}}>
+                <div>
+                  <div style={{fontSize:9,color:'#38bdf8',marginBottom:6,textTransform:'uppercase',letterSpacing:'.08em'}}>35°C — Full load</div>
+                  <Num label="Capacity" val={e_capF35} set={setE_capF35} utag="W"/>
+                  <Num label="Power" val={e_powF35} set={setE_powF35} utag="W"/>
+                  <div style={{fontSize:9,color:'#94a3b8',marginTop:4}}>EER: {fn(e_capF35/e_powF35,3)}</div>
+                </div>
+                <div>
+                  <div style={{fontSize:9,color:'#38bdf8',marginBottom:6,textTransform:'uppercase',letterSpacing:'.08em'}}>29°C — Curve reference</div>
+                  <Num label="Capacity" val={e_capF29} set={setE_capF29} utag="W"/>
+                  <Num label="Power" val={e_powF29} set={setE_powF29} utag="W"/>
+                  <div style={{fontSize:9,color:'#94a3b8',marginTop:4}}>EER: {fn(e_capF29/e_powF29,3)}</div>
+                </div>
+                <div>
+                  <div style={{fontSize:9,color:'#38bdf8',marginBottom:6,textTransform:'uppercase',letterSpacing:'.08em'}}>Bins used (Strasbourg)</div>
+                  <div style={{fontSize:9,color:'#475569',lineHeight:1.8,background:'rgba(0,0,0,.2)',borderRadius:6,padding:'8px 10px'}}>
+                    <div>20°C — 205 hours</div>
+                    <div>25°C — 227 hours</div>
+                    <div>30°C — 225 hours</div>
+                    <div>35°C — 270 hours</div>
+                    <div style={{marginTop:4,color:'#38bdf8'}}>Total: 927 hours</div>
+                  </div>
+                  <Num label="Degradation coeff. Cd" val={e_Cd} set={setE_Cd} utag="0–1" step={0.01}/>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* US inputs */}
+          {tab==='us'&&(
+            <div style={{background:'rgba(139,92,246,.05)',border:'1px solid rgba(139,92,246,.15)',borderRadius:10,padding:'14px 16px'}}>
+              <div style={{fontSize:9,color:'#a855f7',letterSpacing:'.15em',textTransform:'uppercase',marginBottom:12}}>
+                US SEER2 Test Data — AHRI 210/240-2023
+              </div>
+              <div style={{fontSize:9,color:'#64748b',marginBottom:12,lineHeight:1.6}}>
+                A-test at 95°F (35°C), B-test at 82°F (27.8°C). Indoor = 80°F (26.7°C) — 0.3°C lower than ISEER/EU.
+                Capacity correction factor 0.997 applied. Result in BTU/Wh.
+              </div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14}}>
+                <div>
+                  <div style={{fontSize:9,color:'#a855f7',marginBottom:6,textTransform:'uppercase',letterSpacing:'.08em'}}>A-test — 95°F (35°C)</div>
+                  <Num label="Capacity" val={u_capA} set={setU_capA} utag="W"/>
+                  <Num label="Power" val={u_powA} set={setU_powA} utag="W"/>
+                  <div style={{fontSize:9,color:'#94a3b8',marginTop:4}}>EER: {fn(u_capA/u_powA,3)} W/W = {fn(u_capA/u_powA*3.412,3)} BTU/Wh</div>
+                </div>
+                <div>
+                  <div style={{fontSize:9,color:'#a855f7',marginBottom:6,textTransform:'uppercase',letterSpacing:'.08em'}}>B-test — 82°F (27.8°C)</div>
+                  <Num label="Capacity" val={u_capB} set={setU_capB} utag="W"/>
+                  <Num label="Power" val={u_powB} set={setU_powB} utag="W"/>
+                  <div style={{fontSize:9,color:'#94a3b8',marginTop:4}}>EER: {fn(u_capB/u_powB,3)} W/W</div>
+                </div>
+                <div>
+                  <div style={{fontSize:9,color:'#a855f7',marginBottom:6,textTransform:'uppercase',letterSpacing:'.08em'}}>Climate bins (Fort Worth TX)</div>
+                  <div style={{fontSize:9,color:'#475569',lineHeight:1.7,background:'rgba(0,0,0,.2)',borderRadius:6,padding:'8px 10px'}}>
+                    <div>67°F — 214h · 72°F — 231h</div>
+                    <div>77°F — 243h · 82°F — 253h</div>
+                    <div>87°F — 234h · 92°F — 189h</div>
+                    <div>97°F — 128h · 102°F — 63h</div>
+                    <div>107°F — 12h</div>
+                    <div style={{marginTop:4,color:'#a855f7'}}>Total: 1567 hours</div>
+                  </div>
+                  <Num label="Degradation coeff. Cd" val={u_Cd} set={setU_Cd} utag="0–1" step={0.01}/>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="gtip" style={{marginTop:12}}>
-            <strong>Half load:</strong> Tested at 35°C outdoor locked at 50% compressor frequency. The 29°C point is a full-load reference only — half load at other temperatures is scaled proportionally. Indoor: 27°C DB / 19°C WB for ISEER and EU. US uses 26.7°C (80°F) with correction factor 0.997.
+            <strong>Key difference — EU vs ISEER:</strong> EU EN 14825 does NOT use a half-load test. It uses continuous capacity interpolation between the 35°C and 29°C full-load points across 4 Strasbourg climate bins. ISEER uses a locked 50% half-load test at 35°C as a specific operating point, then scales it across bins. Each standard uses completely independent input data — changing one does not affect the others.
           </div>
         </div>
       )}
 
       {open&&(isAL||isLL)&&(
         <div>
-          {/* Test condition badges for chiller */}
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:14}}>
-            <div style={{background:'rgba(56,189,248,.07)',border:'1px solid rgba(56,189,248,.2)',borderRadius:8,padding:'10px 12px',fontSize:9,color:'#7dd3fc',lineHeight:1.7}}>
-              <strong>EU ESEER — EN 14511 / EN 14825</strong><br/>
-              {isAL?<>Outdoor air: 35 / 30 / 25 / 20°C<br/>Chilled water: 7°C supply / 12°C return<br/>ESEER = 0.03×EER100 + 0.33×EER75 + 0.41×EER50 + 0.23×EER25</>
-                   :<>Condenser water in: 30 / 26 / 22 / 18°C<br/>Chilled water: 7°C supply / 12°C return<br/>ESEER = 0.03×EER100 + 0.33×EER75 + 0.41×EER50 + 0.23×EER25</>}
-            </div>
-            <div style={{background:'rgba(139,92,246,.07)',border:'1px solid rgba(139,92,246,.2)',borderRadius:8,padding:'10px 12px',fontSize:9,color:'#c4b5fd',lineHeight:1.7}}>
-              <strong>US IPLV — AHRI 550/590</strong><br/>
-              {isAL?<>Outdoor air: 35 / 26.7 / 18.3 / 12.8°C<br/>Chilled water: 6.7°C supply / 12.2°C return<br/>IPLV = 0.01×A + 0.42×B + 0.45×C + 0.12×D</>
-                   :<>Condenser water in: 29.4 / 23.9 / 18.3 / 12.8°C<br/>Chilled water: 6.7°C / 12.2°C<br/>IPLV = 0.01×A + 0.42×B + 0.45×C + 0.12×D</>}
-            </div>
-          </div>
-          <div className="slbl">EER at 4 Load Points — {isAL?"Air / Liquid":"Liquid / Liquid"}</div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:10,marginBottom:14}}>
-            {[{pct:"100%",lbl:isAL?"35°C outdoor":"29.4°C CW in",val:eer100,set:setEer100,col:"#f87171"},
-              {pct:"75%", lbl:isAL?"30°C outdoor":"23.9°C CW in",val:eer75, set:setEer75, col:"#facc15"},
-              {pct:"50%", lbl:isAL?"25°C outdoor":"18.3°C CW in",val:eer50, set:setEer50, col:"#86efac"},
-              {pct:"25%", lbl:isAL?"20°C outdoor":"12.8°C CW in",val:eer25, set:setEer25, col:"#22c55e"},
-            ].map(({pct,lbl,val,set,col})=>(
-              <div key={pct}>
-                <div style={{fontSize:9,color:col,letterSpacing:'.1em',textTransform:'uppercase',marginBottom:6}}>{pct} load</div>
-                <div style={{fontSize:9,color:'#64748b',marginBottom:6}}>{lbl}</div>
+            {[{pct:"100%",col:"#f87171",val:eer100,set:setEer100,lbl:isAL?"35°C outdoor":"29.4°C CW in"},
+              {pct:"75%", col:"#facc15",val:eer75, set:setEer75, lbl:isAL?"30°C outdoor":"23.9°C CW in"},
+              {pct:"50%", col:"#86efac",val:eer50, set:setEer50, lbl:isAL?"25°C outdoor":"18.3°C CW in"},
+              {pct:"25%", col:"#22c55e",val:eer25, set:setEer25, lbl:isAL?"20°C outdoor":"12.8°C CW in"},
+            ].map(({pct,col,val,set,lbl})=>(
+              <div key={pct} style={{background:'rgba(0,0,0,.2)',borderRadius:8,padding:'12px'}}>
+                <div style={{fontSize:9,color:col,textTransform:'uppercase',letterSpacing:'.1em',marginBottom:4}}>{pct} load</div>
+                <div style={{fontSize:9,color:'#64748b',marginBottom:8}}>{lbl}</div>
                 <div className="field" style={{marginBottom:0}}>
                   <div className="lbl"><span>EER</span><span className="utag">W/W</span></div>
                   <input type="number" min={0} max={20} step={0.01} value={val} onChange={e=>set(parseFloat(e.target.value)||0)}/>
@@ -1137,1281 +1211,33 @@ function EnergyRating({mode}){
             ))}
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-            <RatingCard title={isAL?"EU EN 14511 / EN 14825":"EU EN 14511"} value={fn(isAL?ESEER_AL:ESEER_LL,2)} label="ESEER"
-              badge={isAL?euRating_AL.cls:euRating_LL.cls}
-              badgeBg={isAL?euRating_AL.bg:euRating_LL.bg}
-              badgeColor={isAL?euRating_AL.color:euRating_LL.color}
-              sub="EU Energy Label" color="#38bdf8"
-              notes={<>
-                <div>A+++&gt;6.4 · A++&gt;5.5 · A+&gt;5.1</div>
-                <div>A&gt;4.6 · B&gt;4.0 · C&gt;3.5</div>
-                <div style={{color:'#64748b',marginTop:4}}>EN 14511 · {isAL?"Air-cooled chiller":"Water-cooled chiller"}</div>
-                <div style={{color:'#64748b'}}>CW: {cwSupply}°C supply / {cwReturn}°C return</div>
-              </>}/>
-            <RatingCard title="US AHRI 550/590" value={fn(isAL?IPLV_AL:IPLV_LL,2)} label="IPLV (COP)"
-              badge={isAL?iplvRating_AL.cls:iplvRating_LL.cls}
-              badgeColor={isAL?iplvRating_AL.color:iplvRating_LL.color}
-              sub="Integrated Part Load Value" color="#a855f7"
-              notes={<>
-                <div>High Eff: &gt;5.0 · Std: &gt;3.8</div>
-                <div>Min req: &gt;3.0 (varies by size)</div>
-                <div style={{color:'#64748b',marginTop:4}}>AHRI 550/590 · {isAL?"Air-cooled":"Water-cooled"}</div>
-                <div style={{color:'#64748b'}}>{isAL?"Outdoor bins: 35/26.7/18.3/12.8°C":"CW bins: 29.4/23.9/18.3/12.8°C"}</div>
-              </>}/>
-          </div>
-          <div className="irow" style={{marginTop:12}}>
-            <span><span className="ik">ESEER</span><span className="iv">{fn(isAL?ESEER_AL:ESEER_LL,2)}</span></span>
-            <span><span className="ik">IPLV</span><span className="iv">{fn(isAL?IPLV_AL:IPLV_LL,2)}</span></span>
-            <span><span className="ik">EER@100%</span><span className="iv">{fn(eer100,2)}</span></span>
-            <span><span className="ik">EER@75%</span><span className="iv">{fn(eer75,2)}</span></span>
-            <span><span className="ik">EER@50%</span><span className="iv">{fn(eer50,2)}</span></span>
-            <span><span className="ik">EER@25%</span><span className="iv">{fn(eer25,2)}</span></span>
-          </div>
-          <div className="gtip" style={{marginTop:12}}>
-            <strong>{isAL?"Air/Liquid":"Liquid/Liquid"} rating note:</strong> India (BEE) does not have a separate bin method for {isAL?"air-cooled chillers":"water-cooled chillers"} — AHRI 550/590 IPLV is used by reference. EU uses ESEER with 4 weighted load points. US uses IPLV with different weighting factors (more weight on 50% and 75% load). EER values must be measured in accredited laboratories at the stated test conditions.
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-
-ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
-</script>
-</body>
-</html><div style={{background:'rgba(56,189,248,.06)',border:'1px solid rgba(56,189,248,.15)',borderRadius:10,padding:'14px 16px',marginBottom:14}}>
-            <div style={{fontSize:9,letterSpacing:'.18em',textTransform:'uppercase',color:'#38bdf8',marginBottom:10}}>
-              Test Point Data — shared across all three standards
-            </div>
-            <div style={{fontSize:9,color:'#64748b',marginBottom:12,lineHeight:1.6}}>
-              These are laboratory test results. The 35°C full-load test is the same test for ISEER, EU and US.
-              Changing any value updates all three ratings accordingly.
-            </div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14}}>
-              <div>
-                <div style={{fontSize:9,color:'#fbbf24',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:8}}>
-                  35°C outdoor — Full load
-                  <span style={{color:'#64748b',fontWeight:'normal'}}> (all standards)</span>
-                </div>
-                <div className="field"><div className="lbl"><span>Capacity</span><span className="utag">W</span></div>
-                  <input type="number" step={1} value={capFull35} onChange={e=>setCapFull35(parseFloat(e.target.value)||0)}/></div>
-                <div className="field"><div className="lbl"><span>Power</span><span className="utag">W</span></div>
-                  <input type="number" step={1} value={powFull35} onChange={e=>setPowFull35(parseFloat(e.target.value)||0)}/></div>
-                <div style={{marginTop:10,fontSize:9,color:'#fbbf24',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:8}}>
-                  35°C outdoor — Half load
-                  <span style={{color:'#64748b',fontWeight:'normal'}}> (ISEER only)</span>
-                </div>
-                <div className="field"><div className="lbl"><span>Capacity (locked 50%)</span><span className="utag">W</span></div>
-                  <input type="number" step={1} value={capHalf35} onChange={e=>setCapHalf35(parseFloat(e.target.value)||0)}/></div>
-                <div className="field"><div className="lbl"><span>Power (locked 50%)</span><span className="utag">W</span></div>
-                  <input type="number" step={1} value={powHalf35} onChange={e=>setPowHalf35(parseFloat(e.target.value)||0)}/></div>
+            <div style={{background:'rgba(0,0,0,.25)',borderRadius:12,padding:'14px',border:'1px solid rgba(56,189,248,.25)'}}>
+              <div style={{fontSize:9,color:'#38bdf8',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:8}}>EU EN 14511</div>
+              <div style={{fontFamily:'Syne,sans-serif',fontSize:28,fontWeight:800,color:'#38bdf8',lineHeight:1}}>{fn(ESEER,2)}</div>
+              <div style={{fontSize:10,color:'#64748b',marginTop:2,marginBottom:8}}>ESEER</div>
+              <div style={{background:euChillerRating.bg,borderRadius:7,padding:'7px',textAlign:'center',border:'1px solid '+euChillerRating.color}}>
+                <div style={{fontFamily:'Syne,sans-serif',fontSize:18,fontWeight:800,color:euChillerRating.color}}>{euChillerRating.cls}</div>
+                <div style={{fontSize:10,color:euChillerRating.color}}>EU Energy Label</div>
               </div>
-              <div>
-                <div style={{fontSize:9,color:'#38bdf8',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:8}}>
-                  29°C outdoor — Curve reference
-                  <span style={{color:'#64748b',fontWeight:'normal'}}> (ISEER + EU)</span>
-                </div>
-                <div style={{fontSize:9,color:'#64748b',marginBottom:8,lineHeight:1.5}}>
-                  Full load only. Used to interpolate capacity across temperature bins.
-                  Not used for US SEER2.
-                </div>
-                <div className="field"><div className="lbl"><span>Capacity full load</span><span className="utag">W</span></div>
-                  <input type="number" step={1} value={capFull29} onChange={e=>setCapFull29(parseFloat(e.target.value)||0)}/></div>
-                <div className="field"><div className="lbl"><span>Power full load</span><span className="utag">W</span></div>
-                  <input type="number" step={1} value={powFull29} onChange={e=>setPowFull29(parseFloat(e.target.value)||0)}/></div>
-                <div className="field" style={{marginTop:10}}>
-                  <div className="lbl"><span>Degradation coeff. Cd</span><span className="utag">0–1</span></div>
-                  <input type="number" min={0} max={1} step={0.01} value={Cd} onChange={e=>setCd(parseFloat(e.target.value)||0)}/>
-                  <div style={{fontSize:9,color:'#475569',marginTop:4}}>Used by all three standards for part-load cycling correction</div>
-                </div>
-              </div>
-              <div>
-                <div style={{fontSize:9,color:'#c4b5fd',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:8}}>
-                  82°F / 27.8°C outdoor — US B-test
-                  <span style={{color:'#64748b',fontWeight:'normal'}}> (US SEER2 only)</span>
-                </div>
-                <div style={{fontSize:9,color:'#64748b',marginBottom:8,lineHeight:1.5}}>
-                  Full load at 82°F. Indoor = 80°F (26.7°C).
-                  Only used for US SEER2 — does not affect ISEER or EU.
-                </div>
-                <div className="field"><div className="lbl"><span>Capacity full load</span><span className="utag">W</span></div>
-                  <input type="number" step={1} value={capB} onChange={e=>setCapB(parseFloat(e.target.value)||0)}/></div>
-                <div className="field"><div className="lbl"><span>Power full load</span><span className="utag">W</span></div>
-                  <input type="number" step={1} value={powB} onChange={e=>setPowB(parseFloat(e.target.value)||0)}/></div>
+              <div style={{fontSize:9,color:'#475569',marginTop:8,lineHeight:1.6}}>
+                <div>0.03×EER100 + 0.33×EER75</div>
+                <div>+ 0.41×EER50 + 0.23×EER25</div>
+                <div style={{color:'#64748b',marginTop:2}}>A+++≥6.4 · A++≥5.5 · A+≥5.1</div>
               </div>
             </div>
-          </div>YPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Noditech AB - Cooling Calculator</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{background:#080c18;font-family:'DM Mono',monospace;color:#e2e8f0}
-    .app{min-height:100vh;background:radial-gradient(ellipse at 20% 10%,#0f2a4a,#080c18 60%);padding:32px 20px}
-    .wrap{max-width:740px;margin:0 auto}
-    .card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:22px 26px;margin-bottom:14px}
-    .slbl{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#64748b;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.1)}
-    .field{margin-bottom:16px}
-    .field:last-child{margin-bottom:0}
-    .lbl{display:flex;justify-content:space-between;font-size:12px;color:#b0bdd0;margin-bottom:6px}
-    .utag{font-size:10px;color:#7a8fa8;background:rgba(255,255,255,.07);padding:2px 7px;border-radius:4px}
-    input[type=number],input[type=text],select{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);border-radius:8px;color:#f8fafc;font-family:'DM Mono',monospace;font-size:14px;padding:9px 13px;width:100%;outline:none;-moz-appearance:textfield}
-    input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
-    input[type=number]:focus,input[type=text]:focus,select:focus{border-color:#38bdf8}
-    select option{background:#0f172a}
-    input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;background:rgba(255,255,255,.18);outline:none;cursor:pointer;margin-top:7px}
-    input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:#38bdf8;box-shadow:0 0 0 3px rgba(56,189,248,.2)}
-    .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-    .three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
-    .irow{display:flex;flex-wrap:wrap;gap:10px;padding:9px 13px;background:rgba(56,189,248,.09);border:1px solid rgba(56,189,248,.22);border-radius:8px;margin-top:9px}
-    .ik{font-size:10px;color:#64748b;margin-right:3px;text-transform:uppercase}
-    .iv{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:#7dd3fc}
-    .iu{font-size:11px;color:#475569}
-    .res{background:linear-gradient(135deg,rgba(14,165,233,.13),rgba(56,189,248,.04));border:1px solid rgba(56,189,248,.45);border-radius:16px;padding:24px 26px;margin-bottom:14px}
-    .rl2{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#38bdf8;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid rgba(56,189,248,.15)}
-    .rg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .ri{background:rgba(0,0,0,.35);border-radius:10px;padding:13px 15px}
-    .ri.big{grid-column:1/-1;background:rgba(56,189,248,.14);border:1px solid rgba(56,189,248,.35)}
-    .rn{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#7a8fa8;margin-bottom:6px}
-    .rv{font-family:'Syne',sans-serif;font-size:24px;font-weight:700;color:#f8fafc;line-height:1}
-    .ri.big .rv{font-size:34px;color:#7dd3fc}
-    .ru{font-size:11px;color:#64748b;margin-top:3px}
-    .fml{font-size:11px;color:#64748b;line-height:1.8;padding:11px 15px;background:rgba(255,255,255,.02);border-left:2px solid rgba(56,189,248,.3);border-radius:0 6px 6px 0;margin-top:13px}
-    .fml strong{color:#b0bdd0}
-    .warn{font-size:11px;color:#f87171;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:6px;padding:8px 12px;margin-top:9px}
-    .ok{font-size:11px;color:#22c55e;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:6px;padding:8px 12px;margin-top:9px}
-    .vb{font-family:'Syne',sans-serif;font-size:16px;font-weight:700}
-    .bt{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:8px;font-family:'DM Mono',monospace;font-size:12px;border:none;cursor:pointer;transition:all .2s}
-    .bt-g{background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.25)}
-    .bt-b{background:rgba(56,189,248,.12);color:#38bdf8;border:1px solid rgba(56,189,248,.25)}
-    .bt-y{background:rgba(251,191,36,.12);color:#fbbf24;border:1px solid rgba(251,191,36,.25)}
-    .bt-r{background:rgba(248,113,113,.1);color:#f87171;border:1px solid rgba(248,113,113,.2);padding:4px 9px;font-size:11px;border-radius:5px}
-    .brow{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
-    .bar-t{height:5px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden;margin-top:7px}
-    .bar-f{height:100%;border-radius:3px;transition:width .5s}
-    .bar-l{display:flex;justify-content:space-between;font-size:10px;color:#64748b;margin-top:9px;margin-bottom:4px}
-    .pt{width:100%;border-collapse:collapse;font-size:12px}
-    .pt th{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#64748b;padding:5px 9px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06)}
-    .pt td{padding:8px 9px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:top}
-    .pt tr:last-child td{border-bottom:none}
-    .pt .re td{color:#b0bdd0}
-    .pt .rl td{color:#38bdf8}
-    .pt .rd td{color:#7a8fa8}
-    .badge{display:inline-block;font-size:9px;border-radius:3px;padding:1px 6px;margin-left:5px}
-    .bd{background:rgba(251,191,36,.13);color:#fbbf24}
-    .bw{background:rgba(56,189,248,.13);color:#38bdf8}
-    .bc{background:rgba(34,197,94,.13);color:#22c55e}
-    /* Mode selector */
-    .modes{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:22px}
-    .mbt{padding:13px 6px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.04);color:#64748b;font-family:'DM Mono',monospace;font-size:11px;text-align:center;cursor:pointer;transition:all .2s}
-    .mbt.on{border-color:#38bdf8;background:rgba(56,189,248,.12);color:#38bdf8}
-    .mbt .mi{font-size:22px;display:block;margin-bottom:5px}
-    .mbt .ml{font-family:'Syne',sans-serif;font-weight:700;font-size:12px;display:block;margin-bottom:2px}
-    .mbt .ms{font-size:10px;color:#475569;display:block}
-    .mbt.on .ms{color:rgba(56,189,248,.7)}
-    /* Log */
-    .lt{width:100%;border-collapse:collapse;font-size:11px}
-    .lt th{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#475569;padding:5px 7px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06);white-space:nowrap}
-    .lt td{padding:6px 7px;border-bottom:1px solid rgba(255,255,255,.03);color:#94a3b8}
-    .lt tr:last-child td{border-bottom:none}
-
-    .guide-btn{width:100%;padding:10px 14px;border-radius:8px;border:1px solid rgba(56,189,248,.25);background:rgba(56,189,248,.07);color:#7dd3fc;font-family:'DM Mono',monospace;font-size:12px;text-align:left;cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
-    .guide-btn:hover{background:rgba(56,189,248,.12)}
-    .guide-btn .arr{transition:transform .2s}
-    .guide-btn.open .arr{transform:rotate(180deg)}
-    .guide-panel{display:none;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:18px 20px;margin-bottom:14px;background:rgba(255,255,255,.02)}
-    .guide-panel.open{display:block}
-    .gs{font-size:9px;letter-spacing:.18em;text-transform:uppercase;font-weight:500;padding:4px 10px;border-radius:4px;margin-bottom:10px;display:inline-block}
-    .gs-blue{background:rgba(56,189,248,.15);color:#7dd3fc}
-    .gs-amber{background:rgba(245,158,11,.15);color:#fcd34d}
-    .gs-teal{background:rgba(20,184,166,.15);color:#5eead4}
-    .gs-purple{background:rgba(139,92,246,.15);color:#c4b5fd}
-    .guide-row{display:grid;grid-template-columns:28px 1fr;gap:10px;margin-bottom:12px;align-items:start}
-    .guide-num{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px}
-    .guide-content h4{font-size:11px;font-weight:500;color:#f0f9ff;margin-bottom:3px}
-    .guide-content p{font-size:10px;color:#94a3b8;line-height:1.6;margin:0}
-    .guide-content ul{font-size:10px;color:#94a3b8;line-height:1.7;margin:3px 0 0 14px;padding:0}
-    .gtip{font-size:10px;color:#475569;background:rgba(255,255,255,.03);border-left:2px solid rgba(56,189,248,.3);padding:6px 10px;border-radius:0 5px 5px 0;margin-top:8px;line-height:1.6}
-    .gtip strong{color:#94a3b8}
-    @media(max-width:520px){.two,.three,.modes,.rg{grid-template-columns:1fr}.ri.big{grid-column:1}.brow{flex-direction:column}}
-    @media print{body{background:#fff!important;color:#000!important}.app{background:#fff!important;padding:10px}.card,.res{border:1px solid #ddd!important;background:#fff!important;break-inside:avoid}.rv,.vb,.iv{color:#000!important}.ru,.iu,.ik,.rn,.fml{color:#555!important}.ri{background:#f9f9f9!important}.ri.big{background:#e8f4fd!important}.modes,.brow,.no-print{display:none!important}}
-  </style>
-</head>
-<body>
-<div id="root"></div>
-<script type="text/babel">
-const {useState,useEffect} = React;
-
-function fmt(n,d=4){if(!isFinite(n)||isNaN(n))return"--";return n.toFixed(d)}
-function pSat(T){return 611.21*Math.exp((18.678-T/234.5)*(T/(257.14+T)))}
-function humR(T,RH){const pv=(RH/100)*pSat(T);return 0.622*pv/(101325-pv)}
-function enth(T,RH){const W=humR(T,RH);return 1.006*T+W*(2501+1.86*T)}
-function sVol(T,RH){const pv=(RH/100)*pSat(T);return 287.058*(T+273.15)/(101325-pv)}
-function wBulb(T,RH){
-  const pv=(RH/100)*pSat(T);let Tw=T-(1-RH/100)*10;
-  for(let i=0;i<60;i++){const f=pSat(Tw)-66*(T-Tw)-pv;const df=(pSat(Tw+.001)-pSat(Tw-.001))/.002+66;const d=f/df;Tw-=d;if(Math.abs(d)<.0001)break;}
-  return Tw;
-}
-function eCol(e){if(e>=4)return"#22c55e";if(e>=3)return"#86efac";if(e>=2.5)return"#facc15";return"#f87171"}
-function eLbl(e){if(e>=4)return"Excellent";if(e>=3)return"Good";if(e>=2)return"Average";return"Poor"}
-function cpGly(p){return 4.18-(4.18-2.38)*(p/100)}
-function rhoGly(p){return 1.0+0.0012*p}
-const CP=4.186;
-
-function satT(ref,pBar){
-  const pAbs=pBar+1.01325,pPa=pAbs*1e5;
-  const C={R32:{A:23.2181,B:2525.1,C:-8.34},R290:{A:22.7282,B:2154.7,C:-7.79},R410A:{A:23.1042,B:2564.0,C:-9.21},R22:{A:22.5906,B:2437.0,C:-19.52},R134a:{A:22.59,B:2547.0,C:-22.31},R407C:{A:23.08,B:2600.0,C:-10.0},R404A:{A:22.87,B:2400.0,C:-7.5}};
-  const c=C[ref];if(!c)return null;
-  return c.B/(c.A-Math.log(pPa))-c.C-273.15;
-}
-const REFS=['R32','R290','R410A','R22','R134a','R407C','R404A','Other'];
-const RCOL={R32:'#a855f7',R290:'#f97316',R410A:'#38bdf8',R22:'#fbbf24',R134a:'#22c55e',R407C:'#f472b6',R404A:'#60a5fa',Other:'#94a3b8'};
-
-function RefSec({unit,refr,setRefr,sP,setSP,dP,setDP,sT,setST}){
-  const toC=v=>unit==="F"?(v-32)*5/9:v;
-  const sC=unit==="F"?toC(sT):sT;
-  const tE=refr!=="Other"?satT(refr,sP):null;
-  const tC=refr!=="Other"?satT(refr,dP):null;
-  const sh=tE!=null?sC-tE:null;
-  const pr=dP>0&&sP>0?(dP+1.01325)/(sP+1.01325):null;
-  const rc=RCOL[refr]||'#94a3b8';
-  return(
-    <div className="card" style={{borderColor:rc+'44'}}>
-      <div className="slbl" style={{color:rc}}>Refrigerant - {refr}</div>
-      <div className="field">
-        <div className="lbl"><span>Refrigerant</span></div>
-        <select value={refr} onChange={e=>setRefr(e.target.value)}>{REFS.map(r=><option key={r}>{r}</option>)}</select>
-      </div>
-      <div className="two">
-        <div className="field">
-          <div className="lbl"><span>Suction Pressure</span><span className="utag">bar g</span></div>
-          <input type="number" min={0} max={60} step={0.0001} value={sP} onChange={e=>setSP(parseFloat(e.target.value)||0)}/>
-        </div>
-        <div className="field">
-          <div className="lbl"><span>Discharge Pressure</span><span className="utag">bar g</span></div>
-          <input type="number" min={0} max={120} step={0.0001} value={dP} onChange={e=>setDP(parseFloat(e.target.value)||0)}/>
-        </div>
-      </div>
-      <div className="field">
-        <div className="lbl"><span>Suction Gas Temperature</span><span className="utag">deg {unit}</span></div>
-        <input type="number" min={-60} max={100} step={0.0001} value={sT} onChange={e=>setST(parseFloat(e.target.value)||0)}/>
-      </div>
-      {refr!=="Other"&&(
-        <div className="three" style={{marginTop:12}}>
-          <div style={{background:'rgba(0,0,0,.2)',borderRadius:10,padding:'13px 15px'}}>
-            <div className="rn">Evap Temp</div>
-            <div className="rv" style={{fontSize:20,color:rc}}>{tE!=null?fmt(tE,4):"--"} C</div>
-            <div className="ru">at suction P</div>
-          </div>
-          <div style={{background:sh!=null&&sh<3?'rgba(248,113,113,.1)':sh!=null&&sh>15?'rgba(251,191,36,.1)':'rgba(34,197,94,.1)',borderRadius:10,padding:'13px 15px',border:sh!=null&&sh<3?'1px solid rgba(248,113,113,.3)':sh!=null&&sh>15?'1px solid rgba(251,191,36,.3)':'1px solid rgba(34,197,94,.2)'}}>
-            <div className="rn">Superheat</div>
-            <div className="rv" style={{fontSize:20,color:sh!=null&&sh<3?'#f87171':sh!=null&&sh>15?'#fbbf24':'#22c55e'}}>{sh!=null?fmt(sh,4):"--"} K</div>
-            <div className="ru">{sh!=null&&sh<3?'Too low!':sh!=null&&sh>15?'Check charge':'Normal'}</div>
-          </div>
-          <div style={{background:'rgba(0,0,0,.2)',borderRadius:10,padding:'13px 15px'}}>
-            <div className="rn">Cond Temp</div>
-            <div className="rv" style={{fontSize:20,color:rc}}>{tC!=null?fmt(tC,4):"--"} C</div>
-            <div className="ru">at discharge P</div>
-          </div>
-        </div>
-      )}
-      {refr!=="Other"&&pr!=null&&(
-        <div className="irow" style={{borderColor:rc+'44',background:rc+'11',marginTop:12}}>
-          <span><span className="ik">P-ratio</span><span className="iv" style={{color:rc}}>{fmt(pr,4)}</span></span>
-          <span><span className="ik">Suction</span><span className="iv" style={{color:rc}}>{fmt(sP,4)}</span><span className="iu"> bar g</span></span>
-          <span><span className="ik">Discharge</span><span className="iv" style={{color:rc}}>{fmt(dP,4)}</span><span className="iu"> bar g</span></span>
-          {tE!=null&&tC!=null&&<span><span className="ik">dT lift</span><span className="iv" style={{color:rc}}>{fmt(tC-tE,4)}</span><span className="iu"> K</span></span>}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function AirAir({unit,job,uid,setLog,setShowLog}){
-  const [eDB,setEDB]=useState(26);const [eRH,setERH]=useState(50);
-  const [lDB,setLDB]=useState(14);const [lRH,setLRH]=useState(90);
-  const [oDB,setODB]=useState(35);const [oRH,setORH]=useState(40);
-  const [af,setAf]=useState(600);const [pw,setPw]=useState(1.2);
-  const [ref,setRef]=useState("R32");const [sP,setSP]=useState(8);const [dP,setDP]=useState(28);const [sT,setST]=useState(15);
-  const C=v=>unit==="F"?(v-32)*5/9:v;const F=v=>unit==="F"?v*9/5+32:v;const d=(c,n=1)=>fmt(F(c),n);
-  const eC=C(eDB),lC=C(lDB),oC=C(oDB);
-  const hE=enth(eC,eRH),vE=sVol(eC,eRH),wE=wBulb(eC,eRH),WE=humR(eC,eRH);
-  const hL=enth(lC,lRH),vL=sVol(lC,lRH),wL=wBulb(lC,lRH),WL=humR(lC,lRH);
-  const wO=wBulb(oC,oRH),WO=humR(oC,oRH);
-  const afs=af/3600,mf=afs/vL,dh=Math.max(0,hE-hL),Q=mf*dh,eer=pw>0?Q/pw:0;
-  const dT=eC-lC,sr=dh>0?Math.max(0,Math.min(1,1.006*dT/dh)):0;
-  const qs=Q*sr,ql=Q-qs;
-  const mn=unit==="F"?23:-5,mx=unit==="F"?113:45,ec=eCol(eer);
-  function save(){
-    const tE=refr!=="Other"?satT(refr,sP):null;const sC=unit==="F"?C(sT):sT;const sh=tE!=null?sC-tE:null;const tCond=ref!=="Other"?satT(ref,dP):null;
-    setLog(p=>[{id:Date.now(),date:new Date().toLocaleString(),mode:'Air/Air',job:job||"--",uid:uid||"--",ref,t1:fmt(F(eC),2),t2:fmt(F(lC),2),wb1:d(wE,2),wb2:d(wL,2),rh1:fmt(eRH,4),rh2:fmt(lRH,4),af,pw:fmt(pw,4),Q:fmt(Q,4),eer:fmt(eer,4),tE:tE!=null?fmt(tE,4):"--",sh:sh!=null?fmt(sh,4):"--",tC:tCond!=null?fmt(tCond,4):"--",sP:fmt(sP,4),dP:fmt(dP,4),unit},...p]);
-    setShowLog(true);
-  }
-  return(<>
-    <div className="card">
-      <div className="slbl">Inn - Entering Evaporator (Return Air)</div>
-      <div className="two">
-        <div className="field"><div className="lbl"><span>Dry-Bulb <span className="badge bd">DB</span></span><span className="utag">deg {unit}</span></div>
-          <input type="number" min={mn} max={mx} step={0.0001} value={eDB} onChange={e=>setEDB(parseFloat(e.target.value)||0)}/>
-          <input type="range" min={mn} max={mx} step={0.1} value={eDB} onChange={e=>setEDB(parseFloat(e.target.value))}/>
-        </div>
-        <div className="field"><div className="lbl"><span>Relative Humidity</span><span className="utag">%</span></div>
-          <input type="number" min={0} max={100} step={0.0001} value={eRH} onChange={e=>setERH(parseFloat(e.target.value)||0)}/>
-          <input type="range" min={0} max={100} step={0.0001} value={eRH} onChange={e=>setERH(parseFloat(e.target.value))}/>
-        </div>
-      </div>
-      <div className="irow">
-        <span><span className="ik">WBinn</span><span className="iv">{d(wE,2)} deg {unit}</span></span>
-        <span><span className="ik">h_inn</span><span className="iv">{fmt(hE)}</span><span className="iu"> kJ/kg</span></span>
-        <span><span className="ik">v_inn</span><span className="iv">{fmt(vE,4)}</span><span className="iu"> m3/kg</span></span>
-        <span><span className="ik">W_inn</span><span className="iv">{fmt(WE*1000,4)}</span><span className="iu"> g/kg</span></span>
-      </div>
-    </div>
-    <div className="card" style={{borderColor:'rgba(56,189,248,.2)'}}>
-      <div className="slbl" style={{color:'#38bdf8'}}>Ut - Leaving Evaporator (Supply Air)</div>
-      <div className="two">
-        <div className="field"><div className="lbl"><span>Leaving DB <span className="badge bd">DB</span></span><span className="utag">deg {unit} measured</span></div>
-          <input type="number" min={mn} max={mx} step={0.0001} value={lDB} onChange={e=>setLDB(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(56,189,248,.4)'}}/>
-          <input type="range" min={mn} max={mx} step={0.1} value={lDB} onChange={e=>setLDB(parseFloat(e.target.value))}/>
-        </div>
-        <div className="field"><div className="lbl"><span>Leaving RH</span><span className="utag">% measured</span></div>
-          <input type="number" min={0} max={100} step={0.0001} value={lRH} onChange={e=>setLRH(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(56,189,248,.4)'}}/>
-          <input type="range" min={0} max={100} step={0.0001} value={lRH} onChange={e=>setLRH(parseFloat(e.target.value))}/>
-        </div>
-      </div>
-      {lDB>=eDB&&<div className="warn">Leaving DB must be below entering DB</div>}
-      <div style={{marginTop:12,padding:'13px 15px',background:'rgba(56,189,248,.07)',border:'1px solid rgba(56,189,248,.18)',borderRadius:8}}>
-        <div style={{fontSize:10,letterSpacing:'.15em',textTransform:'uppercase',color:'#38bdf8',marginBottom:9}}>DB + RH - Wet-Bulb Converter</div>
-        <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:10}}>
-          <div style={{background:'rgba(0,0,0,.25)',borderRadius:8,padding:'9px 14px',textAlign:'center'}}><div style={{fontSize:10,color:'#475569',marginBottom:3}}>DB</div><div style={{fontFamily:'Syne,sans-serif',fontSize:20,fontWeight:700,color:'#f0f9ff'}}>{lDB} deg</div></div>
-          <div style={{color:'#475569',fontSize:16}}>+</div>
-          <div style={{background:'rgba(0,0,0,.25)',borderRadius:8,padding:'9px 14px',textAlign:'center'}}><div style={{fontSize:10,color:'#475569',marginBottom:3}}>RH</div><div style={{fontFamily:'Syne,sans-serif',fontSize:20,fontWeight:700,color:'#f0f9ff'}}>{lRH}%</div></div>
-          <div style={{color:'#475569',fontSize:16}}>-&gt;</div>
-          <div style={{background:'rgba(56,189,248,.12)',border:'1px solid rgba(56,189,248,.3)',borderRadius:8,padding:'9px 14px',textAlign:'center'}}><div style={{fontSize:10,color:'#38bdf8',marginBottom:3}}>Wet-Bulb WB</div><div style={{fontFamily:'Syne,sans-serif',fontSize:20,fontWeight:700,color:'#38bdf8'}}>{d(wL,2)} deg</div></div>
-        </div>
-        <div className="irow" style={{borderColor:'rgba(56,189,248,.18)',background:'rgba(0,0,0,.15)',marginTop:0}}>
-          <span><span className="ik">h_ut</span><span className="iv">{fmt(hL)}</span><span className="iu"> kJ/kg</span></span>
-          <span><span className="ik">v_ut</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(vL,4)}</span><span className="iu"> m3/kg</span></span>
-          <span><span className="ik">W_ut</span><span className="iv">{fmt(WL*1000,4)}</span><span className="iu"> g/kg</span></span>
-        </div>
-      </div>
-    </div>
-    <div className="card">
-      <div className="slbl">Coil Summary</div>
-      <table className="pt"><thead><tr><th></th><th>DB deg {unit}</th><th>WB deg {unit}</th><th>RH %</th><th>h kJ/kg</th><th>v m3/kg</th><th>W g/kg</th></tr></thead>
-      <tbody>
-        <tr className="re"><td>Inn</td><td><span className="vb">{d(eC,2)}</span></td><td><span className="vb">{d(wE,2)}</span></td><td><span className="vb">{fmt(eRH,4)}</span></td><td><span className="vb">{fmt(hE)}</span></td><td><span className="vb">{fmt(vE,4)}</span></td><td><span className="vb">{fmt(WE*1000,4)}</span></td></tr>
-        <tr className="rl"><td>Ut</td><td><span className="vb">{d(lC,2)}</span></td><td><span className="vb">{d(wL,2)}</span></td><td><span className="vb">{fmt(lRH,4)}</span></td><td><span className="vb">{fmt(hL)}</span></td><td><span className="vb" style={{color:'#fbbf24'}}>{fmt(vL,4)}</span></td><td><span className="vb">{fmt(WL*1000,4)}</span></td></tr>
-        <tr className="rd"><td>delta</td><td>{fmt(Math.abs(eC-lC),2)}</td><td>{fmt(Math.abs(wE-wL),2)}</td><td>{fmt(Math.abs(lRH-eRH),1)}</td><td>{fmt(dh,4)}</td><td>--</td><td>{fmt(Math.abs(WE-WL)*1000,2)}</td></tr>
-      </tbody></table>
-    </div>
-    <div className="card" style={{borderColor:'rgba(251,191,36,.18)'}}>
-      <div className="slbl" style={{color:'#fbbf24'}}>Outdoor Unit - Ambient (Condenser)</div>
-      <div className="two">
-        <div className="field"><div className="lbl"><span>Ambient DB</span><span className="utag">deg {unit}</span></div>
-          <input type="number" min={mn} max={mx} step={0.0001} value={oDB} onChange={e=>setODB(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}} max={unit==="F"?140:60}/>
-          <input type="range" min={mn} max={mx} step={0.1} value={oDB} onChange={e=>setODB(parseFloat(e.target.value))} max={unit==="F"?140:60}/>
-        </div>
-        <div className="field"><div className="lbl"><span>Relative Humidity</span><span className="utag">%</span></div>
-          <input type="number" min={0} max={100} step={0.0001} value={oRH} onChange={e=>setORH(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}}/>
-          <input type="range" min={0} max={100} step={0.0001} value={oRH} onChange={e=>setORH(parseFloat(e.target.value))}/>
-        </div>
-      </div>
-      <div className="irow" style={{borderColor:'rgba(251,191,36,.18)',background:'rgba(251,191,36,.05)'}}>
-        <span><span className="ik">DB</span><span className="iv" style={{color:'#fbbf24'}}>{d(oC)} deg {unit}</span></span>
-        <span><span className="ik">WB</span><span className="iv" style={{color:'#fbbf24'}}>{d(wO,2)} deg {unit}</span></span>
-        <span><span className="ik">RH</span><span className="iv" style={{color:'#fbbf24'}}>{oRH}%</span></span>
-        <span><span className="ik">W</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(WO*1000,4)}</span><span className="iu"> g/kg</span></span>
-      </div>
-    </div>
-    <RefSec unit={unit} refr={ref} setRefr={setRef} sP={sP} setSP={setSP} dP={dP} setDP={setDP} sT={sT} setST={setST}/>
-    <div className="card">
-      <div className="slbl">Airflow and Electrical Input</div>
-      <div className="two">
-        <div className="field"><div className="lbl"><span>Airflow (at outlet)</span><span className="utag">m3/h</span></div>
-          <input type="number" min={10} max={50000} step={10} value={af} onChange={e=>setAf(parseFloat(e.target.value)||0)}/>
-          <div style={{fontSize:11,color:'#475569',marginTop:5}}>{fmt(afs*1000,4)} L/s</div>
-        </div>
-        <div className="field"><div className="lbl"><span>Compressor Power</span><span className="utag">kW</span></div>
-          <input type="number" min={0.1} max={500} step={0.05} value={pw} onChange={e=>setPw(parseFloat(e.target.value)||0)}/>
-        </div>
-      </div>
-      <div className="bar-l"><span>EER/COP: <strong style={{color:ec}}>{fmt(eer,4)} - {eLbl(eer)}</strong></span></div>
-      <div className="bar-t"><div className="bar-f" style={{width:Math.min(100,(eer/6)*100)+'%',background:ec}}/></div>
-    </div>
-    <div className="res">
-      <div className="rl2">Results</div>
-      <div className="rg">
-        <div className="ri big"><div className="rn">Q_tot - Total Cooling Output</div><div className="rv">{fmt(Q,4)} kW</div><div className="ru">{fmt(Q*3412.14,0)} BTU/h - {fmt(Q/3.517,4)} tons</div></div>
-        <div className="ri"><div className="rn">EER / COP</div><div className="rv" style={{color:ec}}>{fmt(eer,4)}</div><div className="ru">Q / P_el</div></div>
-        <div className="ri"><div className="rn">Mass Flow</div><div className="rv">{fmt(mf,4)}</div><div className="ru">kg/s = V / v_ut</div></div>
-        <div className="ri"><div className="rn">dh (h_inn - h_ut)</div><div className="rv">{fmt(dh,4)}</div><div className="ru">kJ/kg</div></div>
-        <div className="ri"><div className="rn">Sensible Qs</div><div className="rv">{fmt(qs,4)}</div><div className="ru">kW (SHR {fmt(sr,4)})</div></div>
-        <div className="ri"><div className="rn">Latent Ql</div><div className="rv">{fmt(ql,4)}</div><div className="ru">kW (dehumid)</div></div>
-      </div>
-      <div className="fml">
-        <strong>m</strong> = V/v_ut = {fmt(afs,4)} / {fmt(vL,4)} = {fmt(mf,4)} kg/s<br/>
-        <strong>Q_tot</strong> = m x (h_inn - h_ut) = {fmt(mf,4)} x ({fmt(hE,4)} - {fmt(hL,4)}) = <strong>{fmt(Q,4)} kW</strong><br/>
-        <strong>EER</strong> = {fmt(Q,4)} / {fmt(pw,4)} = <strong>{fmt(eer,4)}</strong>
-      </div>
-    </div>
-    <GuideAA/>
-    <div className="brow no-print">
-      <button className="bt bt-g" onClick={save}>Save Measurement</button>
-      <button className="bt bt-b" onClick={()=>window.print()}>Print / PDF</button>
-    </div>
-  </>);
-}
-
-function AirLiquid({unit,job,uid,setLog,setShowLog}){
-  const [eDB,setEDB]=useState(26);const [eRH,setERH]=useState(50);
-  const [lDB,setLDB]=useState(14);const [lRH,setLRH]=useState(90);
-  const [wTi,setWTi]=useState(7);const [wTo,setWTo]=useState(12);const [wF,setWF]=useState(0.50);
-  const [af,setAf]=useState(600);const [pw,setPw]=useState(1.2);
-  const [ref,setRef]=useState("R32");const [sP,setSP]=useState(8);const [dP,setDP]=useState(28);const [sT,setST]=useState(15);
-  const C=v=>unit==="F"?(v-32)*5/9:v;const F=v=>unit==="F"?v*9/5+32:v;const d=(c,n=1)=>fmt(F(c),n);
-  const eC=C(eDB),lC=C(lDB),wTiC=C(wTi),wToC=C(wTo);
-  const hE=enth(eC,eRH),vE=sVol(eC,eRH),wBE=wBulb(eC,eRH),WE=humR(eC,eRH);
-  const hL=enth(lC,lRH),vL=sVol(lC,lRH),wBL=wBulb(lC,lRH),WL=humR(lC,lRH);
-  const afs=af/3600,mfA=afs/vL,dh=Math.max(0,hL-hE),Qa=mfA*dh;
-  const Qw=4.18*wF*Math.abs(wToC-wTiC);const mfW=wF;
-  const eer=pw>0?Qw/pw:0,bal=Qw>0?((Qa-Qw)/Qw)*100:0;
-  const mn=unit==="F"?23:-5,mx=unit==="F"?113:45,ec=eCol(eer);
-  function save(){
-    const tE=refr!=="Other"?satT(refr,sP):null;const sC=unit==="F"?C(sT):sT;const sh=tE!=null?sC-tE:null;const tCond=ref!=="Other"?satT(ref,dP):null;
-    setLog(p=>[{id:Date.now(),date:new Date().toLocaleString(),mode:'Air/Liquid',job:job||"--",uid:uid||"--",ref,t1:fmt(F(eC),2),t2:fmt(F(lC),2),wb1:d(wBE,2),wb2:d(wBL,2),rh1:fmt(eRH,4),rh2:fmt(lRH,4),wTi:fmt(F(wTiC),2),wTo:fmt(F(wToC),2),wF:fmt(wF,4),af,pw:fmt(pw,4),Q:fmt(Qa,4),Qw:fmt(Qw,4),eer:fmt(eer,4),tE:tE!=null?fmt(tE,4):"--",sh:sh!=null?fmt(sh,4):"--",tC:tCond!=null?fmt(tCond,4):"--",sP:fmt(sP,4),dP:fmt(dP,4),unit},...p]);
-    setShowLog(true);
-  }
-  return(<>
-    <div className="card" style={{borderColor:'rgba(251,191,36,.18)'}}>
-      <div className="slbl" style={{color:'#fbbf24'}}>Ambient - Entering Air (Outdoor)</div>
-      <div className="two">
-        <div className="field"><div className="lbl"><span>Ambient Dry-Bulb <span className="badge bd">DB</span></span><span className="utag">deg {unit}</span></div>
-          <input type="number" min={mn} max={unit==="F"?140:60} step={0.0001} value={eDB} onChange={e=>setEDB(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}}/>
-          <input type="range" min={mn} max={unit==="F"?140:60} step={0.1} value={eDB} onChange={e=>setEDB(parseFloat(e.target.value))}/>
-        </div>
-        <div className="field"><div className="lbl"><span>Ambient Relative Humidity</span><span className="utag">%</span></div>
-          <input type="number" min={0} max={100} step={0.0001} value={eRH} onChange={e=>setERH(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}}/>
-          <input type="range" min={0} max={100} step={0.0001} value={eRH} onChange={e=>setERH(parseFloat(e.target.value))}/>
-        </div>
-      </div>
-      <div className="irow" style={{borderColor:'rgba(251,191,36,.25)',background:'rgba(251,191,36,.06)'}}>
-        <span><span className="ik">WB</span><span className="iv" style={{color:'#fbbf24'}}>{d(wBE,2)} deg {unit}</span></span>
-        <span><span className="ik">h_inn</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(hE)}</span><span className="iu"> kJ/kg</span></span>
-        <span><span className="ik">v</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(vE,4)}</span><span className="iu"> m3/kg</span></span>
-      </div>
-    </div>
-    <div className="card" style={{borderColor:'rgba(249,115,22,.25)'}}>
-      <div className="slbl" style={{color:'#f97316'}}>Air Side Ut - Leaving Air (Heat Rejection Control)</div>
-      <div className="two">
-        <div className="field"><div className="lbl"><span>Leaving DB <span style={{fontSize:9,color:'#f97316'}}>warmer</span></span><span className="utag">deg {unit} measured</span></div>
-          <input type="number" min={mn} max={mx} step={0.0001} value={lDB} onChange={e=>setLDB(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(56,189,248,.4)'}}/>
-          <input type="range" min={mn} max={mx} step={0.1} value={lDB} onChange={e=>setLDB(parseFloat(e.target.value))}/>
-        </div>
-        <div className="field"><div className="lbl"><span>Leaving RH</span><span className="utag">% measured</span></div>
-          <input type="number" min={0} max={100} step={0.0001} value={lRH} onChange={e=>setLRH(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(56,189,248,.4)'}}/>
-          <input type="range" min={0} max={100} step={0.0001} value={lRH} onChange={e=>setLRH(parseFloat(e.target.value))}/>
-        </div>
-      </div>
-      <div className="irow" style={{marginTop:10,borderColor:'rgba(249,115,22,.25)',background:'rgba(249,115,22,.06)'}}>
-        <span><span className="ik">WBut</span><span className="iv" style={{color:'#f97316'}}>{d(wBL,2)} deg {unit}</span><span className="badge bc" style={{marginLeft:5}}>calc</span></span>
-        <span><span className="ik">h_ut</span><span className="iv" style={{color:'#f97316'}}>{fmt(hL)}</span><span className="iu"> kJ/kg</span></span>
-        <span><span className="ik">v_ut</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(vL,4)}</span><span className="iu"> m3/kg</span></span>
-        <span><span className="ik">Δh heat</span><span className="iv" style={{color:'#f97316'}}>{fmt(dh,4)}</span><span className="iu"> kJ/kg</span></span>
-      </div>
-    </div>
-    <div className="card" style={{borderColor:'rgba(14,165,233,.25)'}}>
-      <div className="slbl" style={{color:'#0ea5e9'}}>Liquid Side - Chilled Water</div>
-      <div className="three">
-        <div className="field"><div className="lbl"><span>Water Inlet T</span><span className="utag">deg {unit}</span></div>
-          <input type="number" min={-20} max={50} step={0.0001} value={wTi} onChange={e=>setWTi(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(14,165,233,.4)'}}/>
-        </div>
-        <div className="field"><div className="lbl"><span>Water Outlet T</span><span className="utag">deg {unit}</span></div>
-          <input type="number" min={-20} max={50} step={0.0001} value={wTo} onChange={e=>setWTo(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(14,165,233,.4)'}}/>
-        </div>
-        <div className="field"><div className="lbl"><span>Water Flow</span><span className="utag">L/s</span></div>
-          <input type="number" min={0.001} max={100} step={0.0001} value={wF} onChange={e=>setWF(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(14,165,233,.4)'}}/>
-        </div>
-      </div>
-      <div className="irow" style={{borderColor:'rgba(14,165,233,.25)',background:'rgba(14,165,233,.05)'}}>
-        <span><span className="ik">dT water</span><span className="iv" style={{color:'#0ea5e9'}}>{fmt(Math.abs(wToC-wTiC),2)}</span><span className="iu"> K</span></span>
-        <span><span className="ik">m water</span><span className="iv" style={{color:'#0ea5e9'}}>{fmt(mfW,4)}</span><span className="iu"> kg/s</span></span>
-        <span><span className="ik">Q water</span><span className="iv" style={{color:'#0ea5e9'}}>{fmt(Qw,4)}</span><span className="iu"> kW</span></span>
-        <span><span className="ik">flow</span><span className="iv" style={{color:'#0ea5e9'}}>{fmt(wF,4)}</span><span className="iu"> L/s</span></span>
-      </div>
-    </div>
-    <div className="card">
-      <div className="slbl">Airflow and Power</div>
-      <div className="two">
-        <div className="field"><div className="lbl"><span>Airflow</span><span className="utag">m3/h</span></div>
-          <input type="number" min={10} max={50000} step={10} value={af} onChange={e=>setAf(parseFloat(e.target.value)||0)}/>
-        </div>
-        <div className="field"><div className="lbl"><span>Power Input</span><span className="utag">kW</span></div>
-          <input type="number" min={0.1} max={500} step={0.05} value={pw} onChange={e=>setPw(parseFloat(e.target.value)||0)}/>
-        </div>
-      </div>
-    </div>
-    <RefSec unit={unit} refr={ref} setRefr={setRef} sP={sP} setSP={setSP} dP={dP} setDP={setDP} sT={sT} setST={setST}/>
-    <div className="res">
-      <div className="rl2">Results</div>
-      <div className="rg">
-        <div className="ri big">
-          <div className="rn">Q_water - Primary Cooling Output (Water Side)</div>
-          <div className="rv">{fmt(Qw,4)} kW</div>
-          <div className="ru">{fmt(Qw*3412.14,4)} BTU/h - {fmt(Qw/3.517,4)} tons</div>
-        </div>
-        <div className="ri"><div className="rn">EER / COP</div><div className="rv" style={{color:eCol(pw>0?Qw/pw:0)}}>{fmt(pw>0?Qw/pw:0,4)}</div><div className="ru">Q_water / P_el</div></div>
-        <div className="ri"><div className="rn">dT water</div><div className="rv">{fmt(Math.abs(wToC-wTiC),2)}</div><div className="ru">K</div></div>
-        <div className="ri"><div className="rn">Flow</div><div className="rv">{fmt(wF,4)}</div><div className="ru">L/s</div></div>
-        <div className="ri" style={{background:Math.abs(bal)>10?'rgba(248,113,113,.06)':'rgba(34,197,94,.06)',border:Math.abs(bal)>10?'1px solid rgba(248,113,113,.2)':'1px solid rgba(34,197,94,.2)'}}>
-          <div className="rn">Q_heat - Air Heat Rejection (Control)</div>
-          <div className="rv" style={{fontSize:20,color:Math.abs(bal)>10?'#f87171':'#22c55e'}}>{fmt(Qa,4)} kW</div>
-          <div className="ru">{Math.abs(bal)>10?'Deviation: '+fmt(Math.abs(bal),1)+'%':'OK: '+fmt(Math.abs(bal),1)+'% dev'}</div>
-        </div>
-        <div className="ri"><div className="rn">dh air</div><div className="rv">{fmt(dh,4)}</div><div className="ru">kJ/kg</div></div>
-      </div>
-      <div className="fml">
-        <strong>Q_water</strong> = 4.18 x V(L/s) x dT = 4.18 x {fmt(wF,4)} x {fmt(Math.abs(wToC-wTiC),2)} = <strong>{fmt(Qw,4)} kW</strong><br/>
-        <strong>EER</strong> = Q_water / P_el = {fmt(Qw,4)} / {fmt(pw,4)} = <strong>{fmt(pw>0?Qw/pw:0,4)}</strong><br/>
-        <strong>Q_heat</strong> = m x (h_ut - h_inn) = {fmt(mfA,4)} x {fmt(dh,4)} = <strong>{fmt(Qa,4)} kW</strong> (heat rejection control)
-      </div></div>
-    <GuideAL/>
-    <div className="brow no-print">
-      <button className="bt bt-g" onClick={save}>Save Measurement</button>
-      <button className="bt bt-b" onClick={()=>window.print()}>Print / PDF</button>
-    </div>
-  </>);
-}
-
-function LiqLiq({unit,job,uid,setLog,setShowLog}){
-  const [cFt,setCFt]=useState("water");const [cGp,setCGp]=useState(30);
-  const [cTi,setCTi]=useState(7);const [cTo,setCTo]=useState(12);const [cF,setCF]=useState(0.50);
-  const [hFt,setHFt]=useState("water");const [hGp,setHGp]=useState(30);
-  const [hTi,setHTi]=useState(40);const [hTo,setHTo]=useState(35);const [hF,setHF]=useState(0.60);
-  const [pw,setPw]=useState(1.2);
-  const [ref,setRef]=useState("R32");const [sP,setSP]=useState(8);const [dP,setDP]=useState(28);const [sT,setST]=useState(15);
-  const C=v=>unit==="F"?(v-32)*5/9:v;const F=v=>unit==="F"?v*9/5+32:v;
-  const cTiC=C(cTi),cToC=C(cTo),hTiC=C(hTi),hToC=C(hTo);
-  const cpC=cFt==="glycol"?cpGly(cGp):CP,rC=cFt==="glycol"?rhoGly(cGp):1.0;
-  const cpH=hFt==="glycol"?cpGly(hGp):CP,rH=hFt==="glycol"?rhoGly(hGp):1.0;
-  const mC=cF*rC,mH=hF*rH;
-  const Qc=mC*cpC*Math.abs(cToC-cTiC),Qh=mH*cpH*Math.abs(hTiC-hToC);
-  const eer=pw>0?Qc/pw:0,bal=Qc>0?((Qh-Qc)/Qc)*100:0;
-  const ec=eCol(eer);
-  function save(){
-    const tE=refr!=="Other"?satT(refr,sP):null;const sC=unit==="F"?C(sT):sT;const sh=tE!=null?sC-tE:null;const tCond=ref!=="Other"?satT(ref,dP):null;
-    setLog(p=>[{id:Date.now(),date:new Date().toLocaleString(),mode:'Liq/Liq',job:job||"--",uid:uid||"--",ref,t1:fmt(F(cTiC),2),t2:fmt(F(cToC),2),wb1:"--",wb2:"--",rh1:"--",rh2:"--",wTi:fmt(F(hTiC),2),wTo:fmt(F(hToC),2),wF:fmt(hF,4),af:"--",pw:fmt(pw,4),Q:fmt(Qc,4),Qw:fmt(Qh,4),eer:fmt(eer,4),tE:tE!=null?fmt(tE,4):"--",sh:sh!=null?fmt(sh,4):"--",tC:tCond!=null?fmt(tCond,4):"--",sP:fmt(sP,4),dP:fmt(dP,4),unit},...p]);
-    setShowLog(true);
-  }
-  return(<>
-    <div className="card" style={{borderColor:'rgba(56,189,248,.25)'}}>
-      <div className="slbl" style={{color:'#38bdf8'}}>Cold Side - Chilled Water / Glycol</div>
-      <div className="field"><div className="lbl">Fluid Type</div>
-        <select value={cFt} onChange={e=>setCFt(e.target.value)}><option value="water">Water</option><option value="glycol">Ethylene Glycol / Water</option></select>
-      </div>
-      {cFt==="glycol"&&<div className="field"><div className="lbl"><span>Glycol Concentration</span><span className="utag">%</span></div>
-        <input type="number" min={0} max={60} step={1} value={cGp} onChange={e=>setCGp(parseFloat(e.target.value)||0)}/>
-        <div style={{fontSize:11,color:'#475569',marginTop:5}}>cp = {fmt(cpC,4)} kJ/kg K</div>
-      </div>}
-      <div className="three">
-        <div className="field"><div className="lbl"><span>T Inlet</span><span className="utag">deg {unit}</span></div><input type="number" min={-30} max={50} step={0.0001} value={cTi} onChange={e=>setCTi(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(56,189,248,.4)'}}/></div>
-        <div className="field"><div className="lbl"><span>T Outlet</span><span className="utag">deg {unit}</span></div><input type="number" min={-30} max={50} step={0.0001} value={cTo} onChange={e=>setCTo(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(56,189,248,.4)'}}/></div>
-        <div className="field"><div className="lbl"><span>Flow</span><span className="utag">L/s</span></div><input type="number" min={0.001} max={100} step={0.0001} value={cF} onChange={e=>setCF(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(56,189,248,.4)'}}/></div>
-      </div>
-      <div className="irow" style={{borderColor:'rgba(56,189,248,.25)',background:'rgba(56,189,248,.05)'}}>
-        <span><span className="ik">dT</span><span className="iv" style={{color:'#38bdf8'}}>{fmt(Math.abs(cToC-cTiC),2)}</span><span className="iu"> K</span></span>
-        <span><span className="ik">m</span><span className="iv" style={{color:'#38bdf8'}}>{fmt(mC,4)}</span><span className="iu"> kg/s</span></span>
-        <span><span className="ik">Q cold</span><span className="iv" style={{color:'#38bdf8'}}>{fmt(Qc,4)}</span><span className="iu"> kW</span></span>
-      </div>
-    </div>
-    <div className="card" style={{borderColor:'rgba(251,191,36,.25)'}}>
-      <div className="slbl" style={{color:'#fbbf24'}}>Hot Side - Condenser Water / Glycol</div>
-      <div className="field"><div className="lbl">Fluid Type</div>
-        <select value={hFt} onChange={e=>setHFt(e.target.value)}><option value="water">Water</option><option value="glycol">Ethylene Glycol / Water</option></select>
-      </div>
-      {hFt==="glycol"&&<div className="field"><div className="lbl"><span>Glycol Concentration</span><span className="utag">%</span></div>
-        <input type="number" min={0} max={60} step={1} value={hGp} onChange={e=>setHGp(parseFloat(e.target.value)||0)}/>
-        <div style={{fontSize:11,color:'#475569',marginTop:5}}>cp = {fmt(cpH,4)} kJ/kg K</div>
-      </div>}
-      <div className="three">
-        <div className="field"><div className="lbl"><span>T Inlet</span><span className="utag">deg {unit}</span></div><input type="number" min={-30} max={80} step={0.0001} value={hTi} onChange={e=>setHTi(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}}/></div>
-        <div className="field"><div className="lbl"><span>T Outlet</span><span className="utag">deg {unit}</span></div><input type="number" min={-30} max={80} step={0.0001} value={hTo} onChange={e=>setHTo(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}}/></div>
-        <div className="field"><div className="lbl"><span>Flow</span><span className="utag">L/s</span></div><input type="number" min={0.001} max={100} step={0.0001} value={hF} onChange={e=>setHF(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}}/></div>
-      </div>
-      <div className="irow" style={{borderColor:'rgba(251,191,36,.25)',background:'rgba(251,191,36,.05)'}}>
-        <span><span className="ik">dT</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(Math.abs(hTiC-hToC),2)}</span><span className="iu"> K</span></span>
-        <span><span className="ik">m</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(mH,4)}</span><span className="iu"> kg/s</span></span>
-        <span><span className="ik">Q hot</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(Qh,4)}</span><span className="iu"> kW</span></span>
-      </div>
-    </div>
-    <div className="card">
-      <div className="slbl">Electrical Input</div>
-      <div className="field"><div className="lbl"><span>Compressor Power</span><span className="utag">kW</span></div>
-        <input type="number" min={0.1} max={500} step={0.05} value={pw} onChange={e=>setPw(parseFloat(e.target.value)||0)}/>
-      </div>
-      <div className="bar-l"><span>COP: <strong style={{color:ec}}>{fmt(eer,4)} - {eLbl(eer)}</strong></span></div>
-      <div className="bar-t"><div className="bar-f" style={{width:Math.min(100,(eer/6)*100)+'%',background:ec}}/></div>
-    </div>
-    <RefSec unit={unit} refr={ref} setRefr={setRef} sP={sP} setSP={setSP} dP={dP} setDP={setDP} sT={sT} setST={setST}/>
-    <div className="res">
-      <div className="rl2">Results</div>
-      <div className="rg">
-        <div className="ri big"><div className="rn">Q_cold - Cooling Output</div><div className="rv">{fmt(Qc,4)} kW</div><div className="ru">{fmt(Qc*3412.14,4)} BTU/h - {fmt(Qc/3.517,4)} tons</div></div>
-        <div className="ri" style={{background:Math.abs(bal)>10?'rgba(248,113,113,.06)':'rgba(34,197,94,.06)',border:Math.abs(bal)>10?'1px solid rgba(248,113,113,.2)':'1px solid rgba(34,197,94,.2)'}}>
-          <div className="rn">Q_hot - Condenser</div>
-          <div className="rv" style={{fontSize:22,color:Math.abs(bal)>10?'#f87171':'#22c55e'}}>{fmt(Qh,4)} kW</div>
-          <div className="ru">{Math.abs(bal)>10?'Balance error: '+fmt(Math.abs(bal),1)+'%':'Balance OK: '+fmt(Math.abs(bal),1)+'%'}</div>
-        </div>
-        <div className="ri"><div className="rn">COP / EER</div><div className="rv" style={{color:ec}}>{fmt(eer,4)}</div><div className="ru">Q_cold / P_el</div></div>
-        <div className="ri"><div className="rn">P_el</div><div className="rv">{fmt(pw,4)}</div><div className="ru">kW</div></div>
-        <div className="ri"><div className="rn">dT cold</div><div className="rv">{fmt(Math.abs(cToC-cTiC),2)}</div><div className="ru">K</div></div>
-        <div className="ri"><div className="rn">dT hot</div><div className="rv">{fmt(Math.abs(hTiC-hToC),2)}</div><div className="ru">K</div></div>
-      </div>
-      <div className="fml">
-        <strong>Q_cold</strong> = V(L/s) x rho x cp x dT = {fmt(cF,4)} x {fmt(rC,4)} x {fmt(cpC,4)} x {fmt(Math.abs(cToC-cTiC),2)} = <strong>{fmt(Qc,4)} kW</strong><br/>
-        <strong>Q_hot</strong> = {fmt(mH,4)} x {fmt(cpH,4)} x {fmt(Math.abs(hTiC-hToC),2)} = <strong>{fmt(Qh,4)} kW</strong><br/>
-        <strong>COP</strong> = {fmt(Qc,4)} / {fmt(pw,4)} = <strong>{fmt(eer,4)}</strong>
-      </div>
-    </div>
-        <GuideLL/>
-    <div className="brow no-print">
-      <button className="bt bt-g" onClick={save}>Save Measurement</button>
-      <button className="bt bt-b" onClick={()=>window.print()}>Print / PDF</button>
-    </div>
-  </>);
-}
-
-
-function GuideAA(){
-  return(
-    <div>
-      <button id="guide-aa-btn" className="guide-btn" onClick={()=>toggleGuide('guide-aa')}>
-        <span>Measurement Guide - Air / Air &nbsp;<span style={{fontSize:10,opacity:.6}}>accuracy tips for enthalpy calculation</span></span>
-        <span className="arr">v</span>
-      </button>
-      <div id="guide-aa" className="guide-panel">
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
-          <div>
-            <div className="gs gs-amber">Entering air (Inn)</div>
-            <div className="guide-row">
-              <div className="guide-num" style={{background:'rgba(245,158,11,.2)',color:'#fcd34d'}}>1</div>
-              <div className="guide-content">
-                <h4>Dry-Bulb (DB)</h4>
-                <p>PT100 or NTC probe, duct center, 30-50 cm from bends. Wait 3-5 min. Take 3 readings and average. Never use IR gun.</p>
+            <div style={{background:'rgba(0,0,0,.25)',borderRadius:12,padding:'14px',border:'1px solid rgba(139,92,246,.25)'}}>
+              <div style={{fontSize:9,color:'#a855f7',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:8}}>US AHRI 550/590</div>
+              <div style={{fontFamily:'Syne,sans-serif',fontSize:28,fontWeight:800,color:'#a855f7',lineHeight:1}}>{fn(IPLV,2)}</div>
+              <div style={{fontSize:10,color:'#64748b',marginTop:2,marginBottom:8}}>IPLV (COP)</div>
+              <div style={{background:'rgba(139,92,246,.1)',borderRadius:7,padding:'7px',textAlign:'center',border:'1px solid rgba(139,92,246,.3)'}}>
+                <div style={{fontFamily:'Syne,sans-serif',fontSize:13,fontWeight:700,color:iplvRating.color}}>{iplvRating.cls}</div>
+              </div>
+              <div style={{fontSize:9,color:'#475569',marginTop:8,lineHeight:1.6}}>
+                <div>0.01×A + 0.42×B + 0.45×C + 0.12×D</div>
+                <div>High Eff≥5.0 · Std≥3.8 · Min≥3.0</div>
+                <div style={{color:'#64748b',marginTop:2}}>{isAL?"Outdoor bins: 35/26.7/18.3/12.8°C":"CW bins: 29.4/23.9/18.3/12.8°C"}</div>
               </div>
             </div>
-            <div className="guide-row">
-              <div className="guide-num" style={{background:'rgba(245,158,11,.2)',color:'#fcd34d'}}>2</div>
-              <div className="guide-content">
-                <h4>Relative Humidity (RH)</h4>
-                <p>Calibrated capacitive hygrometer. Return air 40-60% RH. Wait 3-5 min. Cross-check with sling psychrometer if possible.</p>
-              </div>
-            </div>
-          </div>
-          <div>
-            <div className="gs gs-teal">Leaving air (Ut)</div>
-            <div className="guide-row">
-              <div className="guide-num" style={{background:'rgba(20,184,166,.2)',color:'#5eead4'}}>3</div>
-              <div className="guide-content">
-                <h4>Dry-Bulb (DB)</h4>
-                <p>10-20 cm from outlet, center of airstream. Avoid condensate zone below coil. PT100 only. Wait min 5 min.</p>
-              </div>
-            </div>
-            <div className="guide-row">
-              <div className="guide-num" style={{background:'rgba(20,184,166,.2)',color:'#5eead4'}}>4</div>
-              <div className="guide-content">
-                <h4>Relative Humidity (RH)</h4>
-                <p>Supply air is 85-95% RH - hardest to measure. Allow 5-10 min stabilisation. Avoid water droplets on sensor. Best: measure WB with sling psychrometer and convert.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginTop:10}}>
-          <div>
-            <div className="gs gs-blue">Airflow</div>
-            <div className="guide-row">
-              <div className="guide-num" style={{background:'rgba(56,189,248,.2)',color:'#7dd3fc'}}>5</div>
-              <div className="guide-content">
-                <h4>Volume flow (m3/h)</h4>
-                <p>Vane anemometer, min 5 points across grille. Multiply by free area factor (0.65-0.80). Steady-state only - system must run 10-15 min first.</p>
-              </div>
-            </div>
-          </div>
-          <div>
-            <div className="gs gs-blue">Power</div>
-            <div className="guide-row">
-              <div className="guide-num" style={{background:'rgba(56,189,248,.2)',color:'#7dd3fc'}}>6</div>
-              <div className="guide-content">
-                <h4>Compressor power (kW)</h4>
-                <p>Clamp meter on live wire. Record kW not kVA. Steady-state only. Inverter units: average over 1 min.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="gtip">Enthalpy accuracy: A 2% RH error at 90% supply RH causes approx 1.5 kJ/kg enthalpy error. With 0.2 kg/s airflow this is 0.3 kW error in Q - roughly 5-10% on a residential unit. Always allow full stabilisation and cross-check RH with wet-bulb measurement where precision matters.</div>
-      </div>
-    </div>
-  );
-}
-
-function GuideAL(){
-  return(
-    <div>
-      <button id="guide-al-btn" className="guide-btn" onClick={()=>toggleGuide('guide-al')}>
-        <span>Measurement Guide - Air / Liquid &nbsp;<span style={{fontSize:10,opacity:.6}}>water side primary, air side control</span></span>
-        <span className="arr">v</span>
-      </button>
-      <div id="guide-al" className="guide-panel">
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
-          <div>
-            <div className="gs gs-blue">Liquid side (primary)</div>
-            <div className="guide-row">
-              <div className="guide-num" style={{background:'rgba(56,189,248,.2)',color:'#7dd3fc'}}>1</div>
-              <div className="guide-content">
-                <h4>Water temperatures (T inn / T ut)</h4>
-                <p>Immersion sensor or insulated clamp-on PT100 directly on pipe. T inn = cold water in, T ut = warmer water out. Avoid elbows and valves.</p>
-              </div>
-            </div>
-            <div className="guide-row">
-              <div className="guide-num" style={{background:'rgba(56,189,248,.2)',color:'#7dd3fc'}}>2</div>
-              <div className="guide-content">
-                <h4>Water flow (L/s)</h4>
-                <p>Ultrasonic clamp-on flow meter. Min 10 pipe diameters straight run before sensor. Formula: Q = 4.18 x V(L/s) x dT. 5% flow error = 5% Q error.</p>
-              </div>
-            </div>
-          </div>
-          <div>
-            <div className="gs gs-amber">Air side (heat rejection control)</div>
-            <div className="guide-row">
-              <div className="guide-num" style={{background:'rgba(245,158,11,.2)',color:'#fcd34d'}}>3</div>
-              <div className="guide-content">
-                <h4>Ambient air (Inn) - DB + RH</h4>
-                <p>Shade probe from sun. 1 m from condenser inlet, not in discharge stream. Max 60 C. This is the entering ambient air temperature.</p>
-              </div>
-            </div>
-            <div className="guide-row">
-              <div className="guide-num" style={{background:'rgba(245,158,11,.2)',color:'#fcd34d'}}>4</div>
-              <div className="guide-content">
-                <h4>Leaving air (Ut) - DB + RH</h4>
-                <p>Leaving air is warmer than ambient - this is heat rejection. Expected: Q_heat = Q_water + P_el. Deviation over 10% indicates measurement error.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="gtip">Balance check: Q_water and Q_air should balance within 5-8%. Larger deviation usually means flow measurement error on water side or airflow error on air side. Trust water side as primary measurement.</div>
-      </div>
-    </div>
-  );
-}
-
-function GuideLL(){
-  return(
-    <div>
-      <button id="guide-ll-btn" className="guide-btn" onClick={()=>toggleGuide('guide-ll')}>
-        <span>Measurement Guide - Liquid / Liquid &nbsp;<span style={{fontSize:10,opacity:.6}}>both sides measured, balance is key</span></span>
-        <span className="arr">v</span>
-      </button>
-      <div id="guide-ll" className="guide-panel">
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
-          <div>
-            <div className="gs gs-blue">Cold side (chilled water / glycol)</div>
-            <div className="guide-row">
-              <div className="guide-num" style={{background:'rgba(56,189,248,.2)',color:'#7dd3fc'}}>1</div>
-              <div className="guide-content">
-                <h4>T inlet + T outlet</h4>
-                <p>Immersion or insulated clamp-on PT100. Measure close to heat exchanger. Even 0.1 C error at 2 C dT = 5% Q error - 4 decimals matters here.</p>
-              </div>
-            </div>
-            <div className="guide-row">
-              <div className="guide-num" style={{background:'rgba(56,189,248,.2)',color:'#7dd3fc'}}>2</div>
-              <div className="guide-content">
-                <h4>Flow (L/s) + glycol %</h4>
-                <p>Ultrasonic clamp-on preferred. Use refractometer to verify actual glycol %. Wrong concentration = wrong cp = wrong Q. Calculator adjusts cp and density automatically.</p>
-              </div>
-            </div>
-          </div>
-          <div>
-            <div className="gs gs-amber">Hot side (condenser water / glycol)</div>
-            <div className="guide-row">
-              <div className="guide-num" style={{background:'rgba(245,158,11,.2)',color:'#fcd34d'}}>3</div>
-              <div className="guide-content">
-                <h4>T inlet + T outlet</h4>
-                <p>Same method as cold side. Q_hot is always larger than Q_cold by the compressor input power. If Q_hot is less than Q_cold something is wrong.</p>
-              </div>
-            </div>
-            <div className="guide-row">
-              <div className="guide-num" style={{background:'rgba(245,158,11,.2)',color:'#fcd34d'}}>4</div>
-              <div className="guide-content">
-                <h4>Flow (L/s) + glycol %</h4>
-                <p>Verify glycol % on hot side separately - concentrations may differ between circuits. Use refractometer.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="gtip">Energy balance: Q_hot = Q_cold + P_el. Deviation over 5-8%: check flow measurements first. Small dT with high flow is much more sensitive to errors than large dT with low flow. At dT = 2 C, a 0.1 C sensor error = 5% Q error.</div>
-      </div>
-    </div>
-  );
-}
-
-function App(){
-  const [mode,setMode]=useState("aa");
-  const [unit,setUnit]=useState("C");
-  const [job,setJob]=useState("");const [uid,setUid]=useState("");
-  const [log,setLog]=useState(()=>{try{return JSON.parse(localStorage.getItem('ndt_log')||'[]')}catch{return[]}});
-  const [showLog,setShowLog]=useState(false);
-  useEffect(()=>{localStorage.setItem('ndt_log',JSON.stringify(log))},[log]);
-  function delEntry(id){setLog(p=>p.filter(e=>e.id!==id))}
-  function exportCSV(){
-    if(!log.length)return;
-    const H=["Date","Mode","Job","Unit","Ref","T1","T2","WB1","WB2","RH1","RH2","Q kW","Qw kW","EER","T_evap","SH K","T_cond","P_suc","P_dis","Temp unit"];
-    const R=log.map(e=>[e.date,e.mode,e.job,e.uid,e.ref,e.t1,e.t2,e.wb1,e.wb2,e.rh1,e.rh2,e.Q,e.Qw||"--",e.eer,e.tE,e.sh,e.tC,e.sP,e.dP,e.unit]);
-    const csv=[H,...R].map(r=>r.map(c=>'"'+c+'"').join(",")).join("\n");
-    const a=document.createElement("a");a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);a.download="noditech_log.csv";a.click();
-  }
-  return(
-    <div className="app">
-      <div className="wrap">
-        <div style={{marginBottom:28}}>
-          <div style={{fontFamily:'Syne,sans-serif',fontSize:'clamp(34px,7vw,66px)',fontWeight:800,color:'#f0f9ff',letterSpacing:'-.03em',lineHeight:1,marginBottom:5}}>
-            Nodi<span style={{color:'#38bdf8'}}>tech</span> <span style={{color:'#38bdf8'}}>AB</span>
-          </div>
-          <div style={{fontFamily:'Syne,sans-serif',fontSize:'clamp(16px,3vw,24px)',fontWeight:700,color:'#94a3b8',marginBottom:3}}>Cooling and EER Calculator</div>
-          <div style={{fontSize:11,color:'#475569',letterSpacing:'.08em',marginBottom:18}}>by Simen Olsen Allum</div>
-          <div className="modes">
-            {[{id:"aa",icon:"A/A",label:"Air / Air",sub:"Luft til luft"},{id:"al",icon:"A/L",label:"Air / Liquid",sub:"Luft til vann"},{id:"ll",icon:"L/L",label:"Liquid / Liquid",sub:"Vann til vann"}].map(m=>(
-              <button key={m.id} className={"mbt"+(mode===m.id?" on":"")} onClick={()=>setMode(m.id)}>
-                <span className="mi">{m.icon}</span>
-                <span className="ml">{m.label}</span>
-                <span className="ms">{m.sub}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="card no-print">
-          <div className="slbl">Measurement Info</div>
-          <div className="two">
-            <div className="field"><div className="lbl">Job / Location</div><input type="text" placeholder="e.g. Office 3rd floor" value={job} onChange={e=>setJob(e.target.value)}/></div>
-            <div className="field"><div className="lbl">Unit ID / Serial</div><input type="text" placeholder="e.g. AHU-01" value={uid} onChange={e=>setUid(e.target.value)}/></div>
-          </div>
-        </div>
-        <div className="card no-print">
-          <div className="slbl">Temperature Unit</div>
-          <div style={{display:'flex',gap:8}}>
-            {["C","F"].map(u=><button key={u} onClick={()=>setUnit(u)} style={{flex:1,padding:'9px',borderRadius:8,border:'1px solid',borderColor:unit===u?'#38bdf8':'rgba(255,255,255,.1)',background:unit===u?'rgba(56,189,248,.12)':'rgba(255,255,255,.03)',color:unit===u?'#38bdf8':'#64748b',fontFamily:'DM Mono,monospace',fontSize:13,cursor:'pointer'}}>deg {u}</button>)}
-          </div>
-        </div>
-        {mode==="aa"&&<AirAir unit={unit} job={job} uid={uid} setLog={setLog} setShowLog={setShowLog}/>}
-        {mode==="al"&&<AirLiquid unit={unit} job={job} uid={uid} setLog={setLog} setShowLog={setShowLog}/>}
-        {mode==="ll"&&<LiqLiq unit={unit} job={job} uid={uid} setLog={setLog} setShowLog={setShowLog}/>}
-        <EnergyRating mode={mode}/>
-        <div className="brow no-print" style={{marginTop:8}}>
-          <button className="bt bt-y" onClick={()=>setShowLog(v=>!v)}>{showLog?"Hide":"Show"} Log ({log.length})</button>
-        </div>
-        {showLog&&(
-          <div className="card no-print" style={{marginTop:14}}>
-            <div className="slbl">Measurement Log</div>
-            {log.length===0?<div style={{fontSize:13,color:'#475569',padding:'10px 0'}}>No measurements saved yet.</div>:(
-              <>
-                <div style={{overflowX:'auto'}}>
-                  <table className="lt">
-                    <thead><tr><th>Date</th><th>Mode</th><th>Job</th><th>Unit</th><th>Ref</th><th>T1</th><th>T2</th><th>Q kW</th><th>EER</th><th>SH</th><th>T_evap</th><th></th></tr></thead>
-                    <tbody>{log.map(e=>(
-                      <tr key={e.id}>
-                        <td style={{fontSize:10,color:'#64748b',whiteSpace:'nowrap'}}>{e.date}</td>
-                        <td style={{fontSize:10}}>{e.mode}</td>
-                        <td style={{color:'#f0f9ff'}}>{e.job}</td>
-                        <td>{e.uid}</td>
-                        <td style={{color:RCOL[e.ref]||'#94a3b8',fontWeight:600}}>{e.ref}</td>
-                        <td>{e.t1}</td>
-                        <td style={{color:'#38bdf8'}}>{e.t2}</td>
-                        <td style={{color:'#38bdf8',fontWeight:600}}>{e.Q}</td>
-                        <td style={{color:eCol(parseFloat(e.eer)),fontWeight:600}}>{e.eer}</td>
-                        <td>{e.sh}</td>
-                        <td>{e.tE}</td>
-                        <td><button className="bt-r" onClick={()=>delEntry(e.id)}>x</button></td>
-                      </tr>
-                    ))}</tbody>
-                  </table>
-                </div>
-                <div className="brow" style={{marginTop:10}}>
-                  <button className="bt bt-b" onClick={exportCSV}>Export CSV</button>
-                  <button className="bt-r" style={{padding:'7px 12px',fontSize:11}} onClick={()=>{if(window.confirm("Clear all?"))setLog([])}}>Clear All</button>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function toggleGuide(id){
-  const panel=document.getElementById(id);
-  const btn=document.getElementById(id+'-btn');
-  panel.classList.toggle('open');
-  btn.classList.toggle('open');
-}
-
-// ── Energy Rating Calculator ─────────────────────────────────────────────
-function EnergyRating({mode}){
-  // A/A inputs
-  const [capFull35, setCapFull35] = React.useState(5103);
-  const [powFull35, setPowFull35] = React.useState(1224);
-  const [capHalf35, setCapHalf35] = React.useState(2496);
-  const [powHalf35, setPowHalf35] = React.useState(483);
-  const [capFull29, setCapFull29] = React.useState(5496);
-  const [powFull29, setPowFull29] = React.useState(1119);
-  const [capB,      setCapB]      = React.useState(5800);
-  const [powB,      setPowB]      = React.useState(950);
-  // A/L + L/L inputs — EER at 4 load points
-  const [eer100, setEer100] = React.useState(3.0);
-  const [eer75,  setEer75]  = React.useState(3.8);
-  const [eer50,  setEer50]  = React.useState(4.5);
-  const [eer25,  setEer25]  = React.useState(5.2);
-  // Chilled water temps
-  const [cwSupply, setCwSupply] = React.useState(7);
-  const [cwReturn, setCwReturn] = React.useState(12);
-  const [Cd, setCd] = React.useState(0.25);
-  const [open, setOpen] = React.useState(false);
-
-  function fn(n,d=2){if(!isFinite(n)||isNaN(n))return"--";return n.toFixed(d);}
-  function stars(n){return "★".repeat(n)+"☆".repeat(5-n);}
-
-  const isAA = mode==="aa";
-  const isAL = mode==="al";
-  const isLL = mode==="ll";
-
-  // ── A/A: ISEER ───────────────────────────────────────────────────────
-  const indiaBins=[
-    {t:24,h:146},{t:25,h:163},{t:26,h:177},{t:27,h:183},
-    {t:28,h:167},{t:29,h:150},{t:30,h:125},{t:31,h:104},
-    {t:32,h:86},{t:33,h:67},{t:34,h:54},{t:35,h:46},
-    {t:36,h:36},{t:37,h:28},{t:38,h:22},{t:39,h:16},
-    {t:40,h:12},{t:41,h:9},{t:42,h:6},{t:43,h:3},
-  ];
-  const T0=23,Tb=35,Tc=29,T100=43;
-  function capFullT(t){return capFull35+(capFull29-capFull35)*(Tb-t)/(Tb-Tc);}
-  function powFullT(t){return powFull35+(powFull29-powFull35)*(Tb-t)/(Tb-Tc);}
-  function capHalfT(t){return capFullT(t)*(capFull35>0?capHalf35/capFull35:0.5);}
-  function powHalfT(t){return powFullT(t)*(powFull35>0?powHalf35/powFull35:0.5);}
-  function coolLoad(t){return (capFull35/1000)*((t-T0)/(T100-T0));}
-  let CSTL=0,CSEC=0;
-  indiaBins.forEach(({t,h})=>{
-    const bldLoad=coolLoad(t);if(bldLoad<=0)return;
-    const capF=capFullT(t)/1000,capH=capHalfT(t)/1000;
-    const powF=powFullT(t)/1000,powH=powHalfT(t)/1000;
-    const eerF=powF>0?capF/powF:0;
-    const eerH=powH>0?capH/powH:0;
-    // CSTL = heat actually removed = min(building load, AC capacity)
-    const load=Math.min(bldLoad,capF);
-    CSTL+=load*h;
-    // CSEC: E = load / (EER * PLF) for part-load, load/EER for interpolated
-    if(load<=capH){
-      const X=load/capH;
-      const PLF=1-Cd*(1-X);
-      CSEC+=(load/(eerH*PLF))*h;
-    } else if(bldLoad<=capF){
-      const X=(load-capH)/(capF-capH);
-      const eerInterp=eerH+X*(eerF-eerH);
-      CSEC+=(load/eerInterp)*h;
-    } else {
-      CSEC+=(capF/eerF)*h;
-    }
-  });
-  const ISEER=CSEC>0?CSTL/CSEC:0;
-  function iseerStars(v){
-    // BEE Label Period 6 — effective 2025-2026
-    if(v>=5.20)return{stars:5,label:"5 Star",color:"#22c55e"};
-    if(v>=4.70)return{stars:4,label:"4 Star",color:"#86efac"};
-    if(v>=4.00)return{stars:3,label:"3 Star",color:"#facc15"};
-    if(v>=3.50)return{stars:2,label:"2 Star",color:"#fb923c"};
-    return{stars:1,label:"1 Star",color:"#f87171"};
-  }
-  const indiaRating=iseerStars(ISEER);
-
-  // ── A/A: EU SEER (EN 14825) ──────────────────────────────────────────
-  const euBins=[{t:20,h:205},{t:25,h:227},{t:30,h:225},{t:35,h:270}];
-  function capEU(t){return capFull35+(capFull29-capFull35)*(35-t)/(35-29);}
-  function powEU(t){return powFull35+(powFull29-powFull35)*(35-t)/(35-29);}
-  const Pref=capFull35/1000;
-  let CSTL_EU=0,CSEC_EU=0;
-  euBins.forEach(({t,h})=>{
-    const pl=Math.max(0,(t-16)/(35-16));
-    const load=Pref*pl;if(load<=0)return;
-    const cap=Math.min(capEU(t)/1000,Pref);
-    const pow=powEU(t)/1000;
-    const eer=pow>0?cap/pow:0;
-    CSTL_EU+=load*h;
-    if(load<=cap){const X=load/cap;CSEC_EU+=(load/eer/(1-Cd*(1-X)))*h;}
-    else{CSEC_EU+=(cap/eer)*h;}
-  });
-  const SEER_EU=CSEC_EU>0?CSTL_EU/CSEC_EU:0;
-  function euClass(v){
-    if(v>=8.5)return{cls:"A+++",color:"#166534",bg:"#bbf7d0"};
-    if(v>=6.1)return{cls:"A++", color:"#15803d",bg:"#dcfce7"};
-    if(v>=5.6)return{cls:"A+",  color:"#16a34a",bg:"#f0fdf4"};
-    if(v>=5.1)return{cls:"A",   color:"#65a30d",bg:"#f7fee7"};
-    if(v>=4.6)return{cls:"B",   color:"#ca8a04",bg:"#fefce8"};
-    if(v>=4.1)return{cls:"C",   color:"#d97706",bg:"#fffbeb"};
-    if(v>=3.6)return{cls:"D",   color:"#ea580c",bg:"#fff7ed"};
-    return{cls:"E",color:"#dc2626",bg:"#fef2f2"};
-  }
-  const euRating_AA=euClass(SEER_EU);
-
-  // ── A/A: US SEER2 (AHRI 210/240) ─────────────────────────────────────
-  const indoorCorr=0.997;
-  const capA=capFull35*indoorCorr,powA=powFull35*indoorCorr;
-  const usBins=[
-    {t:67,h:214},{t:72,h:231},{t:77,h:243},{t:82,h:253},
-    {t:87,h:234},{t:92,h:189},{t:97,h:128},{t:102,h:63},{t:107,h:12},
-  ];
-  function capUS_W(f){return capA+(capB-capA)*(95-f)/(95-82);}
-  function powUS_W(f){return powA+(powB-powA)*(95-f)/(95-82);}
-  const refCapUS=capA/1000;
-  let CSTL_US=0,CSEC_US=0;
-  usBins.forEach(({t,h})=>{
-    const pl=Math.max(0,(t-65)/(95-65));
-    const load=refCapUS*pl;if(load<=0)return;
-    const cap=Math.min(capUS_W(t)/1000,refCapUS);
-    const pow=powUS_W(t)/1000;
-    const eer=pow>0?cap/pow:0;
-    CSTL_US+=load*h;
-    if(load<=cap){const X=load/cap;CSEC_US+=(load/eer/(1-Cd*(1-X)))*h;}
-    else{CSEC_US+=(cap/eer)*h;}
-  });
-  const SEER_US=CSEC_US>0?(CSTL_US/CSEC_US)*3.412:0;
-  const EER_US_AA=(capA/powA)*3.412;
-  function usClass(v){
-    if(v>=22)return{cls:"Energy Star",detail:"Top tier",    color:"#15803d",bg:"#dcfce7"};
-    if(v>=18)return{cls:"High Eff.",  detail:"Above std",   color:"#65a30d",bg:"#f7fee7"};
-    if(v>=15)return{cls:"Standard",   detail:"Meets min",   color:"#ca8a04",bg:"#fefce8"};
-    if(v>=14)return{cls:"Marginal",   detail:"Near min",    color:"#ea580c",bg:"#fff7ed"};
-    return{cls:"Below Min",detail:"Fails DOE min",color:"#dc2626",bg:"#fef2f2"};
-  }
-  const usRating_AA=usClass(SEER_US);
-
-  // ── A/L: ESEER (EN 14825) + IPLV (AHRI 550/590) ──────────────────────
-  // ESEER = 0.03*EER100 + 0.33*EER75 + 0.41*EER50 + 0.23*EER25
-  // Test conditions: CW 7°C supply / 12°C return, outdoor 35/30/25/20°C
-  const ESEER_AL = 0.03*eer100 + 0.33*eer75 + 0.41*eer50 + 0.23*eer25;
-  // IPLV (AHRI 550/590) = 0.01*A + 0.42*B + 0.45*C + 0.12*D
-  // A=100% (35°C), B=75% (26.7°C), C=50% (18.3°C), D=25% (12.8°C)
-  const IPLV_AL = 0.01*eer100 + 0.42*eer75 + 0.45*eer50 + 0.12*eer25;
-  function euClassChiller(v){
-    if(v>=6.4)return{cls:"A+++",color:"#166534",bg:"#bbf7d0"};
-    if(v>=5.5)return{cls:"A++", color:"#15803d",bg:"#dcfce7"};
-    if(v>=5.1)return{cls:"A+",  color:"#16a34a",bg:"#f0fdf4"};
-    if(v>=4.6)return{cls:"A",   color:"#65a30d",bg:"#f7fee7"};
-    if(v>=4.0)return{cls:"B",   color:"#ca8a04",bg:"#fefce8"};
-    if(v>=3.5)return{cls:"C",   color:"#d97706",bg:"#fffbeb"};
-    if(v>=3.0)return{cls:"D",   color:"#ea580c",bg:"#fff7ed"};
-    return{cls:"E",color:"#dc2626",bg:"#fef2f2"};
-  }
-  const euRating_AL=euClassChiller(ESEER_AL);
-  function iplvClass(v){
-    if(v>=5.0)return{cls:"High Eff.",color:"#15803d"};
-    if(v>=3.8)return{cls:"Standard", color:"#65a30d"};
-    if(v>=3.0)return{cls:"Min req.", color:"#ca8a04"};
-    return{cls:"Below min",color:"#dc2626"};
-  }
-  const iplvRating_AL=iplvClass(IPLV_AL);
-
-  // ── L/L: ESEER (EN 14511) + IPLV (AHRI 550/590) ──────────────────────
-  // Same weighted formula but different test conditions:
-  // EU: Condenser water 30°C in / 35°C out at full load
-  // US: Condenser water 29.4/23.9/18.3/12.8°C at 100/75/50/25%
-  const ESEER_LL = 0.03*eer100 + 0.33*eer75 + 0.41*eer50 + 0.23*eer25;
-  const IPLV_LL  = 0.01*eer100 + 0.42*eer75 + 0.45*eer50 + 0.12*eer25;
-  const euRating_LL=euClassChiller(ESEER_LL);
-  const iplvRating_LL=iplvClass(IPLV_LL);
-
-  // ── Render helpers ────────────────────────────────────────────────────
-  function NumInput({label,val,set,utag}){
-    return(
-      <div className="field">
-        <div className="lbl"><span>{label}</span><span className="utag">{utag}</span></div>
-        <input type="number" step={1} value={val} onChange={e=>set(parseFloat(e.target.value)||0)}/>
-      </div>
-    );
-  }
-  function RatingCard({title,value,label,sub,badge,badgeBg,badgeColor,detail,color,notes}){
-    return(
-      <div style={{background:'rgba(0,0,0,.25)',borderRadius:12,padding:'16px 14px',border:'1px solid '+color+'44'}}>
-        <div style={{fontSize:9,letterSpacing:'.15em',textTransform:'uppercase',color,marginBottom:10}}>{title}</div>
-        <div style={{fontFamily:'Syne,sans-serif',fontSize:30,fontWeight:800,color,lineHeight:1}}>{value}</div>
-        <div style={{fontSize:10,color:'#64748b',marginTop:2,marginBottom:10}}>{label}</div>
-        <div style={{background:badgeBg||'rgba(0,0,0,.2)',borderRadius:8,padding:'8px 10px',textAlign:'center',border:'1px solid '+badgeColor+'66'}}>
-          <div style={{fontFamily:'Syne,sans-serif',fontSize:badge.length>6?13:18,fontWeight:700,color:badgeColor}}>{badge}</div>
-          {sub&&<div style={{fontSize:10,color:'#64748b',marginTop:2}}>{sub}</div>}
-        </div>
-        {notes&&<div style={{marginTop:10,fontSize:9,color:'#475569',lineHeight:1.7}}>{notes}</div>}
-      </div>
-    );
-  }
-
-  const modeLabel = isAA?"Air / Air":isAL?"Air / Liquid":"Liquid / Liquid";
-
-  return(
-    <div className="card" style={{borderColor:'rgba(56,189,248,.2)',marginTop:14}}>
-      <button className="guide-btn" onClick={()=>setOpen(v=>!v)} style={{marginBottom:open?14:0}}>
-        <span>Energy Rating — {modeLabel} &nbsp;
-          <span style={{fontSize:10,opacity:.6}}>
-            {isAA?"ISEER · SEER (EU) · SEER2 (US)":"ESEER (EU EN 14511) · IPLV (US AHRI 550/590)"}
-          </span>
-        </span>
-        <span style={{transition:'transform .2s',transform:open?'rotate(180deg)':'none'}}>&#9660;</span>
-      </button>
-
-      {open&&isAA&&(
-        <div>
-          {/* Test condition badges */}
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:14}}>
-            <div style={{background:'rgba(245,158,11,.07)',border:'1px solid rgba(245,158,11,.2)',borderRadius:8,padding:'8px 10px',fontSize:9,color:'#fbbf24',lineHeight:1.6}}>
-              <strong>ISEER (IS 1391 Part 2)</strong><br/>
-              Full: 35°C out / 27°C in / 19°C WB<br/>
-              Half: 35°C out / 27°C in (locked 50%)<br/>
-              Curve: 29°C out / full load only
-            </div>
-            <div style={{background:'rgba(56,189,248,.07)',border:'1px solid rgba(56,189,248,.2)',borderRadius:8,padding:'8px 10px',fontSize:9,color:'#7dd3fc',lineHeight:1.6}}>
-              <strong>EU EN 14825 / ErP</strong><br/>
-              Full: 35°C out / 27°C in / 19°C WB<br/>
-              Part: 30/25/20°C out / 27°C in<br/>
-              Curve: 29°C ref
-            </div>
-            <div style={{background:'rgba(139,92,246,.07)',border:'1px solid rgba(139,92,246,.2)',borderRadius:8,padding:'8px 10px',fontSize:9,color:'#c4b5fd',lineHeight:1.6}}>
-              <strong>US AHRI 210/240</strong><br/>
-              A: 95°F out / 80°F in / 67°F WB<br/>
-              B: 82°F out / 80°F in / 65°F WB<br/>
-              Indoor = 26.7°C (not 27°C)
-            </div>
-          </div>
-          <div className="slbl">Test Point Data — Air / Air</div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14,marginBottom:14}}>
-            <div>
-              <div style={{fontSize:9,color:'#fbbf24',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:8}}>35°C — Full load</div>
-              <NumInput label="Capacity" val={capFull35} set={setCapFull35} utag="W"/>
-              <NumInput label="Power" val={powFull35} set={setPowFull35} utag="W"/>
-              <div style={{fontSize:9,color:'#fbbf24',letterSpacing:'.1em',textTransform:'uppercase',margin:'10px 0 8px'}}>35°C — Half load (locked 50%)</div>
-              <NumInput label="Capacity" val={capHalf35} set={setCapHalf35} utag="W"/>
-              <NumInput label="Power" val={powHalf35} set={setPowHalf35} utag="W"/>
-            </div>
-            <div>
-              <div style={{fontSize:9,color:'#38bdf8',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:8}}>29°C — Curve reference (full only)</div>
-              <div style={{fontSize:9,color:'#64748b',marginBottom:8,lineHeight:1.5}}>Used to interpolate capacity across bins. Half load scaled proportionally.</div>
-              <NumInput label="Capacity full" val={capFull29} set={setCapFull29} utag="W"/>
-              <NumInput label="Power full" val={powFull29} set={setPowFull29} utag="W"/>
-              <div className="field" style={{marginTop:8}}>
-                <div className="lbl"><span>Degradation coeff. Cd</span><span className="utag">0–1</span></div>
-                <input type="number" min={0} max={1} step={0.01} value={Cd} onChange={e=>setCd(parseFloat(e.target.value)||0)}/>
-              </div>
-            </div>
-            <div>
-              <div style={{fontSize:9,color:'#c4b5fd',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:8}}>82°F / 27.8°C — US B-test only</div>
-              <div style={{fontSize:9,color:'#64748b',marginBottom:8,lineHeight:1.5}}>Full load at 82°F. Indoor = 80°F (26.7°C). Only used for US SEER2.</div>
-              <NumInput label="Capacity" val={capB} set={setCapB} utag="W"/>
-              <NumInput label="Power" val={powB} set={setPowB} utag="W"/>
-            </div>
-          </div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
-            <RatingCard title="India BEE" value={fn(ISEER,2)} label="ISEER"
-              badge={indiaRating.label} badgeColor={indiaRating.color} sub={stars(indiaRating.stars)}
-              color={indiaRating.color}
-              notes={<><div>CSTL: {fn(CSTL/1000,1)} kWh/yr</div><div>CSEC: {fn(CSEC,1)} kWh/yr</div><div style={{color:'#64748b',marginTop:4}}>IS 1391 Pt2 · BEE LP6 2025-26</div></>}/>
-            <RatingCard title="EU ErP / EN 14825" value={fn(SEER_EU,2)} label="SEER"
-              badge={euRating_AA.cls} badgeBg={euRating_AA.bg} badgeColor={euRating_AA.color} sub="EU Energy Label"
-              color="#38bdf8"
-              notes={<><div>A+++&gt;8.5 · A++&gt;6.1 · A+&gt;5.6</div><div>A&gt;5.1 · B&gt;4.6 · C&gt;4.1</div><div style={{color:'#64748b',marginTop:4}}>EN 14825 · Strasbourg · 4 bins</div></>}/>
-            <RatingCard title="US AHRI 210/240" value={fn(SEER_US,1)} label="SEER2 (BTU/Wh)"
-              badge={usRating_AA.cls} badgeBg={usRating_AA.bg} badgeColor={usRating_AA.color} sub={usRating_AA.detail}
-              color="#a855f7"
-              notes={<><div>EER (95F): {fn(EER_US_AA,2)} BTU/Wh</div><div>E-Star&gt;22 · Min&gt;14</div><div style={{color:'#64748b',marginTop:4}}>AHRI 210/240 · FW TX · 9 bins</div></>}/>
-          </div>
-          <div className="irow" style={{marginTop:12}}>
-            <span><span className="ik">EER full 35°C</span><span className="iv">{fn(capFull35/powFull35,2)}</span></span>
-            <span><span className="ik">EER half 35°C</span><span className="iv">{fn(capHalf35/powHalf35,2)}</span></span>
-            <span><span className="ik">EER full 29°C</span><span className="iv">{fn(capFull29/powFull29,2)}</span></span>
-            <span><span className="ik">EER US (BTU/Wh)</span><span className="iv">{fn(EER_US_AA,2)}</span></span>
-          </div>
-          <div className="gtip" style={{marginTop:12}}>
-            <strong>Half load:</strong> Tested at 35°C outdoor locked at 50% compressor frequency. The 29°C point is a full-load reference only — half load at other temperatures is scaled proportionally. Indoor: 27°C DB / 19°C WB for ISEER and EU. US uses 26.7°C (80°F) with correction factor 0.997.
-          </div>
-        </div>
-      )}
-
-      {open&&(isAL||isLL)&&(
-        <div>
-          {/* Test condition badges for chiller */}
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:14}}>
-            <div style={{background:'rgba(56,189,248,.07)',border:'1px solid rgba(56,189,248,.2)',borderRadius:8,padding:'10px 12px',fontSize:9,color:'#7dd3fc',lineHeight:1.7}}>
-              <strong>EU ESEER — EN 14511 / EN 14825</strong><br/>
-              {isAL?<>Outdoor air: 35 / 30 / 25 / 20°C<br/>Chilled water: 7°C supply / 12°C return<br/>ESEER = 0.03×EER100 + 0.33×EER75 + 0.41×EER50 + 0.23×EER25</>
-                   :<>Condenser water in: 30 / 26 / 22 / 18°C<br/>Chilled water: 7°C supply / 12°C return<br/>ESEER = 0.03×EER100 + 0.33×EER75 + 0.41×EER50 + 0.23×EER25</>}
-            </div>
-            <div style={{background:'rgba(139,92,246,.07)',border:'1px solid rgba(139,92,246,.2)',borderRadius:8,padding:'10px 12px',fontSize:9,color:'#c4b5fd',lineHeight:1.7}}>
-              <strong>US IPLV — AHRI 550/590</strong><br/>
-              {isAL?<>Outdoor air: 35 / 26.7 / 18.3 / 12.8°C<br/>Chilled water: 6.7°C supply / 12.2°C return<br/>IPLV = 0.01×A + 0.42×B + 0.45×C + 0.12×D</>
-                   :<>Condenser water in: 29.4 / 23.9 / 18.3 / 12.8°C<br/>Chilled water: 6.7°C / 12.2°C<br/>IPLV = 0.01×A + 0.42×B + 0.45×C + 0.12×D</>}
-            </div>
-          </div>
-          <div className="slbl">EER at 4 Load Points — {isAL?"Air / Liquid":"Liquid / Liquid"}</div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:10,marginBottom:14}}>
-            {[{pct:"100%",lbl:isAL?"35°C outdoor":"29.4°C CW in",val:eer100,set:setEer100,col:"#f87171"},
-              {pct:"75%", lbl:isAL?"30°C outdoor":"23.9°C CW in",val:eer75, set:setEer75, col:"#facc15"},
-              {pct:"50%", lbl:isAL?"25°C outdoor":"18.3°C CW in",val:eer50, set:setEer50, col:"#86efac"},
-              {pct:"25%", lbl:isAL?"20°C outdoor":"12.8°C CW in",val:eer25, set:setEer25, col:"#22c55e"},
-            ].map(({pct,lbl,val,set,col})=>(
-              <div key={pct}>
-                <div style={{fontSize:9,color:col,letterSpacing:'.1em',textTransform:'uppercase',marginBottom:6}}>{pct} load</div>
-                <div style={{fontSize:9,color:'#64748b',marginBottom:6}}>{lbl}</div>
-                <div className="field" style={{marginBottom:0}}>
-                  <div className="lbl"><span>EER</span><span className="utag">W/W</span></div>
-                  <input type="number" min={0} max={20} step={0.01} value={val} onChange={e=>set(parseFloat(e.target.value)||0)}/>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-            <RatingCard title={isAL?"EU EN 14511 / EN 14825":"EU EN 14511"} value={fn(isAL?ESEER_AL:ESEER_LL,2)} label="ESEER"
-              badge={isAL?euRating_AL.cls:euRating_LL.cls}
-              badgeBg={isAL?euRating_AL.bg:euRating_LL.bg}
-              badgeColor={isAL?euRating_AL.color:euRating_LL.color}
-              sub="EU Energy Label" color="#38bdf8"
-              notes={<>
-                <div>A+++&gt;6.4 · A++&gt;5.5 · A+&gt;5.1</div>
-                <div>A&gt;4.6 · B&gt;4.0 · C&gt;3.5</div>
-                <div style={{color:'#64748b',marginTop:4}}>EN 14511 · {isAL?"Air-cooled chiller":"Water-cooled chiller"}</div>
-                <div style={{color:'#64748b'}}>CW: {cwSupply}°C supply / {cwReturn}°C return</div>
-              </>}/>
-            <RatingCard title="US AHRI 550/590" value={fn(isAL?IPLV_AL:IPLV_LL,2)} label="IPLV (COP)"
-              badge={isAL?iplvRating_AL.cls:iplvRating_LL.cls}
-              badgeColor={isAL?iplvRating_AL.color:iplvRating_LL.color}
-              sub="Integrated Part Load Value" color="#a855f7"
-              notes={<>
-                <div>High Eff: &gt;5.0 · Std: &gt;3.8</div>
-                <div>Min req: &gt;3.0 (varies by size)</div>
-                <div style={{color:'#64748b',marginTop:4}}>AHRI 550/590 · {isAL?"Air-cooled":"Water-cooled"}</div>
-                <div style={{color:'#64748b'}}>{isAL?"Outdoor bins: 35/26.7/18.3/12.8°C":"CW bins: 29.4/23.9/18.3/12.8°C"}</div>
-              </>}/>
-          </div>
-          <div className="irow" style={{marginTop:12}}>
-            <span><span className="ik">ESEER</span><span className="iv">{fn(isAL?ESEER_AL:ESEER_LL,2)}</span></span>
-            <span><span className="ik">IPLV</span><span className="iv">{fn(isAL?IPLV_AL:IPLV_LL,2)}</span></span>
-            <span><span className="ik">EER@100%</span><span className="iv">{fn(eer100,2)}</span></span>
-            <span><span className="ik">EER@75%</span><span className="iv">{fn(eer75,2)}</span></span>
-            <span><span className="ik">EER@50%</span><span className="iv">{fn(eer50,2)}</span></span>
-            <span><span className="ik">EER@25%</span><span className="iv">{fn(eer25,2)}</span></span>
-          </div>
-          <div className="gtip" style={{marginTop:12}}>
-            <strong>{isAL?"Air/Liquid":"Liquid/Liquid"} rating note:</strong> India (BEE) does not have a separate bin method for {isAL?"air-cooled chillers":"water-cooled chillers"} — AHRI 550/590 IPLV is used by reference. EU uses ESEER with 4 weighted load points. US uses IPLV with different weighting factors (more weight on 50% and 75% load). EER values must be measured in accredited laboratories at the stated test conditions.
           </div>
         </div>
       )}
