@@ -768,6 +768,7 @@ function App(){
         {mode==="aa"&&<AirAir unit={unit} job={job} uid={uid} setLog={setLog} setShowLog={setShowLog}/>}
         {mode==="al"&&<AirLiquid unit={unit} job={job} uid={uid} setLog={setLog} setShowLog={setShowLog}/>}
         {mode==="ll"&&<LiqLiq unit={unit} job={job} uid={uid} setLog={setLog} setShowLog={setShowLog}/>}
+        <EnergyRating/>
         <div className="brow no-print" style={{marginTop:8}}>
           <button className="bt bt-y" onClick={()=>setShowLog(v=>!v)}>{showLog?"Hide":"Show"} Log ({log.length})</button>
         </div>
@@ -816,6 +817,285 @@ function toggleGuide(id){
   panel.classList.toggle('open');
   btn.classList.toggle('open');
 }
+
+// ── ISEER / SEER / EER Energy Rating Calculator ──────────────────────────
+function EnergyRating(){
+  const [unit, setUnit] = React.useState("C");
+  // Common inputs
+  const [capFull35, setCapFull35] = React.useState(5103);   // W at 35C full
+  const [capHalf35, setCapHalf35] = React.useState(2496);   // W at 35C half
+  const [powFull35, setPowFull35] = React.useState(1224);   // W at 35C full
+  const [powHalf35, setPowHalf35] = React.useState(483);    // W at 35C half
+  const [capFull29, setCapFull29] = React.useState(5496);   // W at 29C full
+  const [capHalf29, setCapHalf29] = React.useState(2688);   // W at 29C half
+  const [powFull29, setPowFull29] = React.useState(1119);   // W at 29C full
+  const [powHalf29, setPowHalf29] = React.useState(441);    // W at 29C half
+  const [Cd, setCd]               = React.useState(0.25);   // Degradation coeff
+  const [open, setOpen]           = React.useState(false);
+
+  // ── ISEER (India BEE IS 1391 Part 2) ─────────────────────────────────
+  // Bin hours: 24-43°C, BEE distribution
+  const indiaBins = [
+    {t:24,h:146},{t:25,h:163},{t:26,h:177},{t:27,h:183},
+    {t:28,h:167},{t:29,h:150},{t:30,h:125},{t:31,h:104},
+    {t:32,h:86}, {t:33,h:67}, {t:34,h:54}, {t:35,h:46},
+    {t:36,h:36}, {t:37,h:28}, {t:38,h:22}, {t:39,h:16},
+    {t:40,h:12}, {t:41,h:9},  {t:42,h:6},  {t:43,h:3},
+  ];
+  const T0=23, Tb=35, Tc=29;
+  // Linear interpolation between test points
+  function capFullT(t){ return capFull35 + (capFull29-capFull35)*(Tb-t)/(Tb-Tc); }
+  function capHalfT(t){ return capHalf35 + (capHalf29-capHalf35)*(Tb-t)/(Tb-Tc); }
+  function powFullT(t){ return powFull35 + (powFull29-powFull35)*(Tb-t)/(Tb-Tc); }
+  function powHalfT(t){ return powHalf35 + (powHalf29-powHalf35)*(Tb-t)/(Tb-Tc); }
+  function coolLoad(t){ return (capFull35/1000)*((t-T0)/(Tb-T0)); }
+
+  let CSTL=0, CSEC=0;
+  indiaBins.forEach(({t,h})=>{
+    const load = coolLoad(t);
+    if(load <= 0){ return; }
+    const capF = capFullT(t)/1000;
+    const capH = capHalfT(t)/1000;
+    const powF = powFullT(t)/1000;
+    const powH = powHalfT(t)/1000;
+    const eerF = powF>0?capF/powF:0;
+    const eerH = powH>0?capH/powH:0;
+    CSTL += load * h;
+    if(load <= capH){
+      // Part load — half capacity or degraded
+      const X = load/capH;
+      const PLF = 1 - Cd*(1-X);
+      CSEC += (powH/eerH/PLF)*h;
+    } else if(load <= capF){
+      // Between half and full
+      const X = (load-capH)/(capF-capH);
+      const pow_interp = powH + X*(powF-powH);
+      const eer_interp = load/pow_interp;
+      CSEC += (load/eer_interp)*h;
+    } else {
+      CSEC += (capF/eerF)*h;
+    }
+  });
+  const ISEER = CSEC>0 ? CSTL/CSEC : 0;
+
+  // ISEER star rating (BEE India 2023-24)
+  function iseerStars(v){
+    if(v>=5.00)return{stars:5,label:"5 Star",color:"#22c55e"};
+    if(v>=4.50)return{stars:4,label:"4 Star",color:"#86efac"};
+    if(v>=4.00)return{stars:3,label:"3 Star",color:"#facc15"};
+    if(v>=3.50)return{stars:2,label:"2 Star",color:"#fb923c"};
+    return{stars:1,label:"1 Star",color:"#f87171"};
+  }
+  const indiaRating = iseerStars(ISEER);
+
+  // ── SEER (EU ErP / EN 14825) ──────────────────────────────────────────
+  // Reference conditions: full load at 35°C, part load at 30/25/20°C
+  // Simplified SCOP/SEER using bin method (Strasbourg climate, cooling season)
+  // EU bins for cooling (EN14825 Table D3, simplified)
+  const euBins = [
+    {t:20,h:205},{t:25,h:227},{t:30,h:225},{t:35,h:270},
+  ];
+  // Declared capacities at reference conditions (interpolate from 35C and 29C test points)
+  function capEU(t){ return capFull35 + (capFull29-capFull35)*(35-t)/(35-29); }
+  function powEU(t){ return powFull35 + (powFull29-powFull35)*(35-t)/(35-29); }
+  // EU reference cooling load at 35C = full capacity
+  const Pdc_ref = capFull35/1000;
+  let CSTL_EU=0, CSEC_EU=0;
+  euBins.forEach(({t,h})=>{
+    const pl = Math.max(0, (t-16)/(35-16)); // part load ratio
+    const load = Pdc_ref * pl;
+    const cap  = Math.min(capEU(t)/1000, capFull35/1000);
+    const pow  = powEU(t)/1000;
+    const eer  = pow>0?cap/pow:0;
+    CSTL_EU += load*h;
+    if(load<=0){ return; }
+    if(load<=cap){
+      const X = load/cap;
+      const PLF = 1 - Cd*(1-X);
+      CSEC_EU += (load/eer/PLF)*h;
+    } else {
+      CSEC_EU += (cap/eer)*h;
+    }
+  });
+  const SEER_EU = CSEC_EU>0 ? CSTL_EU/CSEC_EU : 0;
+
+  // EU Energy class (ErP 2021)
+  function euClass(v){
+    if(v>=8.5) return{cls:"A+++",color:"#166534",bg:"#bbf7d0"};
+    if(v>=6.1) return{cls:"A++", color:"#15803d",bg:"#dcfce7"};
+    if(v>=5.6) return{cls:"A+",  color:"#16a34a",bg:"#f0fdf4"};
+    if(v>=5.1) return{cls:"A",   color:"#65a30d",bg:"#f7fee7"};
+    if(v>=4.6) return{cls:"B",   color:"#ca8a04",bg:"#fefce8"};
+    if(v>=4.1) return{cls:"C",   color:"#d97706",bg:"#fffbeb"};
+    if(v>=3.6) return{cls:"D",   color:"#ea580c",bg:"#fff7ed"};
+    return{cls:"E",color:"#dc2626",bg:"#fef2f2"};
+  }
+  const euRating = euClass(SEER_EU);
+
+  // ── EER / SEER (US DOE / AHRI 210-240) ───────────────────────────────
+  // SEER2 (post 2023): uses M1 test procedure, 5-speed bin method
+  // Simplified: SEER = weighted average of EER at various load conditions
+  // Using Ft. Worth TX climate bins (AHRI standard)
+  const usBins = [
+    {t:67,h:214},{t:72,h:231},{t:77,h:243},{t:82,h:253},
+    {t:87,h:234},{t:92,h:189},{t:97,h:128},{t:102,h:63},{t:107,h:12},
+  ];
+  // Convert F to C for capacity calculation
+  function fToC(f){ return (f-32)*5/9; }
+  function capUS(f){ const t=fToC(f); return capFull35+(capFull29-capFull35)*(35-t)/(35-29); }
+  function powUS(f){ const t=fToC(f); return powFull35+(powFull29-powFull35)*(35-t)/(35-29); }
+  const refCap = capUS(95)/1000; // Reference at 95F (35C)
+  let CSTL_US=0, CSEC_US=0;
+  usBins.forEach(({t,h})=>{
+    const pl = Math.max(0,(t-65)/(95-65));
+    const load = refCap*pl;
+    const cap  = Math.min(capUS(t)/1000, refCap);
+    const pow  = powUS(t)/1000;
+    const eer  = pow>0?cap/pow:0;
+    // Convert to BTU/W for EER
+    const eerBTU = eer*3.412;
+    CSTL_US += load*h;
+    if(load<=0){return;}
+    if(load<=cap){
+      const X=load/cap;
+      const PLF=1-Cd*(1-X);
+      CSEC_US += (load/eer/PLF)*h;
+    } else {
+      CSEC_US += (cap/eer)*h;
+    }
+  });
+  const SEER_US = CSEC_US>0 ? (CSTL_US/CSEC_US)*3.412 : 0; // BTU/Wh
+  const EER_US  = (capFull35/1000)/(powFull35/1000)*3.412;    // BTU/Wh at 35C
+
+  // US Energy Star / DOE minimum (2023 SEER2)
+  function usClass(v){
+    if(v>=22) return{cls:"Energy Star",detail:"Top tier",color:"#15803d",bg:"#dcfce7"};
+    if(v>=18) return{cls:"High Eff.",  detail:"Above std",color:"#65a30d",bg:"#f7fee7"};
+    if(v>=15) return{cls:"Standard",   detail:"Meets min", color:"#ca8a04",bg:"#fefce8"};
+    if(v>=14) return{cls:"Marginal",   detail:"Near min",  color:"#ea580c",bg:"#fff7ed"};
+    return{cls:"Below Min",detail:"Fails min",color:"#dc2626",bg:"#fef2f2"};
+  }
+  const usRating = usClass(SEER_US);
+
+  function fn(n,d=2){ if(!isFinite(n)||isNaN(n))return"--"; return n.toFixed(d); }
+  function stars(n){ return "★".repeat(n)+"☆".repeat(5-n); }
+
+  return(
+    <div className="card" style={{borderColor:'rgba(56,189,248,.2)',marginTop:14}}>
+      <button className="guide-btn" onClick={()=>setOpen(v=>!v)} style={{marginBottom:open?14:0}}>
+        <span>Energy Rating Calculator &nbsp;
+          <span style={{fontSize:10,opacity:.6}}>ISEER (India) · SEER (EU ErP) · SEER2 (US DOE)</span>
+        </span>
+        <span style={{transition:'transform .2s',transform:open?'rotate(180deg)':'none'}}>&#9660;</span>
+      </button>
+      {open&&(
+        <div>
+          {/* Inputs */}
+          <div className="slbl">Test Point Data — Input</div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14}}>
+            <div>
+              <div style={{fontSize:10,color:'#fbbf24',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:8}}>At 35°C outdoor</div>
+              <div className="field"><div className="lbl"><span>Cooling capacity full load</span><span className="utag">W</span></div>
+                <input type="number" step={1} value={capFull35} onChange={e=>setCapFull35(parseFloat(e.target.value)||0)}/></div>
+              <div className="field"><div className="lbl"><span>Cooling capacity half load</span><span className="utag">W</span></div>
+                <input type="number" step={1} value={capHalf35} onChange={e=>setCapHalf35(parseFloat(e.target.value)||0)}/></div>
+              <div className="field"><div className="lbl"><span>Power input full load</span><span className="utag">W</span></div>
+                <input type="number" step={1} value={powFull35} onChange={e=>setPowFull35(parseFloat(e.target.value)||0)}/></div>
+              <div className="field"><div className="lbl"><span>Power input half load</span><span className="utag">W</span></div>
+                <input type="number" step={1} value={powHalf35} onChange={e=>setPowHalf35(parseFloat(e.target.value)||0)}/></div>
+            </div>
+            <div>
+              <div style={{fontSize:10,color:'#38bdf8',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:8}}>At 29°C outdoor (India/ISEER only)</div>
+              <div className="field"><div className="lbl"><span>Cooling capacity full load</span><span className="utag">W</span></div>
+                <input type="number" step={1} value={capFull29} onChange={e=>setCapFull29(parseFloat(e.target.value)||0)}/></div>
+              <div className="field"><div className="lbl"><span>Cooling capacity half load</span><span className="utag">W</span></div>
+                <input type="number" step={1} value={capHalf29} onChange={e=>setCapHalf29(parseFloat(e.target.value)||0)}/></div>
+              <div className="field"><div className="lbl"><span>Power input full load</span><span className="utag">W</span></div>
+                <input type="number" step={1} value={powFull29} onChange={e=>setPowFull29(parseFloat(e.target.value)||0)}/></div>
+              <div className="field"><div className="lbl"><span>Power input half load</span><span className="utag">W</span></div>
+                <input type="number" step={1} value={powHalf29} onChange={e=>setPowHalf29(parseFloat(e.target.value)||0)}/></div>
+            </div>
+          </div>
+          <div className="field" style={{maxWidth:200}}>
+            <div className="lbl"><span>Degradation coeff. Cd</span><span className="utag">0-1</span></div>
+            <input type="number" min={0} max={1} step={0.01} value={Cd} onChange={e=>setCd(parseFloat(e.target.value)||0)}/>
+          </div>
+
+          {/* Results — three standards side by side */}
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginTop:16}}>
+
+            {/* INDIA */}
+            <div style={{background:'rgba(0,0,0,.25)',borderRadius:12,padding:'16px 14px',border:'1px solid rgba(255,165,0,.2)'}}>
+              <div style={{fontSize:9,letterSpacing:'.15em',textTransform:'uppercase',color:'#fbbf24',marginBottom:10}}>India BEE</div>
+              <div style={{fontFamily:'Syne,sans-serif',fontSize:32,fontWeight:800,color:indiaRating.color,lineHeight:1}}>{fn(ISEER,2)}</div>
+              <div style={{fontSize:10,color:'#64748b',marginTop:2,marginBottom:8}}>ISEER</div>
+              <div style={{background:'rgba(0,0,0,.3)',borderRadius:8,padding:'8px 10px',textAlign:'center'}}>
+                <div style={{fontSize:18,color:indiaRating.color}}>{stars(indiaRating.stars)}</div>
+                <div style={{fontFamily:'Syne,sans-serif',fontSize:13,fontWeight:700,color:indiaRating.color,marginTop:2}}>{indiaRating.label}</div>
+              </div>
+              <div style={{marginTop:10,fontSize:9,color:'#475569',lineHeight:1.6}}>
+                <div>CSTL: {fn(CSTL/1000,1)} kWh/yr</div>
+                <div>CSEC: {fn(CSEC,1)} kWh/yr</div>
+                <div style={{marginTop:4,color:'#64748b'}}>IS 1391 Part 2</div>
+                <div style={{color:'#64748b'}}>Bins: 24-43°C</div>
+              </div>
+            </div>
+
+            {/* EU */}
+            <div style={{background:'rgba(0,0,0,.25)',borderRadius:12,padding:'16px 14px',border:'1px solid rgba(56,189,248,.2)'}}>
+              <div style={{fontSize:9,letterSpacing:'.15em',textTransform:'uppercase',color:'#38bdf8',marginBottom:10}}>EU ErP / EN 14825</div>
+              <div style={{fontFamily:'Syne,sans-serif',fontSize:32,fontWeight:800,color:'#38bdf8',lineHeight:1}}>{fn(SEER_EU,2)}</div>
+              <div style={{fontSize:10,color:'#64748b',marginTop:2,marginBottom:8}}>SEER</div>
+              <div style={{background:euRating.bg,borderRadius:8,padding:'8px 10px',textAlign:'center',border:'2px solid '+euRating.color}}>
+                <div style={{fontFamily:'Syne,sans-serif',fontSize:22,fontWeight:800,color:euRating.color}}>{euRating.cls}</div>
+                <div style={{fontSize:10,color:euRating.color,marginTop:2}}>Energy Label</div>
+              </div>
+              <div style={{marginTop:10,fontSize:9,color:'#475569',lineHeight:1.6}}>
+                <div>A+++ if SEER &gt; 8.5</div>
+                <div>A++  if SEER &gt; 6.1</div>
+                <div>A+   if SEER &gt; 5.6</div>
+                <div style={{marginTop:4,color:'#64748b'}}>Reg. 2016/2281</div>
+                <div style={{color:'#64748b'}}>Strasbourg climate</div>
+              </div>
+            </div>
+
+            {/* US */}
+            <div style={{background:'rgba(0,0,0,.25)',borderRadius:12,padding:'16px 14px',border:'1px solid rgba(139,92,246,.2)'}}>
+              <div style={{fontSize:9,letterSpacing:'.15em',textTransform:'uppercase',color:'#a855f7',marginBottom:10}}>US DOE / AHRI</div>
+              <div style={{fontFamily:'Syne,sans-serif',fontSize:32,fontWeight:800,color:'#a855f7',lineHeight:1}}>{fn(SEER_US,1)}</div>
+              <div style={{fontSize:10,color:'#64748b',marginTop:2,marginBottom:8}}>SEER2 (BTU/Wh)</div>
+              <div style={{background:'rgba(139,92,246,.1)',borderRadius:8,padding:'8px 10px',textAlign:'center',border:'1px solid rgba(139,92,246,.3)'}}>
+                <div style={{fontFamily:'Syne,sans-serif',fontSize:13,fontWeight:700,color:usRating.color}}>{usRating.cls}</div>
+                <div style={{fontSize:10,color:'#64748b',marginTop:2}}>{usRating.detail}</div>
+              </div>
+              <div style={{marginTop:10,fontSize:9,color:'#475569',lineHeight:1.6}}>
+                <div>EER (35C): {fn(EER_US,2)} BTU/Wh</div>
+                <div>Energy Star: &gt; 22 SEER2</div>
+                <div>DOE min: 14 SEER2</div>
+                <div style={{marginTop:4,color:'#64748b'}}>AHRI 210/240</div>
+                <div style={{color:'#64748b'}}>Fort Worth TX bins</div>
+              </div>
+            </div>
+          </div>
+
+          {/* EER comparison row */}
+          <div className="irow" style={{marginTop:14}}>
+            <span><span className="ik">EER full 35°C</span><span className="iv">{fn((capFull35/powFull35),2)}</span></span>
+            <span><span className="ik">EER half 35°C</span><span className="iv">{fn((capHalf35/powHalf35),2)}</span></span>
+            <span><span className="ik">EER full 29°C</span><span className="iv">{fn((capFull29/powFull29),2)}</span></span>
+            <span><span className="ik">EER half 29°C</span><span className="iv">{fn((capHalf29/powHalf29),2)}</span></span>
+            <span><span className="ik">EER US (BTU/Wh)</span><span className="iv">{fn(EER_US,2)}</span></span>
+          </div>
+
+          <div className="gtip" style={{marginTop:12}}>
+            <strong>Note:</strong> ISEER uses Indian BEE climate bins (24-43°C, IS 1391 Part 2). EU SEER uses Strasbourg bins per EN 14825 / ErP Regulation 2016/2281. US SEER2 uses AHRI 210/240 Fort Worth TX bins, result in BTU/Wh. All three use linear interpolation between the two test points (35°C and 29°C). For official certification, testing must be done in accredited laboratories following the full test procedures.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
