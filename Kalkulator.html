@@ -317,9 +317,9 @@ function AirLiquid({unit,job,uid,setLog,setShowLog}){
   const eC=C(eDB),lC=C(lDB),wTiC=C(wTi),wToC=C(wTo);
   const hE=enth(eC,eRH),vE=sVol(eC,eRH),wBE=wBulb(eC,eRH),WE=humR(eC,eRH);
   const hL=enth(lC,lRH),vL=sVol(lC,lRH),wBL=wBulb(lC,lRH),WL=humR(lC,lRH);
-  const afs=af/3600,mfA=afs/vL,dh=Math.max(0,hE-hL),Qa=mfA*dh;
+  const afs=af/3600,mfA=afs/vL,dh=Math.max(0,hL-hE),Qa=mfA*dh;
   const Qw=4.18*wF*Math.abs(wToC-wTiC);const mfW=wF;
-  const eer=pw>0?Qa/pw:0,bal=Qa>0?((Qw-Qa)/Qa)*100:0;
+  const eer=pw>0?Qw/pw:0,bal=Qw>0?((Qa-Qw)/Qw)*100:0;
   const mn=unit==="F"?23:-5,mx=unit==="F"?113:45,ec=eCol(eer);
   function save(){
     const tE=refr!=="Other"?satT(refr,sP):null;const sC=unit==="F"?C(sT):sT;const sh=tE!=null?sC-tE:null;const tCond=ref!=="Other"?satT(ref,dP):null;
@@ -345,10 +345,10 @@ function AirLiquid({unit,job,uid,setLog,setShowLog}){
         <span><span className="ik">v</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(vE,4)}</span><span className="iu"> m3/kg</span></span>
       </div>
     </div>
-    <div className="card" style={{borderColor:'rgba(56,189,248,.2)'}}>
-      <div className="slbl" style={{color:'#38bdf8'}}>Air Side Ut - Supply Air</div>
+    <div className="card" style={{borderColor:'rgba(249,115,22,.25)'}}>
+      <div className="slbl" style={{color:'#f97316'}}>Air Side Ut - Leaving Air (Heat Rejection Control)</div>
       <div className="two">
-        <div className="field"><div className="lbl"><span>Leaving DB</span><span className="utag">deg {unit} measured</span></div>
+        <div className="field"><div className="lbl"><span>Leaving DB <span style={{fontSize:9,color:'#f97316'}}>warmer</span></span><span className="utag">deg {unit} measured</span></div>
           <input type="number" min={mn} max={mx} step={0.01} value={lDB} onChange={e=>setLDB(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(56,189,248,.4)'}}/>
           <input type="range" min={mn} max={mx} step={0.1} value={lDB} onChange={e=>setLDB(parseFloat(e.target.value))}/>
         </div>
@@ -357,10 +357,11 @@ function AirLiquid({unit,job,uid,setLog,setShowLog}){
           <input type="range" min={0} max={100} step={0.01} value={lRH} onChange={e=>setLRH(parseFloat(e.target.value))}/>
         </div>
       </div>
-      <div className="irow" style={{marginTop:10}}>
-        <span><span className="ik">WBut</span><span className="iv">{d(wBL,2)} deg {unit}</span><span className="badge bc" style={{marginLeft:5}}>calc</span></span>
-        <span><span className="ik">h_ut</span><span className="iv">{fmt(hL)}</span><span className="iu"> kJ/kg</span></span>
+      <div className="irow" style={{marginTop:10,borderColor:'rgba(249,115,22,.25)',background:'rgba(249,115,22,.06)'}}>
+        <span><span className="ik">WBut</span><span className="iv" style={{color:'#f97316'}}>{d(wBL,2)} deg {unit}</span><span className="badge bc" style={{marginLeft:5}}>calc</span></span>
+        <span><span className="ik">h_ut</span><span className="iv" style={{color:'#f97316'}}>{fmt(hL)}</span><span className="iu"> kJ/kg</span></span>
         <span><span className="ik">v_ut</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(vL,4)}</span><span className="iu"> m3/kg</span></span>
+        <span><span className="ik">Δh heat</span><span className="iv" style={{color:'#f97316'}}>{fmt(dh,2)}</span><span className="iu"> kJ/kg</span></span>
       </div>
     </div>
     <div className="card" style={{borderColor:'rgba(14,165,233,.25)'}}>
@@ -407,7 +408,7 @@ function AirLiquid({unit,job,uid,setLog,setShowLog}){
         <div className="ri"><div className="rn">dT water</div><div className="rv">{fmt(Math.abs(wToC-wTiC),2)}</div><div className="ru">K</div></div>
         <div className="ri"><div className="rn">Flow</div><div className="rv">{fmt(wF,3)}</div><div className="ru">L/s</div></div>
         <div className="ri" style={{background:Math.abs(bal)>10?'rgba(248,113,113,.06)':'rgba(34,197,94,.06)',border:Math.abs(bal)>10?'1px solid rgba(248,113,113,.2)':'1px solid rgba(34,197,94,.2)'}}>
-          <div className="rn">Q_air - Control (Air Side)</div>
+          <div className="rn">Q_heat - Air Heat Rejection (Control)</div>
           <div className="rv" style={{fontSize:20,color:Math.abs(bal)>10?'#f87171':'#22c55e'}}>{fmt(Qa,2)} kW</div>
           <div className="ru">{Math.abs(bal)>10?'Deviation: '+fmt(Math.abs(bal),1)+'%':'OK: '+fmt(Math.abs(bal),1)+'% dev'}</div>
         </div>
@@ -416,7 +417,7 @@ function AirLiquid({unit,job,uid,setLog,setShowLog}){
       <div className="fml">
         <strong>Q_water</strong> = 4.18 x V(L/s) x dT = 4.18 x {fmt(wF,3)} x {fmt(Math.abs(wToC-wTiC),2)} = <strong>{fmt(Qw,2)} kW</strong><br/>
         <strong>EER</strong> = Q_water / P_el = {fmt(Qw,2)} / {fmt(pw,2)} = <strong>{fmt(pw>0?Qw/pw:0,2)}</strong><br/>
-        <strong>Q_air</strong> = m x (h_inn - h_ut) = {fmt(mfA,4)} x {fmt(dh,2)} = <strong>{fmt(Qa,2)} kW</strong> (control)
+        <strong>Q_heat</strong> = m x (h_ut - h_inn) = {fmt(mfA,4)} x {fmt(dh,2)} = <strong>{fmt(Qa,2)} kW</strong> (heat rejection control)
       </div></div>
     <div className="brow no-print">
       <button className="bt bt-g" onClick={save}>Save Measurement</button>
