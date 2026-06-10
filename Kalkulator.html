@@ -855,12 +855,12 @@ function EnergyRating({mode}){
     {t:36,h:36},{t:37,h:28},{t:38,h:22},{t:39,h:16},
     {t:40,h:12},{t:41,h:9},{t:42,h:6},{t:43,h:3},
   ];
-  const T0=23,Tb=35,Tc=29;
+  const T0=23,Tb=35,Tc=29,T100=43;
   function capFullT(t){return capFull35+(capFull29-capFull35)*(Tb-t)/(Tb-Tc);}
   function powFullT(t){return powFull35+(powFull29-powFull35)*(Tb-t)/(Tb-Tc);}
   function capHalfT(t){return capFullT(t)*(capFull35>0?capHalf35/capFull35:0.5);}
   function powHalfT(t){return powFullT(t)*(powFull35>0?powHalf35/powFull35:0.5);}
-  function coolLoad(t){return (capFull35/1000)*((t-T0)/(Tb-T0));}
+  function coolLoad(t){return (capFull35/1000)*((t-T0)/(T100-T0));}
   let CSTL=0,CSEC=0;
   indiaBins.forEach(({t,h})=>{
     const load=coolLoad(t);if(load<=0)return;
