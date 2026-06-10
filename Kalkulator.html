@@ -333,7 +333,11 @@ function AirLiquid({unit,job,uid,setLog,setShowLog}){
   const [wTi,setWTi]=useState(7);const [wTo,setWTo]=useState(12);const [wF,setWF]=useState(0.50);
   const [af,setAf]=useState(600);const [pw,setPw]=useState(1.2);
   const [ref,setRef]=useState("R32");const [sP,setSP]=useState(8);const [dP,setDP]=useState(28);const [sT,setST]=useState(15);
+  const [oDB,setODB]=useState(35);
+  const [oRH,setORH]=useState(40);
   const C=v=>unit==="F"?(v-32)*5/9:v;const F=v=>unit==="F"?v*9/5+32:v;const d=(c,n=1)=>fmt(F(c),n);
+  const oC=C(oDB);
+  const wBO=wBulb(oC,oRH),WO=humR(oC,oRH);
   const eC=C(eDB),lC=C(lDB),wTiC=C(wTi),wToC=C(wTo);
   const hE=enth(eC,eRH),vE=sVol(eC,eRH),wBE=wBulb(eC,eRH),WE=humR(eC,eRH);
   const hL=enth(lC,lRH),vL=sVol(lC,lRH),wBL=wBulb(lC,lRH),WL=humR(lC,lRH);
@@ -343,26 +347,27 @@ function AirLiquid({unit,job,uid,setLog,setShowLog}){
   const mn=unit==="F"?23:-5,mx=unit==="F"?113:45,ec=eCol(eer);
   function save(){
     const tE=refr!=="Other"?satT(refr,sP):null;const sC=unit==="F"?C(sT):sT;const sh=tE!=null?sC-tE:null;const tCond=ref!=="Other"?satT(ref,dP):null;
-    setLog(p=>[{id:Date.now(),date:new Date().toLocaleString(),mode:'Air/Liquid',job:job||"--",uid:uid||"--",ref,t1:fmt(F(eC),2),t2:fmt(F(lC),2),wb1:d(wBE,2),wb2:d(wBL,2),rh1:fmt(eRH,4),rh2:fmt(lRH,4),wTi:fmt(F(wTiC),2),wTo:fmt(F(wToC),2),wF:fmt(wF,4),af,pw:fmt(pw,4),Q:fmt(Qa,4),Qw:fmt(Qw,4),eer:fmt(eer,4),tE:tE!=null?fmt(tE,4):"--",sh:sh!=null?fmt(sh,4):"--",tC:tCond!=null?fmt(tCond,4):"--",sP:fmt(sP,4),dP:fmt(dP,4),unit},...p]);
+    setLog(p=>[{id:Date.now(),date:new Date().toLocaleString(),mode:'Air/Liquid',job:job||"--",uid:uid||"--",ref,t1:fmt(F(eC),2),t2:fmt(F(lC),2),wb1:d(wBE,2),wb2:d(wBL,2),oDB:fmt(F(oC),2),oRH:fmt(oRH,2),rh1:fmt(eRH,4),rh2:fmt(lRH,4),wTi:fmt(F(wTiC),2),wTo:fmt(F(wToC),2),wF:fmt(wF,4),af,pw:fmt(pw,4),Q:fmt(Qa,4),Qw:fmt(Qw,4),eer:fmt(eer,4),tE:tE!=null?fmt(tE,4):"--",sh:sh!=null?fmt(sh,4):"--",tC:tCond!=null?fmt(tCond,4):"--",sP:fmt(sP,4),dP:fmt(dP,4),unit},...p]);
     setShowLog(true);
   }
   return(<>
     <div className="card" style={{borderColor:'rgba(251,191,36,.18)'}}>
-      <div className="slbl" style={{color:'#fbbf24'}}>Ambient - Entering Air (Outdoor)</div>
+      <div className="slbl" style={{color:'#fbbf24'}}>Ambient - Entering Air (Outdoor / Condenser)</div>
       <div className="two">
         <div className="field"><div className="lbl"><span>Ambient Dry-Bulb <span className="badge bd">DB</span></span><span className="utag">deg {unit}</span></div>
-          <input type="number" min={mn} max={unit==="F"?140:60} step={0.0001} value={eDB} onChange={e=>setEDB(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}}/>
-          <input type="range" min={mn} max={unit==="F"?140:60} step={0.1} value={eDB} onChange={e=>setEDB(parseFloat(e.target.value))}/>
+          <input type="number" min={mn} max={unit==="F"?140:60} step={0.0001} value={oDB} onChange={e=>setODB(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}}/>
+          <input type="range" min={mn} max={unit==="F"?140:60} step={0.1} value={oDB} onChange={e=>setODB(parseFloat(e.target.value))}/>
         </div>
         <div className="field"><div className="lbl"><span>Ambient Relative Humidity</span><span className="utag">%</span></div>
-          <input type="number" min={0} max={100} step={0.0001} value={eRH} onChange={e=>setERH(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}}/>
-          <input type="range" min={0} max={100} step={0.0001} value={eRH} onChange={e=>setERH(parseFloat(e.target.value))}/>
+          <input type="number" min={0} max={100} step={0.0001} value={oRH} onChange={e=>setORH(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}}/>
+          <input type="range" min={0} max={100} step={0.0001} value={oRH} onChange={e=>setORH(parseFloat(e.target.value))}/>
         </div>
       </div>
       <div className="irow" style={{borderColor:'rgba(251,191,36,.25)',background:'rgba(251,191,36,.06)'}}>
-        <span><span className="ik">WB</span><span className="iv" style={{color:'#fbbf24'}}>{d(wBE,2)} deg {unit}</span></span>
-        <span><span className="ik">h_inn</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(hE)}</span><span className="iu"> kJ/kg</span></span>
-        <span><span className="ik">v</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(vE,4)}</span><span className="iu"> m3/kg</span></span>
+        <span><span className="ik">DB</span><span className="iv" style={{color:'#fbbf24'}}>{d(oC,2)} deg {unit}</span></span>
+        <span><span className="ik">WB</span><span className="iv" style={{color:'#fbbf24'}}>{d(wBO,2)} deg {unit}</span></span>
+        <span><span className="ik">RH</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(oRH,2)}%</span></span>
+        <span><span className="ik">W</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(WO*1000,2)}</span><span className="iu"> g/kg</span></span>
       </div>
     </div>
     <div className="card" style={{borderColor:'rgba(249,115,22,.25)'}}>
