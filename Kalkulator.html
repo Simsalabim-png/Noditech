@@ -818,6 +818,15 @@ function toggleGuide(id){
   btn.classList.toggle('open');
 }
 
+function NumField({label,val,set,utag,step=1}){
+  return(
+    <div className="field">
+      <div className="lbl"><span>{label}</span><span className="utag">{utag}</span></div>
+      <input type="number" step={step} value={val} onChange={e=>set(parseFloat(e.target.value)||0)}/>
+    </div>
+  );
+}
+
 // ── Energy Rating Calculator ─────────────────────────────────────────────
 function EnergyRating({mode}){
   const [open,    setOpen]    = React.useState(false);
@@ -994,14 +1003,7 @@ function EnergyRating({mode}){
       transition:'all .2s'};
   }
 
-  function Num({label,val,set,utag,step=1}){
-    return(
-      <div className="field">
-        <div className="lbl"><span>{label}</span><span className="utag">{utag}</span></div>
-        <input type="number" step={step} value={val} onChange={e=>set(parseFloat(e.target.value)||0)}/>
-      </div>
-    );
-  }
+
 
   const modeLabel=isAA?"Air / Air":isAL?"Air / Liquid":"Liquid / Liquid";
 
@@ -1081,28 +1083,28 @@ function EnergyRating({mode}){
                 ISEER Test Data — IS 1391 Part 2
               </div>
               <div style={{fontSize:9,color:'#64748b',marginBottom:12,lineHeight:1.6}}>
-                Full + half load at 35°C. Curve reference at 29°C (full load only — half load scaled proportionally).
-                Indoor: 27°C DB / 19°C WB for all tests.
+                Full + half load tested at 35°C DB / 24°C WB outdoor, 27°C DB / 19°C WB indoor.
+                29°C values are declared by manufacturer (measured at 29°C DB outdoor). Half load scaled proportionally from 29°C full load.
               </div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14}}>
                 <div>
                   <div style={{fontSize:9,color:'#fbbf24',marginBottom:6,textTransform:'uppercase',letterSpacing:'.08em'}}>35°C — Full load</div>
-                  <Num label="Capacity" val={i_capF35} set={setI_capF35} utag="W"/>
-                  <Num label="Power" val={i_powF35} set={setI_powF35} utag="W"/>
+                  <NumField label="Capacity" val={i_capF35} set={setI_capF35} utag="W"/>
+                  <NumField label="Power" val={i_powF35} set={setI_powF35} utag="W"/>
                   <div style={{fontSize:9,color:'#94a3b8',marginTop:4}}>EER: {fn(i_capF35/i_powF35,3)}</div>
                 </div>
                 <div>
                   <div style={{fontSize:9,color:'#fbbf24',marginBottom:6,textTransform:'uppercase',letterSpacing:'.08em'}}>35°C — Half load (locked 50%)</div>
-                  <Num label="Capacity" val={i_capH35} set={setI_capH35} utag="W"/>
-                  <Num label="Power" val={i_powH35} set={setI_powH35} utag="W"/>
+                  <NumField label="Capacity" val={i_capH35} set={setI_capH35} utag="W"/>
+                  <NumField label="Power" val={i_powH35} set={setI_powH35} utag="W"/>
                   <div style={{fontSize:9,color:'#94a3b8',marginTop:4}}>EER: {fn(i_capH35/i_powH35,3)}</div>
                 </div>
                 <div>
                   <div style={{fontSize:9,color:'#fbbf24',marginBottom:6,textTransform:'uppercase',letterSpacing:'.08em'}}>29°C — Curve ref (full only)</div>
-                  <Num label="Capacity" val={i_capF29} set={setI_capF29} utag="W"/>
-                  <Num label="Power" val={i_powF29} set={setI_powF29} utag="W"/>
+                  <NumField label="Capacity" val={i_capF29} set={setI_capF29} utag="W"/>
+                  <NumField label="Power" val={i_powF29} set={setI_powF29} utag="W"/>
                   <div style={{fontSize:9,color:'#94a3b8',marginTop:4}}>EER: {fn(i_capF29/i_powF29,3)}</div>
-                  <Num label="Degradation coeff. Cd" val={i_Cd} set={setI_Cd} utag="0–1" step={0.01}/>
+                  <NumField label="Degradation coeff. Cd" val={i_Cd} set={setI_Cd} utag="0–1" step={0.01}/>
                 </div>
               </div>
             </div>
@@ -1122,14 +1124,14 @@ function EnergyRating({mode}){
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14}}>
                 <div>
                   <div style={{fontSize:9,color:'#38bdf8',marginBottom:6,textTransform:'uppercase',letterSpacing:'.08em'}}>35°C — Full load</div>
-                  <Num label="Capacity" val={e_capF35} set={setE_capF35} utag="W"/>
-                  <Num label="Power" val={e_powF35} set={setE_powF35} utag="W"/>
+                  <NumField label="Capacity" val={e_capF35} set={setE_capF35} utag="W"/>
+                  <NumField label="Power" val={e_powF35} set={setE_powF35} utag="W"/>
                   <div style={{fontSize:9,color:'#94a3b8',marginTop:4}}>EER: {fn(e_capF35/e_powF35,3)}</div>
                 </div>
                 <div>
                   <div style={{fontSize:9,color:'#38bdf8',marginBottom:6,textTransform:'uppercase',letterSpacing:'.08em'}}>29°C — Curve reference</div>
-                  <Num label="Capacity" val={e_capF29} set={setE_capF29} utag="W"/>
-                  <Num label="Power" val={e_powF29} set={setE_powF29} utag="W"/>
+                  <NumField label="Capacity" val={e_capF29} set={setE_capF29} utag="W"/>
+                  <NumField label="Power" val={e_powF29} set={setE_powF29} utag="W"/>
                   <div style={{fontSize:9,color:'#94a3b8',marginTop:4}}>EER: {fn(e_capF29/e_powF29,3)}</div>
                 </div>
                 <div>
@@ -1141,7 +1143,7 @@ function EnergyRating({mode}){
                     <div>35°C — 270 hours</div>
                     <div style={{marginTop:4,color:'#38bdf8'}}>Total: 927 hours</div>
                   </div>
-                  <Num label="Degradation coeff. Cd" val={e_Cd} set={setE_Cd} utag="0–1" step={0.01}/>
+                  <NumField label="Degradation coeff. Cd" val={e_Cd} set={setE_Cd} utag="0–1" step={0.01}/>
                 </div>
               </div>
             </div>
@@ -1160,14 +1162,14 @@ function EnergyRating({mode}){
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14}}>
                 <div>
                   <div style={{fontSize:9,color:'#a855f7',marginBottom:6,textTransform:'uppercase',letterSpacing:'.08em'}}>A-test — 95°F (35°C)</div>
-                  <Num label="Capacity" val={u_capA} set={setU_capA} utag="W"/>
-                  <Num label="Power" val={u_powA} set={setU_powA} utag="W"/>
+                  <NumField label="Capacity" val={u_capA} set={setU_capA} utag="W"/>
+                  <NumField label="Power" val={u_powA} set={setU_powA} utag="W"/>
                   <div style={{fontSize:9,color:'#94a3b8',marginTop:4}}>EER: {fn(u_capA/u_powA,3)} W/W = {fn(u_capA/u_powA*3.412,3)} BTU/Wh</div>
                 </div>
                 <div>
                   <div style={{fontSize:9,color:'#a855f7',marginBottom:6,textTransform:'uppercase',letterSpacing:'.08em'}}>B-test — 82°F (27.8°C)</div>
-                  <Num label="Capacity" val={u_capB} set={setU_capB} utag="W"/>
-                  <Num label="Power" val={u_powB} set={setU_powB} utag="W"/>
+                  <NumField label="Capacity" val={u_capB} set={setU_capB} utag="W"/>
+                  <NumField label="Power" val={u_powB} set={setU_powB} utag="W"/>
                   <div style={{fontSize:9,color:'#94a3b8',marginTop:4}}>EER: {fn(u_capB/u_powB,3)} W/W</div>
                 </div>
                 <div>
@@ -1180,7 +1182,7 @@ function EnergyRating({mode}){
                     <div>107°F — 12h</div>
                     <div style={{marginTop:4,color:'#a855f7'}}>Total: 1567 hours</div>
                   </div>
-                  <Num label="Degradation coeff. Cd" val={u_Cd} set={setU_Cd} utag="0–1" step={0.01}/>
+                  <NumField label="Degradation coeff. Cd" val={u_Cd} set={setU_Cd} utag="0–1" step={0.01}/>
                 </div>
               </div>
             </div>
