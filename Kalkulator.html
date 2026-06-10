@@ -87,7 +87,7 @@
 <script type="text/babel">
 const {useState,useEffect} = React;
 
-function fmt(n,d=2){if(!isFinite(n)||isNaN(n))return"--";return n.toFixed(d)}
+function fmt(n,d=4){if(!isFinite(n)||isNaN(n))return"--";return n.toFixed(d)}
 function pSat(T){return 611.21*Math.exp((18.678-T/234.5)*(T/(257.14+T)))}
 function humR(T,RH){const pv=(RH/100)*pSat(T);return 0.622*pv/(101325-pv)}
 function enth(T,RH){const W=humR(T,RH);return 1.006*T+W*(2501+1.86*T)}
@@ -130,42 +130,42 @@ function RefSec({unit,refr,setRefr,sP,setSP,dP,setDP,sT,setST}){
       <div className="two">
         <div className="field">
           <div className="lbl"><span>Suction Pressure</span><span className="utag">bar g</span></div>
-          <input type="number" min={0} max={60} step={0.1} value={sP} onChange={e=>setSP(parseFloat(e.target.value)||0)}/>
+          <input type="number" min={0} max={60} step={0.0001} value={sP} onChange={e=>setSP(parseFloat(e.target.value)||0)}/>
         </div>
         <div className="field">
           <div className="lbl"><span>Discharge Pressure</span><span className="utag">bar g</span></div>
-          <input type="number" min={0} max={120} step={0.1} value={dP} onChange={e=>setDP(parseFloat(e.target.value)||0)}/>
+          <input type="number" min={0} max={120} step={0.0001} value={dP} onChange={e=>setDP(parseFloat(e.target.value)||0)}/>
         </div>
       </div>
       <div className="field">
         <div className="lbl"><span>Suction Gas Temperature</span><span className="utag">deg {unit}</span></div>
-        <input type="number" min={-60} max={100} step={0.1} value={sT} onChange={e=>setST(parseFloat(e.target.value)||0)}/>
+        <input type="number" min={-60} max={100} step={0.0001} value={sT} onChange={e=>setST(parseFloat(e.target.value)||0)}/>
       </div>
       {refr!=="Other"&&(
         <div className="three" style={{marginTop:12}}>
           <div style={{background:'rgba(0,0,0,.2)',borderRadius:10,padding:'13px 15px'}}>
             <div className="rn">Evap Temp</div>
-            <div className="rv" style={{fontSize:20,color:rc}}>{tE!=null?fmt(tE,1):"--"} C</div>
+            <div className="rv" style={{fontSize:20,color:rc}}>{tE!=null?fmt(tE,4):"--"} C</div>
             <div className="ru">at suction P</div>
           </div>
           <div style={{background:sh!=null&&sh<3?'rgba(248,113,113,.1)':sh!=null&&sh>15?'rgba(251,191,36,.1)':'rgba(34,197,94,.1)',borderRadius:10,padding:'13px 15px',border:sh!=null&&sh<3?'1px solid rgba(248,113,113,.3)':sh!=null&&sh>15?'1px solid rgba(251,191,36,.3)':'1px solid rgba(34,197,94,.2)'}}>
             <div className="rn">Superheat</div>
-            <div className="rv" style={{fontSize:20,color:sh!=null&&sh<3?'#f87171':sh!=null&&sh>15?'#fbbf24':'#22c55e'}}>{sh!=null?fmt(sh,1):"--"} K</div>
+            <div className="rv" style={{fontSize:20,color:sh!=null&&sh<3?'#f87171':sh!=null&&sh>15?'#fbbf24':'#22c55e'}}>{sh!=null?fmt(sh,4):"--"} K</div>
             <div className="ru">{sh!=null&&sh<3?'Too low!':sh!=null&&sh>15?'Check charge':'Normal'}</div>
           </div>
           <div style={{background:'rgba(0,0,0,.2)',borderRadius:10,padding:'13px 15px'}}>
             <div className="rn">Cond Temp</div>
-            <div className="rv" style={{fontSize:20,color:rc}}>{tC!=null?fmt(tC,1):"--"} C</div>
+            <div className="rv" style={{fontSize:20,color:rc}}>{tC!=null?fmt(tC,4):"--"} C</div>
             <div className="ru">at discharge P</div>
           </div>
         </div>
       )}
       {refr!=="Other"&&pr!=null&&(
         <div className="irow" style={{borderColor:rc+'44',background:rc+'11',marginTop:12}}>
-          <span><span className="ik">P-ratio</span><span className="iv" style={{color:rc}}>{fmt(pr,2)}</span></span>
-          <span><span className="ik">Suction</span><span className="iv" style={{color:rc}}>{fmt(sP,1)}</span><span className="iu"> bar g</span></span>
-          <span><span className="ik">Discharge</span><span className="iv" style={{color:rc}}>{fmt(dP,1)}</span><span className="iu"> bar g</span></span>
-          {tE!=null&&tC!=null&&<span><span className="ik">dT lift</span><span className="iv" style={{color:rc}}>{fmt(tC-tE,1)}</span><span className="iu"> K</span></span>}
+          <span><span className="ik">P-ratio</span><span className="iv" style={{color:rc}}>{fmt(pr,4)}</span></span>
+          <span><span className="ik">Suction</span><span className="iv" style={{color:rc}}>{fmt(sP,4)}</span><span className="iu"> bar g</span></span>
+          <span><span className="ik">Discharge</span><span className="iv" style={{color:rc}}>{fmt(dP,4)}</span><span className="iu"> bar g</span></span>
+          {tE!=null&&tC!=null&&<span><span className="ik">dT lift</span><span className="iv" style={{color:rc}}>{fmt(tC-tE,4)}</span><span className="iu"> K</span></span>}
         </div>
       )}
     </div>
@@ -189,7 +189,7 @@ function AirAir({unit,job,uid,setLog,setShowLog}){
   const mn=unit==="F"?23:-5,mx=unit==="F"?113:45,ec=eCol(eer);
   function save(){
     const tE=refr!=="Other"?satT(refr,sP):null;const sC=unit==="F"?C(sT):sT;const sh=tE!=null?sC-tE:null;const tCond=ref!=="Other"?satT(ref,dP):null;
-    setLog(p=>[{id:Date.now(),date:new Date().toLocaleString(),mode:'Air/Air',job:job||"--",uid:uid||"--",ref,t1:fmt(F(eC),2),t2:fmt(F(lC),2),wb1:d(wE,2),wb2:d(wL,2),rh1:fmt(eRH,1),rh2:fmt(lRH,1),af,pw:fmt(pw,2),Q:fmt(Q,2),eer:fmt(eer,2),tE:tE!=null?fmt(tE,1):"--",sh:sh!=null?fmt(sh,1):"--",tC:tCond!=null?fmt(tCond,1):"--",sP:fmt(sP,1),dP:fmt(dP,1),unit},...p]);
+    setLog(p=>[{id:Date.now(),date:new Date().toLocaleString(),mode:'Air/Air',job:job||"--",uid:uid||"--",ref,t1:fmt(F(eC),2),t2:fmt(F(lC),2),wb1:d(wE,2),wb2:d(wL,2),rh1:fmt(eRH,4),rh2:fmt(lRH,4),af,pw:fmt(pw,4),Q:fmt(Q,4),eer:fmt(eer,4),tE:tE!=null?fmt(tE,4):"--",sh:sh!=null?fmt(sh,4):"--",tC:tCond!=null?fmt(tCond,4):"--",sP:fmt(sP,4),dP:fmt(dP,4),unit},...p]);
     setShowLog(true);
   }
   return(<>
@@ -197,31 +197,31 @@ function AirAir({unit,job,uid,setLog,setShowLog}){
       <div className="slbl">Inn - Entering Evaporator (Return Air)</div>
       <div className="two">
         <div className="field"><div className="lbl"><span>Dry-Bulb <span className="badge bd">DB</span></span><span className="utag">deg {unit}</span></div>
-          <input type="number" min={mn} max={mx} step={0.01} value={eDB} onChange={e=>setEDB(parseFloat(e.target.value)||0)}/>
+          <input type="number" min={mn} max={mx} step={0.0001} value={eDB} onChange={e=>setEDB(parseFloat(e.target.value)||0)}/>
           <input type="range" min={mn} max={mx} step={0.1} value={eDB} onChange={e=>setEDB(parseFloat(e.target.value))}/>
         </div>
         <div className="field"><div className="lbl"><span>Relative Humidity</span><span className="utag">%</span></div>
-          <input type="number" min={0} max={100} step={0.01} value={eRH} onChange={e=>setERH(parseFloat(e.target.value)||0)}/>
-          <input type="range" min={0} max={100} step={0.01} value={eRH} onChange={e=>setERH(parseFloat(e.target.value))}/>
+          <input type="number" min={0} max={100} step={0.0001} value={eRH} onChange={e=>setERH(parseFloat(e.target.value)||0)}/>
+          <input type="range" min={0} max={100} step={0.0001} value={eRH} onChange={e=>setERH(parseFloat(e.target.value))}/>
         </div>
       </div>
       <div className="irow">
         <span><span className="ik">WBinn</span><span className="iv">{d(wE,2)} deg {unit}</span></span>
         <span><span className="ik">h_inn</span><span className="iv">{fmt(hE)}</span><span className="iu"> kJ/kg</span></span>
         <span><span className="ik">v_inn</span><span className="iv">{fmt(vE,4)}</span><span className="iu"> m3/kg</span></span>
-        <span><span className="ik">W_inn</span><span className="iv">{fmt(WE*1000,2)}</span><span className="iu"> g/kg</span></span>
+        <span><span className="ik">W_inn</span><span className="iv">{fmt(WE*1000,4)}</span><span className="iu"> g/kg</span></span>
       </div>
     </div>
     <div className="card" style={{borderColor:'rgba(56,189,248,.2)'}}>
       <div className="slbl" style={{color:'#38bdf8'}}>Ut - Leaving Evaporator (Supply Air)</div>
       <div className="two">
         <div className="field"><div className="lbl"><span>Leaving DB <span className="badge bd">DB</span></span><span className="utag">deg {unit} measured</span></div>
-          <input type="number" min={mn} max={mx} step={0.01} value={lDB} onChange={e=>setLDB(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(56,189,248,.4)'}}/>
+          <input type="number" min={mn} max={mx} step={0.0001} value={lDB} onChange={e=>setLDB(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(56,189,248,.4)'}}/>
           <input type="range" min={mn} max={mx} step={0.1} value={lDB} onChange={e=>setLDB(parseFloat(e.target.value))}/>
         </div>
         <div className="field"><div className="lbl"><span>Leaving RH</span><span className="utag">% measured</span></div>
-          <input type="number" min={0} max={100} step={0.01} value={lRH} onChange={e=>setLRH(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(56,189,248,.4)'}}/>
-          <input type="range" min={0} max={100} step={0.01} value={lRH} onChange={e=>setLRH(parseFloat(e.target.value))}/>
+          <input type="number" min={0} max={100} step={0.0001} value={lRH} onChange={e=>setLRH(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(56,189,248,.4)'}}/>
+          <input type="range" min={0} max={100} step={0.0001} value={lRH} onChange={e=>setLRH(parseFloat(e.target.value))}/>
         </div>
       </div>
       {lDB>=eDB&&<div className="warn">Leaving DB must be below entering DB</div>}
@@ -237,7 +237,7 @@ function AirAir({unit,job,uid,setLog,setShowLog}){
         <div className="irow" style={{borderColor:'rgba(56,189,248,.18)',background:'rgba(0,0,0,.15)',marginTop:0}}>
           <span><span className="ik">h_ut</span><span className="iv">{fmt(hL)}</span><span className="iu"> kJ/kg</span></span>
           <span><span className="ik">v_ut</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(vL,4)}</span><span className="iu"> m3/kg</span></span>
-          <span><span className="ik">W_ut</span><span className="iv">{fmt(WL*1000,2)}</span><span className="iu"> g/kg</span></span>
+          <span><span className="ik">W_ut</span><span className="iv">{fmt(WL*1000,4)}</span><span className="iu"> g/kg</span></span>
         </div>
       </div>
     </div>
@@ -245,28 +245,28 @@ function AirAir({unit,job,uid,setLog,setShowLog}){
       <div className="slbl">Coil Summary</div>
       <table className="pt"><thead><tr><th></th><th>DB deg {unit}</th><th>WB deg {unit}</th><th>RH %</th><th>h kJ/kg</th><th>v m3/kg</th><th>W g/kg</th></tr></thead>
       <tbody>
-        <tr className="re"><td>Inn</td><td><span className="vb">{d(eC,2)}</span></td><td><span className="vb">{d(wE,2)}</span></td><td><span className="vb">{fmt(eRH,1)}</span></td><td><span className="vb">{fmt(hE)}</span></td><td><span className="vb">{fmt(vE,4)}</span></td><td><span className="vb">{fmt(WE*1000,2)}</span></td></tr>
-        <tr className="rl"><td>Ut</td><td><span className="vb">{d(lC,2)}</span></td><td><span className="vb">{d(wL,2)}</span></td><td><span className="vb">{fmt(lRH,1)}</span></td><td><span className="vb">{fmt(hL)}</span></td><td><span className="vb" style={{color:'#fbbf24'}}>{fmt(vL,4)}</span></td><td><span className="vb">{fmt(WL*1000,2)}</span></td></tr>
-        <tr className="rd"><td>delta</td><td>{fmt(Math.abs(eC-lC),2)}</td><td>{fmt(Math.abs(wE-wL),2)}</td><td>{fmt(Math.abs(lRH-eRH),1)}</td><td>{fmt(dh,2)}</td><td>--</td><td>{fmt(Math.abs(WE-WL)*1000,2)}</td></tr>
+        <tr className="re"><td>Inn</td><td><span className="vb">{d(eC,2)}</span></td><td><span className="vb">{d(wE,2)}</span></td><td><span className="vb">{fmt(eRH,4)}</span></td><td><span className="vb">{fmt(hE)}</span></td><td><span className="vb">{fmt(vE,4)}</span></td><td><span className="vb">{fmt(WE*1000,4)}</span></td></tr>
+        <tr className="rl"><td>Ut</td><td><span className="vb">{d(lC,2)}</span></td><td><span className="vb">{d(wL,2)}</span></td><td><span className="vb">{fmt(lRH,4)}</span></td><td><span className="vb">{fmt(hL)}</span></td><td><span className="vb" style={{color:'#fbbf24'}}>{fmt(vL,4)}</span></td><td><span className="vb">{fmt(WL*1000,4)}</span></td></tr>
+        <tr className="rd"><td>delta</td><td>{fmt(Math.abs(eC-lC),2)}</td><td>{fmt(Math.abs(wE-wL),2)}</td><td>{fmt(Math.abs(lRH-eRH),1)}</td><td>{fmt(dh,4)}</td><td>--</td><td>{fmt(Math.abs(WE-WL)*1000,2)}</td></tr>
       </tbody></table>
     </div>
     <div className="card" style={{borderColor:'rgba(251,191,36,.18)'}}>
       <div className="slbl" style={{color:'#fbbf24'}}>Outdoor Unit - Ambient (Condenser)</div>
       <div className="two">
         <div className="field"><div className="lbl"><span>Ambient DB</span><span className="utag">deg {unit}</span></div>
-          <input type="number" min={mn} max={mx} step={0.01} value={oDB} onChange={e=>setODB(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}} max={unit==="F"?140:60}/>
+          <input type="number" min={mn} max={mx} step={0.0001} value={oDB} onChange={e=>setODB(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}} max={unit==="F"?140:60}/>
           <input type="range" min={mn} max={mx} step={0.1} value={oDB} onChange={e=>setODB(parseFloat(e.target.value))} max={unit==="F"?140:60}/>
         </div>
         <div className="field"><div className="lbl"><span>Relative Humidity</span><span className="utag">%</span></div>
-          <input type="number" min={0} max={100} step={0.01} value={oRH} onChange={e=>setORH(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}}/>
-          <input type="range" min={0} max={100} step={0.01} value={oRH} onChange={e=>setORH(parseFloat(e.target.value))}/>
+          <input type="number" min={0} max={100} step={0.0001} value={oRH} onChange={e=>setORH(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}}/>
+          <input type="range" min={0} max={100} step={0.0001} value={oRH} onChange={e=>setORH(parseFloat(e.target.value))}/>
         </div>
       </div>
       <div className="irow" style={{borderColor:'rgba(251,191,36,.18)',background:'rgba(251,191,36,.05)'}}>
         <span><span className="ik">DB</span><span className="iv" style={{color:'#fbbf24'}}>{d(oC)} deg {unit}</span></span>
         <span><span className="ik">WB</span><span className="iv" style={{color:'#fbbf24'}}>{d(wO,2)} deg {unit}</span></span>
         <span><span className="ik">RH</span><span className="iv" style={{color:'#fbbf24'}}>{oRH}%</span></span>
-        <span><span className="ik">W</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(WO*1000,2)}</span><span className="iu"> g/kg</span></span>
+        <span><span className="ik">W</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(WO*1000,4)}</span><span className="iu"> g/kg</span></span>
       </div>
     </div>
     <RefSec unit={unit} refr={ref} setRefr={setRef} sP={sP} setSP={setSP} dP={dP} setDP={setDP} sT={sT} setST={setST}/>
@@ -275,29 +275,29 @@ function AirAir({unit,job,uid,setLog,setShowLog}){
       <div className="two">
         <div className="field"><div className="lbl"><span>Airflow (at outlet)</span><span className="utag">m3/h</span></div>
           <input type="number" min={10} max={50000} step={10} value={af} onChange={e=>setAf(parseFloat(e.target.value)||0)}/>
-          <div style={{fontSize:11,color:'#475569',marginTop:5}}>{fmt(afs*1000,1)} L/s</div>
+          <div style={{fontSize:11,color:'#475569',marginTop:5}}>{fmt(afs*1000,4)} L/s</div>
         </div>
         <div className="field"><div className="lbl"><span>Compressor Power</span><span className="utag">kW</span></div>
           <input type="number" min={0.1} max={500} step={0.05} value={pw} onChange={e=>setPw(parseFloat(e.target.value)||0)}/>
         </div>
       </div>
-      <div className="bar-l"><span>EER/COP: <strong style={{color:ec}}>{fmt(eer,2)} - {eLbl(eer)}</strong></span></div>
+      <div className="bar-l"><span>EER/COP: <strong style={{color:ec}}>{fmt(eer,4)} - {eLbl(eer)}</strong></span></div>
       <div className="bar-t"><div className="bar-f" style={{width:Math.min(100,(eer/6)*100)+'%',background:ec}}/></div>
     </div>
     <div className="res">
       <div className="rl2">Results</div>
       <div className="rg">
-        <div className="ri big"><div className="rn">Q_tot - Total Cooling Output</div><div className="rv">{fmt(Q,2)} kW</div><div className="ru">{fmt(Q*3412.14,0)} BTU/h - {fmt(Q/3.517,2)} tons</div></div>
-        <div className="ri"><div className="rn">EER / COP</div><div className="rv" style={{color:ec}}>{fmt(eer,2)}</div><div className="ru">Q / P_el</div></div>
-        <div className="ri"><div className="rn">Mass Flow</div><div className="rv">{fmt(mf,3)}</div><div className="ru">kg/s = V / v_ut</div></div>
-        <div className="ri"><div className="rn">dh (h_inn - h_ut)</div><div className="rv">{fmt(dh,2)}</div><div className="ru">kJ/kg</div></div>
-        <div className="ri"><div className="rn">Sensible Qs</div><div className="rv">{fmt(qs,2)}</div><div className="ru">kW (SHR {fmt(sr,2)})</div></div>
-        <div className="ri"><div className="rn">Latent Ql</div><div className="rv">{fmt(ql,2)}</div><div className="ru">kW (dehumid)</div></div>
+        <div className="ri big"><div className="rn">Q_tot - Total Cooling Output</div><div className="rv">{fmt(Q,4)} kW</div><div className="ru">{fmt(Q*3412.14,0)} BTU/h - {fmt(Q/3.517,4)} tons</div></div>
+        <div className="ri"><div className="rn">EER / COP</div><div className="rv" style={{color:ec}}>{fmt(eer,4)}</div><div className="ru">Q / P_el</div></div>
+        <div className="ri"><div className="rn">Mass Flow</div><div className="rv">{fmt(mf,4)}</div><div className="ru">kg/s = V / v_ut</div></div>
+        <div className="ri"><div className="rn">dh (h_inn - h_ut)</div><div className="rv">{fmt(dh,4)}</div><div className="ru">kJ/kg</div></div>
+        <div className="ri"><div className="rn">Sensible Qs</div><div className="rv">{fmt(qs,4)}</div><div className="ru">kW (SHR {fmt(sr,4)})</div></div>
+        <div className="ri"><div className="rn">Latent Ql</div><div className="rv">{fmt(ql,4)}</div><div className="ru">kW (dehumid)</div></div>
       </div>
       <div className="fml">
         <strong>m</strong> = V/v_ut = {fmt(afs,4)} / {fmt(vL,4)} = {fmt(mf,4)} kg/s<br/>
-        <strong>Q_tot</strong> = m x (h_inn - h_ut) = {fmt(mf,4)} x ({fmt(hE,2)} - {fmt(hL,2)}) = <strong>{fmt(Q,2)} kW</strong><br/>
-        <strong>EER</strong> = {fmt(Q,2)} / {fmt(pw,2)} = <strong>{fmt(eer,2)}</strong>
+        <strong>Q_tot</strong> = m x (h_inn - h_ut) = {fmt(mf,4)} x ({fmt(hE,4)} - {fmt(hL,4)}) = <strong>{fmt(Q,4)} kW</strong><br/>
+        <strong>EER</strong> = {fmt(Q,4)} / {fmt(pw,4)} = <strong>{fmt(eer,4)}</strong>
       </div>
     </div>
     <div className="brow no-print">
@@ -323,7 +323,7 @@ function AirLiquid({unit,job,uid,setLog,setShowLog}){
   const mn=unit==="F"?23:-5,mx=unit==="F"?113:45,ec=eCol(eer);
   function save(){
     const tE=refr!=="Other"?satT(refr,sP):null;const sC=unit==="F"?C(sT):sT;const sh=tE!=null?sC-tE:null;const tCond=ref!=="Other"?satT(ref,dP):null;
-    setLog(p=>[{id:Date.now(),date:new Date().toLocaleString(),mode:'Air/Liquid',job:job||"--",uid:uid||"--",ref,t1:fmt(F(eC),2),t2:fmt(F(lC),2),wb1:d(wBE,2),wb2:d(wBL,2),rh1:fmt(eRH,2),rh2:fmt(lRH,2),wTi:fmt(F(wTiC),2),wTo:fmt(F(wToC),2),wF:fmt(wF,3),af,pw:fmt(pw,2),Q:fmt(Qa,2),Qw:fmt(Qw,2),eer:fmt(eer,2),tE:tE!=null?fmt(tE,2):"--",sh:sh!=null?fmt(sh,2):"--",tC:tCond!=null?fmt(tCond,2):"--",sP:fmt(sP,2),dP:fmt(dP,2),unit},...p]);
+    setLog(p=>[{id:Date.now(),date:new Date().toLocaleString(),mode:'Air/Liquid',job:job||"--",uid:uid||"--",ref,t1:fmt(F(eC),2),t2:fmt(F(lC),2),wb1:d(wBE,2),wb2:d(wBL,2),rh1:fmt(eRH,4),rh2:fmt(lRH,4),wTi:fmt(F(wTiC),2),wTo:fmt(F(wToC),2),wF:fmt(wF,4),af,pw:fmt(pw,4),Q:fmt(Qa,4),Qw:fmt(Qw,4),eer:fmt(eer,4),tE:tE!=null?fmt(tE,4):"--",sh:sh!=null?fmt(sh,4):"--",tC:tCond!=null?fmt(tCond,4):"--",sP:fmt(sP,4),dP:fmt(dP,4),unit},...p]);
     setShowLog(true);
   }
   return(<>
@@ -331,12 +331,12 @@ function AirLiquid({unit,job,uid,setLog,setShowLog}){
       <div className="slbl" style={{color:'#fbbf24'}}>Ambient - Entering Air (Outdoor)</div>
       <div className="two">
         <div className="field"><div className="lbl"><span>Ambient Dry-Bulb <span className="badge bd">DB</span></span><span className="utag">deg {unit}</span></div>
-          <input type="number" min={mn} max={unit==="F"?140:60} step={0.01} value={eDB} onChange={e=>setEDB(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}}/>
+          <input type="number" min={mn} max={unit==="F"?140:60} step={0.0001} value={eDB} onChange={e=>setEDB(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}}/>
           <input type="range" min={mn} max={unit==="F"?140:60} step={0.1} value={eDB} onChange={e=>setEDB(parseFloat(e.target.value))}/>
         </div>
         <div className="field"><div className="lbl"><span>Ambient Relative Humidity</span><span className="utag">%</span></div>
-          <input type="number" min={0} max={100} step={0.01} value={eRH} onChange={e=>setERH(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}}/>
-          <input type="range" min={0} max={100} step={0.01} value={eRH} onChange={e=>setERH(parseFloat(e.target.value))}/>
+          <input type="number" min={0} max={100} step={0.0001} value={eRH} onChange={e=>setERH(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}}/>
+          <input type="range" min={0} max={100} step={0.0001} value={eRH} onChange={e=>setERH(parseFloat(e.target.value))}/>
         </div>
       </div>
       <div className="irow" style={{borderColor:'rgba(251,191,36,.25)',background:'rgba(251,191,36,.06)'}}>
@@ -349,39 +349,39 @@ function AirLiquid({unit,job,uid,setLog,setShowLog}){
       <div className="slbl" style={{color:'#f97316'}}>Air Side Ut - Leaving Air (Heat Rejection Control)</div>
       <div className="two">
         <div className="field"><div className="lbl"><span>Leaving DB <span style={{fontSize:9,color:'#f97316'}}>warmer</span></span><span className="utag">deg {unit} measured</span></div>
-          <input type="number" min={mn} max={mx} step={0.01} value={lDB} onChange={e=>setLDB(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(56,189,248,.4)'}}/>
+          <input type="number" min={mn} max={mx} step={0.0001} value={lDB} onChange={e=>setLDB(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(56,189,248,.4)'}}/>
           <input type="range" min={mn} max={mx} step={0.1} value={lDB} onChange={e=>setLDB(parseFloat(e.target.value))}/>
         </div>
         <div className="field"><div className="lbl"><span>Leaving RH</span><span className="utag">% measured</span></div>
-          <input type="number" min={0} max={100} step={0.01} value={lRH} onChange={e=>setLRH(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(56,189,248,.4)'}}/>
-          <input type="range" min={0} max={100} step={0.01} value={lRH} onChange={e=>setLRH(parseFloat(e.target.value))}/>
+          <input type="number" min={0} max={100} step={0.0001} value={lRH} onChange={e=>setLRH(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(56,189,248,.4)'}}/>
+          <input type="range" min={0} max={100} step={0.0001} value={lRH} onChange={e=>setLRH(parseFloat(e.target.value))}/>
         </div>
       </div>
       <div className="irow" style={{marginTop:10,borderColor:'rgba(249,115,22,.25)',background:'rgba(249,115,22,.06)'}}>
         <span><span className="ik">WBut</span><span className="iv" style={{color:'#f97316'}}>{d(wBL,2)} deg {unit}</span><span className="badge bc" style={{marginLeft:5}}>calc</span></span>
         <span><span className="ik">h_ut</span><span className="iv" style={{color:'#f97316'}}>{fmt(hL)}</span><span className="iu"> kJ/kg</span></span>
         <span><span className="ik">v_ut</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(vL,4)}</span><span className="iu"> m3/kg</span></span>
-        <span><span className="ik">Δh heat</span><span className="iv" style={{color:'#f97316'}}>{fmt(dh,2)}</span><span className="iu"> kJ/kg</span></span>
+        <span><span className="ik">Δh heat</span><span className="iv" style={{color:'#f97316'}}>{fmt(dh,4)}</span><span className="iu"> kJ/kg</span></span>
       </div>
     </div>
     <div className="card" style={{borderColor:'rgba(14,165,233,.25)'}}>
       <div className="slbl" style={{color:'#0ea5e9'}}>Liquid Side - Chilled Water</div>
       <div className="three">
         <div className="field"><div className="lbl"><span>Water Inlet T</span><span className="utag">deg {unit}</span></div>
-          <input type="number" min={-20} max={50} step={0.01} value={wTi} onChange={e=>setWTi(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(14,165,233,.4)'}}/>
+          <input type="number" min={-20} max={50} step={0.0001} value={wTi} onChange={e=>setWTi(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(14,165,233,.4)'}}/>
         </div>
         <div className="field"><div className="lbl"><span>Water Outlet T</span><span className="utag">deg {unit}</span></div>
-          <input type="number" min={-20} max={50} step={0.01} value={wTo} onChange={e=>setWTo(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(14,165,233,.4)'}}/>
+          <input type="number" min={-20} max={50} step={0.0001} value={wTo} onChange={e=>setWTo(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(14,165,233,.4)'}}/>
         </div>
         <div className="field"><div className="lbl"><span>Water Flow</span><span className="utag">L/s</span></div>
-          <input type="number" min={0.001} max={100} step={0.001} value={wF} onChange={e=>setWF(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(14,165,233,.4)'}}/>
+          <input type="number" min={0.001} max={100} step={0.0001} value={wF} onChange={e=>setWF(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(14,165,233,.4)'}}/>
         </div>
       </div>
       <div className="irow" style={{borderColor:'rgba(14,165,233,.25)',background:'rgba(14,165,233,.05)'}}>
         <span><span className="ik">dT water</span><span className="iv" style={{color:'#0ea5e9'}}>{fmt(Math.abs(wToC-wTiC),2)}</span><span className="iu"> K</span></span>
-        <span><span className="ik">m water</span><span className="iv" style={{color:'#0ea5e9'}}>{fmt(mfW,3)}</span><span className="iu"> kg/s</span></span>
-        <span><span className="ik">Q water</span><span className="iv" style={{color:'#0ea5e9'}}>{fmt(Qw,2)}</span><span className="iu"> kW</span></span>
-        <span><span className="ik">flow</span><span className="iv" style={{color:'#0ea5e9'}}>{fmt(wF,3)}</span><span className="iu"> L/s</span></span>
+        <span><span className="ik">m water</span><span className="iv" style={{color:'#0ea5e9'}}>{fmt(mfW,4)}</span><span className="iu"> kg/s</span></span>
+        <span><span className="ik">Q water</span><span className="iv" style={{color:'#0ea5e9'}}>{fmt(Qw,4)}</span><span className="iu"> kW</span></span>
+        <span><span className="ik">flow</span><span className="iv" style={{color:'#0ea5e9'}}>{fmt(wF,4)}</span><span className="iu"> L/s</span></span>
       </div>
     </div>
     <div className="card">
@@ -401,23 +401,23 @@ function AirLiquid({unit,job,uid,setLog,setShowLog}){
       <div className="rg">
         <div className="ri big">
           <div className="rn">Q_water - Primary Cooling Output (Water Side)</div>
-          <div className="rv">{fmt(Qw,2)} kW</div>
-          <div className="ru">{fmt(Qw*3412.14,2)} BTU/h - {fmt(Qw/3.517,2)} tons</div>
+          <div className="rv">{fmt(Qw,4)} kW</div>
+          <div className="ru">{fmt(Qw*3412.14,4)} BTU/h - {fmt(Qw/3.517,4)} tons</div>
         </div>
-        <div className="ri"><div className="rn">EER / COP</div><div className="rv" style={{color:eCol(pw>0?Qw/pw:0)}}>{fmt(pw>0?Qw/pw:0,2)}</div><div className="ru">Q_water / P_el</div></div>
+        <div className="ri"><div className="rn">EER / COP</div><div className="rv" style={{color:eCol(pw>0?Qw/pw:0)}}>{fmt(pw>0?Qw/pw:0,4)}</div><div className="ru">Q_water / P_el</div></div>
         <div className="ri"><div className="rn">dT water</div><div className="rv">{fmt(Math.abs(wToC-wTiC),2)}</div><div className="ru">K</div></div>
-        <div className="ri"><div className="rn">Flow</div><div className="rv">{fmt(wF,3)}</div><div className="ru">L/s</div></div>
+        <div className="ri"><div className="rn">Flow</div><div className="rv">{fmt(wF,4)}</div><div className="ru">L/s</div></div>
         <div className="ri" style={{background:Math.abs(bal)>10?'rgba(248,113,113,.06)':'rgba(34,197,94,.06)',border:Math.abs(bal)>10?'1px solid rgba(248,113,113,.2)':'1px solid rgba(34,197,94,.2)'}}>
           <div className="rn">Q_heat - Air Heat Rejection (Control)</div>
-          <div className="rv" style={{fontSize:20,color:Math.abs(bal)>10?'#f87171':'#22c55e'}}>{fmt(Qa,2)} kW</div>
+          <div className="rv" style={{fontSize:20,color:Math.abs(bal)>10?'#f87171':'#22c55e'}}>{fmt(Qa,4)} kW</div>
           <div className="ru">{Math.abs(bal)>10?'Deviation: '+fmt(Math.abs(bal),1)+'%':'OK: '+fmt(Math.abs(bal),1)+'% dev'}</div>
         </div>
-        <div className="ri"><div className="rn">dh air</div><div className="rv">{fmt(dh,2)}</div><div className="ru">kJ/kg</div></div>
+        <div className="ri"><div className="rn">dh air</div><div className="rv">{fmt(dh,4)}</div><div className="ru">kJ/kg</div></div>
       </div>
       <div className="fml">
-        <strong>Q_water</strong> = 4.18 x V(L/s) x dT = 4.18 x {fmt(wF,3)} x {fmt(Math.abs(wToC-wTiC),2)} = <strong>{fmt(Qw,2)} kW</strong><br/>
-        <strong>EER</strong> = Q_water / P_el = {fmt(Qw,2)} / {fmt(pw,2)} = <strong>{fmt(pw>0?Qw/pw:0,2)}</strong><br/>
-        <strong>Q_heat</strong> = m x (h_ut - h_inn) = {fmt(mfA,4)} x {fmt(dh,2)} = <strong>{fmt(Qa,2)} kW</strong> (heat rejection control)
+        <strong>Q_water</strong> = 4.18 x V(L/s) x dT = 4.18 x {fmt(wF,4)} x {fmt(Math.abs(wToC-wTiC),2)} = <strong>{fmt(Qw,4)} kW</strong><br/>
+        <strong>EER</strong> = Q_water / P_el = {fmt(Qw,4)} / {fmt(pw,4)} = <strong>{fmt(pw>0?Qw/pw:0,4)}</strong><br/>
+        <strong>Q_heat</strong> = m x (h_ut - h_inn) = {fmt(mfA,4)} x {fmt(dh,4)} = <strong>{fmt(Qa,4)} kW</strong> (heat rejection control)
       </div></div>
     <div className="brow no-print">
       <button className="bt bt-g" onClick={save}>Save Measurement</button>
@@ -443,7 +443,7 @@ function LiqLiq({unit,job,uid,setLog,setShowLog}){
   const ec=eCol(eer);
   function save(){
     const tE=refr!=="Other"?satT(refr,sP):null;const sC=unit==="F"?C(sT):sT;const sh=tE!=null?sC-tE:null;const tCond=ref!=="Other"?satT(ref,dP):null;
-    setLog(p=>[{id:Date.now(),date:new Date().toLocaleString(),mode:'Liq/Liq',job:job||"--",uid:uid||"--",ref,t1:fmt(F(cTiC),2),t2:fmt(F(cToC),2),wb1:"--",wb2:"--",rh1:"--",rh2:"--",wTi:fmt(F(hTiC),2),wTo:fmt(F(hToC),2),wF:fmt(hF,3),af:"--",pw:fmt(pw,2),Q:fmt(Qc,2),Qw:fmt(Qh,2),eer:fmt(eer,2),tE:tE!=null?fmt(tE,2):"--",sh:sh!=null?fmt(sh,2):"--",tC:tCond!=null?fmt(tCond,2):"--",sP:fmt(sP,2),dP:fmt(dP,2),unit},...p]);
+    setLog(p=>[{id:Date.now(),date:new Date().toLocaleString(),mode:'Liq/Liq',job:job||"--",uid:uid||"--",ref,t1:fmt(F(cTiC),2),t2:fmt(F(cToC),2),wb1:"--",wb2:"--",rh1:"--",rh2:"--",wTi:fmt(F(hTiC),2),wTo:fmt(F(hToC),2),wF:fmt(hF,4),af:"--",pw:fmt(pw,4),Q:fmt(Qc,4),Qw:fmt(Qh,4),eer:fmt(eer,4),tE:tE!=null?fmt(tE,4):"--",sh:sh!=null?fmt(sh,4):"--",tC:tCond!=null?fmt(tCond,4):"--",sP:fmt(sP,4),dP:fmt(dP,4),unit},...p]);
     setShowLog(true);
   }
   return(<>
@@ -454,17 +454,17 @@ function LiqLiq({unit,job,uid,setLog,setShowLog}){
       </div>
       {cFt==="glycol"&&<div className="field"><div className="lbl"><span>Glycol Concentration</span><span className="utag">%</span></div>
         <input type="number" min={0} max={60} step={1} value={cGp} onChange={e=>setCGp(parseFloat(e.target.value)||0)}/>
-        <div style={{fontSize:11,color:'#475569',marginTop:5}}>cp = {fmt(cpC,3)} kJ/kg K</div>
+        <div style={{fontSize:11,color:'#475569',marginTop:5}}>cp = {fmt(cpC,4)} kJ/kg K</div>
       </div>}
       <div className="three">
-        <div className="field"><div className="lbl"><span>T Inlet</span><span className="utag">deg {unit}</span></div><input type="number" min={-30} max={50} step={0.01} value={cTi} onChange={e=>setCTi(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(56,189,248,.4)'}}/></div>
-        <div className="field"><div className="lbl"><span>T Outlet</span><span className="utag">deg {unit}</span></div><input type="number" min={-30} max={50} step={0.01} value={cTo} onChange={e=>setCTo(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(56,189,248,.4)'}}/></div>
-        <div className="field"><div className="lbl"><span>Flow</span><span className="utag">L/s</span></div><input type="number" min={0.001} max={100} step={0.001} value={cF} onChange={e=>setCF(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(56,189,248,.4)'}}/></div>
+        <div className="field"><div className="lbl"><span>T Inlet</span><span className="utag">deg {unit}</span></div><input type="number" min={-30} max={50} step={0.0001} value={cTi} onChange={e=>setCTi(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(56,189,248,.4)'}}/></div>
+        <div className="field"><div className="lbl"><span>T Outlet</span><span className="utag">deg {unit}</span></div><input type="number" min={-30} max={50} step={0.0001} value={cTo} onChange={e=>setCTo(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(56,189,248,.4)'}}/></div>
+        <div className="field"><div className="lbl"><span>Flow</span><span className="utag">L/s</span></div><input type="number" min={0.001} max={100} step={0.0001} value={cF} onChange={e=>setCF(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(56,189,248,.4)'}}/></div>
       </div>
       <div className="irow" style={{borderColor:'rgba(56,189,248,.25)',background:'rgba(56,189,248,.05)'}}>
         <span><span className="ik">dT</span><span className="iv" style={{color:'#38bdf8'}}>{fmt(Math.abs(cToC-cTiC),2)}</span><span className="iu"> K</span></span>
-        <span><span className="ik">m</span><span className="iv" style={{color:'#38bdf8'}}>{fmt(mC,3)}</span><span className="iu"> kg/s</span></span>
-        <span><span className="ik">Q cold</span><span className="iv" style={{color:'#38bdf8'}}>{fmt(Qc,2)}</span><span className="iu"> kW</span></span>
+        <span><span className="ik">m</span><span className="iv" style={{color:'#38bdf8'}}>{fmt(mC,4)}</span><span className="iu"> kg/s</span></span>
+        <span><span className="ik">Q cold</span><span className="iv" style={{color:'#38bdf8'}}>{fmt(Qc,4)}</span><span className="iu"> kW</span></span>
       </div>
     </div>
     <div className="card" style={{borderColor:'rgba(251,191,36,.25)'}}>
@@ -474,17 +474,17 @@ function LiqLiq({unit,job,uid,setLog,setShowLog}){
       </div>
       {hFt==="glycol"&&<div className="field"><div className="lbl"><span>Glycol Concentration</span><span className="utag">%</span></div>
         <input type="number" min={0} max={60} step={1} value={hGp} onChange={e=>setHGp(parseFloat(e.target.value)||0)}/>
-        <div style={{fontSize:11,color:'#475569',marginTop:5}}>cp = {fmt(cpH,3)} kJ/kg K</div>
+        <div style={{fontSize:11,color:'#475569',marginTop:5}}>cp = {fmt(cpH,4)} kJ/kg K</div>
       </div>}
       <div className="three">
-        <div className="field"><div className="lbl"><span>T Inlet</span><span className="utag">deg {unit}</span></div><input type="number" min={-30} max={80} step={0.01} value={hTi} onChange={e=>setHTi(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}}/></div>
-        <div className="field"><div className="lbl"><span>T Outlet</span><span className="utag">deg {unit}</span></div><input type="number" min={-30} max={80} step={0.01} value={hTo} onChange={e=>setHTo(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}}/></div>
-        <div className="field"><div className="lbl"><span>Flow</span><span className="utag">L/s</span></div><input type="number" min={0.001} max={100} step={0.001} value={hF} onChange={e=>setHF(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}}/></div>
+        <div className="field"><div className="lbl"><span>T Inlet</span><span className="utag">deg {unit}</span></div><input type="number" min={-30} max={80} step={0.0001} value={hTi} onChange={e=>setHTi(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}}/></div>
+        <div className="field"><div className="lbl"><span>T Outlet</span><span className="utag">deg {unit}</span></div><input type="number" min={-30} max={80} step={0.0001} value={hTo} onChange={e=>setHTo(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}}/></div>
+        <div className="field"><div className="lbl"><span>Flow</span><span className="utag">L/s</span></div><input type="number" min={0.001} max={100} step={0.0001} value={hF} onChange={e=>setHF(parseFloat(e.target.value)||0)} style={{borderColor:'rgba(251,191,36,.4)'}}/></div>
       </div>
       <div className="irow" style={{borderColor:'rgba(251,191,36,.25)',background:'rgba(251,191,36,.05)'}}>
         <span><span className="ik">dT</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(Math.abs(hTiC-hToC),2)}</span><span className="iu"> K</span></span>
-        <span><span className="ik">m</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(mH,3)}</span><span className="iu"> kg/s</span></span>
-        <span><span className="ik">Q hot</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(Qh,2)}</span><span className="iu"> kW</span></span>
+        <span><span className="ik">m</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(mH,4)}</span><span className="iu"> kg/s</span></span>
+        <span><span className="ik">Q hot</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(Qh,4)}</span><span className="iu"> kW</span></span>
       </div>
     </div>
     <div className="card">
@@ -492,28 +492,28 @@ function LiqLiq({unit,job,uid,setLog,setShowLog}){
       <div className="field"><div className="lbl"><span>Compressor Power</span><span className="utag">kW</span></div>
         <input type="number" min={0.1} max={500} step={0.05} value={pw} onChange={e=>setPw(parseFloat(e.target.value)||0)}/>
       </div>
-      <div className="bar-l"><span>COP: <strong style={{color:ec}}>{fmt(eer,2)} - {eLbl(eer)}</strong></span></div>
+      <div className="bar-l"><span>COP: <strong style={{color:ec}}>{fmt(eer,4)} - {eLbl(eer)}</strong></span></div>
       <div className="bar-t"><div className="bar-f" style={{width:Math.min(100,(eer/6)*100)+'%',background:ec}}/></div>
     </div>
     <RefSec unit={unit} refr={ref} setRefr={setRef} sP={sP} setSP={setSP} dP={dP} setDP={setDP} sT={sT} setST={setST}/>
     <div className="res">
       <div className="rl2">Results</div>
       <div className="rg">
-        <div className="ri big"><div className="rn">Q_cold - Cooling Output</div><div className="rv">{fmt(Qc,2)} kW</div><div className="ru">{fmt(Qc*3412.14,2)} BTU/h - {fmt(Qc/3.517,2)} tons</div></div>
+        <div className="ri big"><div className="rn">Q_cold - Cooling Output</div><div className="rv">{fmt(Qc,4)} kW</div><div className="ru">{fmt(Qc*3412.14,4)} BTU/h - {fmt(Qc/3.517,4)} tons</div></div>
         <div className="ri" style={{background:Math.abs(bal)>10?'rgba(248,113,113,.06)':'rgba(34,197,94,.06)',border:Math.abs(bal)>10?'1px solid rgba(248,113,113,.2)':'1px solid rgba(34,197,94,.2)'}}>
           <div className="rn">Q_hot - Condenser</div>
-          <div className="rv" style={{fontSize:22,color:Math.abs(bal)>10?'#f87171':'#22c55e'}}>{fmt(Qh,2)} kW</div>
+          <div className="rv" style={{fontSize:22,color:Math.abs(bal)>10?'#f87171':'#22c55e'}}>{fmt(Qh,4)} kW</div>
           <div className="ru">{Math.abs(bal)>10?'Balance error: '+fmt(Math.abs(bal),1)+'%':'Balance OK: '+fmt(Math.abs(bal),1)+'%'}</div>
         </div>
-        <div className="ri"><div className="rn">COP / EER</div><div className="rv" style={{color:ec}}>{fmt(eer,2)}</div><div className="ru">Q_cold / P_el</div></div>
-        <div className="ri"><div className="rn">P_el</div><div className="rv">{fmt(pw,2)}</div><div className="ru">kW</div></div>
+        <div className="ri"><div className="rn">COP / EER</div><div className="rv" style={{color:ec}}>{fmt(eer,4)}</div><div className="ru">Q_cold / P_el</div></div>
+        <div className="ri"><div className="rn">P_el</div><div className="rv">{fmt(pw,4)}</div><div className="ru">kW</div></div>
         <div className="ri"><div className="rn">dT cold</div><div className="rv">{fmt(Math.abs(cToC-cTiC),2)}</div><div className="ru">K</div></div>
         <div className="ri"><div className="rn">dT hot</div><div className="rv">{fmt(Math.abs(hTiC-hToC),2)}</div><div className="ru">K</div></div>
       </div>
       <div className="fml">
-        <strong>Q_cold</strong> = V(L/s) x rho x cp x dT = {fmt(cF,3)} x {fmt(rC,3)} x {fmt(cpC,3)} x {fmt(Math.abs(cToC-cTiC),2)} = <strong>{fmt(Qc,2)} kW</strong><br/>
-        <strong>Q_hot</strong> = {fmt(mH,3)} x {fmt(cpH,3)} x {fmt(Math.abs(hTiC-hToC),2)} = <strong>{fmt(Qh,2)} kW</strong><br/>
-        <strong>COP</strong> = {fmt(Qc,2)} / {fmt(pw,2)} = <strong>{fmt(eer,2)}</strong>
+        <strong>Q_cold</strong> = V(L/s) x rho x cp x dT = {fmt(cF,4)} x {fmt(rC,4)} x {fmt(cpC,4)} x {fmt(Math.abs(cToC-cTiC),2)} = <strong>{fmt(Qc,4)} kW</strong><br/>
+        <strong>Q_hot</strong> = {fmt(mH,4)} x {fmt(cpH,4)} x {fmt(Math.abs(hTiC-hToC),2)} = <strong>{fmt(Qh,4)} kW</strong><br/>
+        <strong>COP</strong> = {fmt(Qc,4)} / {fmt(pw,4)} = <strong>{fmt(eer,4)}</strong>
       </div>
     </div>
     <div className="brow no-print">
