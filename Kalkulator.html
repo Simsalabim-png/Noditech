@@ -78,6 +78,25 @@
     .lt th{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#475569;padding:5px 7px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06);white-space:nowrap}
     .lt td{padding:6px 7px;border-bottom:1px solid rgba(255,255,255,.03);color:#94a3b8}
     .lt tr:last-child td{border-bottom:none}
+
+    .guide-btn{width:100%;padding:10px 14px;border-radius:8px;border:1px solid rgba(56,189,248,.25);background:rgba(56,189,248,.07);color:#7dd3fc;font-family:'DM Mono',monospace;font-size:12px;text-align:left;cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+    .guide-btn:hover{background:rgba(56,189,248,.12)}
+    .guide-btn .arr{transition:transform .2s}
+    .guide-btn.open .arr{transform:rotate(180deg)}
+    .guide-panel{display:none;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:18px 20px;margin-bottom:14px;background:rgba(255,255,255,.02)}
+    .guide-panel.open{display:block}
+    .gs{font-size:9px;letter-spacing:.18em;text-transform:uppercase;font-weight:500;padding:4px 10px;border-radius:4px;margin-bottom:10px;display:inline-block}
+    .gs-blue{background:rgba(56,189,248,.15);color:#7dd3fc}
+    .gs-amber{background:rgba(245,158,11,.15);color:#fcd34d}
+    .gs-teal{background:rgba(20,184,166,.15);color:#5eead4}
+    .gs-purple{background:rgba(139,92,246,.15);color:#c4b5fd}
+    .guide-row{display:grid;grid-template-columns:28px 1fr;gap:10px;margin-bottom:12px;align-items:start}
+    .guide-num{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px}
+    .guide-content h4{font-size:11px;font-weight:500;color:#f0f9ff;margin-bottom:3px}
+    .guide-content p{font-size:10px;color:#94a3b8;line-height:1.6;margin:0}
+    .guide-content ul{font-size:10px;color:#94a3b8;line-height:1.7;margin:3px 0 0 14px;padding:0}
+    .gtip{font-size:10px;color:#475569;background:rgba(255,255,255,.03);border-left:2px solid rgba(56,189,248,.3);padding:6px 10px;border-radius:0 5px 5px 0;margin-top:8px;line-height:1.6}
+    .gtip strong{color:#94a3b8}
     @media(max-width:520px){.two,.three,.modes,.rg{grid-template-columns:1fr}.ri.big{grid-column:1}.brow{flex-direction:column}}
     @media print{body{background:#fff!important;color:#000!important}.app{background:#fff!important;padding:10px}.card,.res{border:1px solid #ddd!important;background:#fff!important;break-inside:avoid}.rv,.vb,.iv{color:#000!important}.ru,.iu,.ik,.rn,.fml{color:#555!important}.ri{background:#f9f9f9!important}.ri.big{background:#e8f4fd!important}.modes,.brow,.no-print{display:none!important}}
   </style>
@@ -300,6 +319,7 @@ function AirAir({unit,job,uid,setLog,setShowLog}){
         <strong>EER</strong> = {fmt(Q,4)} / {fmt(pw,4)} = <strong>{fmt(eer,4)}</strong>
       </div>
     </div>
+    <GuideAA/>
     <div className="brow no-print">
       <button className="bt bt-g" onClick={save}>Save Measurement</button>
       <button className="bt bt-b" onClick={()=>window.print()}>Print / PDF</button>
@@ -419,6 +439,7 @@ function AirLiquid({unit,job,uid,setLog,setShowLog}){
         <strong>EER</strong> = Q_water / P_el = {fmt(Qw,4)} / {fmt(pw,4)} = <strong>{fmt(pw>0?Qw/pw:0,4)}</strong><br/>
         <strong>Q_heat</strong> = m x (h_ut - h_inn) = {fmt(mfA,4)} x {fmt(dh,4)} = <strong>{fmt(Qa,4)} kW</strong> (heat rejection control)
       </div></div>
+    <GuideAL/>
     <div className="brow no-print">
       <button className="bt bt-g" onClick={save}>Save Measurement</button>
       <button className="bt bt-b" onClick={()=>window.print()}>Print / PDF</button>
@@ -516,11 +537,185 @@ function LiqLiq({unit,job,uid,setLog,setShowLog}){
         <strong>COP</strong> = {fmt(Qc,4)} / {fmt(pw,4)} = <strong>{fmt(eer,4)}</strong>
       </div>
     </div>
+        <GuideLL/>
     <div className="brow no-print">
       <button className="bt bt-g" onClick={save}>Save Measurement</button>
       <button className="bt bt-b" onClick={()=>window.print()}>Print / PDF</button>
     </div>
   </>);
+}
+
+
+function GuideAA(){
+  return(
+    <div>
+      <button id="guide-aa-btn" className="guide-btn" onClick={()=>toggleGuide('guide-aa')}>
+        <span>Measurement Guide - Air / Air &nbsp;<span style={{fontSize:10,opacity:.6}}>accuracy tips for enthalpy calculation</span></span>
+        <span className="arr">v</span>
+      </button>
+      <div id="guide-aa" className="guide-panel">
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+          <div>
+            <div className="gs gs-amber">Entering air (Inn)</div>
+            <div className="guide-row">
+              <div className="guide-num" style={{background:'rgba(245,158,11,.2)',color:'#fcd34d'}}>1</div>
+              <div className="guide-content">
+                <h4>Dry-Bulb (DB)</h4>
+                <p>PT100 or NTC probe, duct center, 30-50 cm from bends. Wait 3-5 min. Take 3 readings and average. Never use IR gun.</p>
+              </div>
+            </div>
+            <div className="guide-row">
+              <div className="guide-num" style={{background:'rgba(245,158,11,.2)',color:'#fcd34d'}}>2</div>
+              <div className="guide-content">
+                <h4>Relative Humidity (RH)</h4>
+                <p>Calibrated capacitive hygrometer. Return air 40-60% RH. Wait 3-5 min. Cross-check with sling psychrometer if possible.</p>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div className="gs gs-teal">Leaving air (Ut)</div>
+            <div className="guide-row">
+              <div className="guide-num" style={{background:'rgba(20,184,166,.2)',color:'#5eead4'}}>3</div>
+              <div className="guide-content">
+                <h4>Dry-Bulb (DB)</h4>
+                <p>10-20 cm from outlet, center of airstream. Avoid condensate zone below coil. PT100 only. Wait min 5 min.</p>
+              </div>
+            </div>
+            <div className="guide-row">
+              <div className="guide-num" style={{background:'rgba(20,184,166,.2)',color:'#5eead4'}}>4</div>
+              <div className="guide-content">
+                <h4>Relative Humidity (RH)</h4>
+                <p>Supply air is 85-95% RH - hardest to measure. Allow 5-10 min stabilisation. Avoid water droplets on sensor. Best: measure WB with sling psychrometer and convert.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginTop:10}}>
+          <div>
+            <div className="gs gs-blue">Airflow</div>
+            <div className="guide-row">
+              <div className="guide-num" style={{background:'rgba(56,189,248,.2)',color:'#7dd3fc'}}>5</div>
+              <div className="guide-content">
+                <h4>Volume flow (m3/h)</h4>
+                <p>Vane anemometer, min 5 points across grille. Multiply by free area factor (0.65-0.80). Steady-state only - system must run 10-15 min first.</p>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div className="gs gs-blue">Power</div>
+            <div className="guide-row">
+              <div className="guide-num" style={{background:'rgba(56,189,248,.2)',color:'#7dd3fc'}}>6</div>
+              <div className="guide-content">
+                <h4>Compressor power (kW)</h4>
+                <p>Clamp meter on live wire. Record kW not kVA. Steady-state only. Inverter units: average over 1 min.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="gtip">Enthalpy accuracy: A 2% RH error at 90% supply RH causes approx 1.5 kJ/kg enthalpy error. With 0.2 kg/s airflow this is 0.3 kW error in Q - roughly 5-10% on a residential unit. Always allow full stabilisation and cross-check RH with wet-bulb measurement where precision matters.</div>
+      </div>
+    </div>
+  );
+}
+
+function GuideAL(){
+  return(
+    <div>
+      <button id="guide-al-btn" className="guide-btn" onClick={()=>toggleGuide('guide-al')}>
+        <span>Measurement Guide - Air / Liquid &nbsp;<span style={{fontSize:10,opacity:.6}}>water side primary, air side control</span></span>
+        <span className="arr">v</span>
+      </button>
+      <div id="guide-al" className="guide-panel">
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+          <div>
+            <div className="gs gs-blue">Liquid side (primary)</div>
+            <div className="guide-row">
+              <div className="guide-num" style={{background:'rgba(56,189,248,.2)',color:'#7dd3fc'}}>1</div>
+              <div className="guide-content">
+                <h4>Water temperatures (T inn / T ut)</h4>
+                <p>Immersion sensor or insulated clamp-on PT100 directly on pipe. T inn = cold water in, T ut = warmer water out. Avoid elbows and valves.</p>
+              </div>
+            </div>
+            <div className="guide-row">
+              <div className="guide-num" style={{background:'rgba(56,189,248,.2)',color:'#7dd3fc'}}>2</div>
+              <div className="guide-content">
+                <h4>Water flow (L/s)</h4>
+                <p>Ultrasonic clamp-on flow meter. Min 10 pipe diameters straight run before sensor. Formula: Q = 4.18 x V(L/s) x dT. 5% flow error = 5% Q error.</p>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div className="gs gs-amber">Air side (heat rejection control)</div>
+            <div className="guide-row">
+              <div className="guide-num" style={{background:'rgba(245,158,11,.2)',color:'#fcd34d'}}>3</div>
+              <div className="guide-content">
+                <h4>Ambient air (Inn) - DB + RH</h4>
+                <p>Shade probe from sun. 1 m from condenser inlet, not in discharge stream. Max 60 C. This is the entering ambient air temperature.</p>
+              </div>
+            </div>
+            <div className="guide-row">
+              <div className="guide-num" style={{background:'rgba(245,158,11,.2)',color:'#fcd34d'}}>4</div>
+              <div className="guide-content">
+                <h4>Leaving air (Ut) - DB + RH</h4>
+                <p>Leaving air is warmer than ambient - this is heat rejection. Expected: Q_heat = Q_water + P_el. Deviation over 10% indicates measurement error.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="gtip">Balance check: Q_water and Q_air should balance within 5-8%. Larger deviation usually means flow measurement error on water side or airflow error on air side. Trust water side as primary measurement.</div>
+      </div>
+    </div>
+  );
+}
+
+function GuideLL(){
+  return(
+    <div>
+      <button id="guide-ll-btn" className="guide-btn" onClick={()=>toggleGuide('guide-ll')}>
+        <span>Measurement Guide - Liquid / Liquid &nbsp;<span style={{fontSize:10,opacity:.6}}>both sides measured, balance is key</span></span>
+        <span className="arr">v</span>
+      </button>
+      <div id="guide-ll" className="guide-panel">
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+          <div>
+            <div className="gs gs-blue">Cold side (chilled water / glycol)</div>
+            <div className="guide-row">
+              <div className="guide-num" style={{background:'rgba(56,189,248,.2)',color:'#7dd3fc'}}>1</div>
+              <div className="guide-content">
+                <h4>T inlet + T outlet</h4>
+                <p>Immersion or insulated clamp-on PT100. Measure close to heat exchanger. Even 0.1 C error at 2 C dT = 5% Q error - 4 decimals matters here.</p>
+              </div>
+            </div>
+            <div className="guide-row">
+              <div className="guide-num" style={{background:'rgba(56,189,248,.2)',color:'#7dd3fc'}}>2</div>
+              <div className="guide-content">
+                <h4>Flow (L/s) + glycol %</h4>
+                <p>Ultrasonic clamp-on preferred. Use refractometer to verify actual glycol %. Wrong concentration = wrong cp = wrong Q. Calculator adjusts cp and density automatically.</p>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div className="gs gs-amber">Hot side (condenser water / glycol)</div>
+            <div className="guide-row">
+              <div className="guide-num" style={{background:'rgba(245,158,11,.2)',color:'#fcd34d'}}>3</div>
+              <div className="guide-content">
+                <h4>T inlet + T outlet</h4>
+                <p>Same method as cold side. Q_hot is always larger than Q_cold by the compressor input power. If Q_hot is less than Q_cold something is wrong.</p>
+              </div>
+            </div>
+            <div className="guide-row">
+              <div className="guide-num" style={{background:'rgba(245,158,11,.2)',color:'#fcd34d'}}>4</div>
+              <div className="guide-content">
+                <h4>Flow (L/s) + glycol %</h4>
+                <p>Verify glycol % on hot side separately - concentrations may differ between circuits. Use refractometer.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="gtip">Energy balance: Q_hot = Q_cold + P_el. Deviation over 5-8%: check flow measurements first. Small dT with high flow is much more sensitive to errors than large dT with low flow. At dT = 2 C, a 0.1 C sensor error = 5% Q error.</div>
+      </div>
+    </div>
+  );
 }
 
 function App(){
@@ -613,6 +808,13 @@ function App(){
       </div>
     </div>
   );
+}
+
+function toggleGuide(id){
+  const panel=document.getElementById(id);
+  const btn=document.getElementById(id+'-btn');
+  panel.classList.toggle('open');
+  btn.classList.toggle('open');
 }
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
