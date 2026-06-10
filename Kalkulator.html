@@ -263,6 +263,10 @@ function AirAir({unit,job,uid,setLog,setShowLog}){
         </div>
       </div>
       {lDB>=eDB&&<div className="warn">Leaving DB must be below entering DB</div>}
+        {lRH>98&&<div className="warn">Leaving RH &gt; 98% — condensation on sensor possible. Reading unreliable — verify with sling psychrometer.</div>}
+        {lRH>95&&lRH<=98&&<div className="warn" style={{background:'rgba(251,191,36,.08)',border:'1px solid rgba(251,191,36,.2)',color:'#fbbf24'}}>Leaving RH &gt; 95% — near saturation. Allow 5-10 min extra stabilisation.</div>}
+        {lRH>98&&<div className="warn">⚠ Leaving RH &gt; 98% — condensation possible on sensor. Reading may be unreliable. Verify with sling psychrometer.</div>}
+        {lRH>95&&lRH<=98&&<div className="warn" style={{background:'rgba(251,191,36,.08)',border:'1px solid rgba(251,191,36,.2)',color:'#fbbf24'}}>⚠ Leaving RH &gt; 95% — near saturation. Allow extra stabilisation time (5-10 min).</div>}
       <div style={{marginTop:12,padding:'13px 15px',background:'rgba(56,189,248,.07)',border:'1px solid rgba(56,189,248,.18)',borderRadius:8}}>
         <div style={{fontSize:10,letterSpacing:'.15em',textTransform:'uppercase',color:'#38bdf8',marginBottom:9}}>DB + RH - Wet-Bulb Converter</div>
         <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:10}}>
@@ -449,7 +453,7 @@ function AirLiquid({unit,job,uid,setLog,setShowLog}){
           <div className="ru">{fmt(Qw*3412.14,4)} BTU/h - {fmt(Qw/3.517,4)} tons</div>
         </div>
         <div className="ri"><div className="rn">EER / COP</div><div className="rv" style={{color:eCol(pw>0?Qw/pw:0)}}>{fmt(pw>0?Qw/pw:0,4)}</div><div className="ru">Q_water / P_el</div></div>
-        <div className="ri"><div className="rn">dT water</div><div className="rv">{fmt(Math.abs(wToC-wTiC),2)}</div><div className="ru">K</div></div>
+        <div className="ri"><div className="rn">dT water</div><div className="rv" style={{color:Math.abs(wToC-wTiC)<2?'#f87171':Math.abs(wToC-wTiC)<3?'#fbbf24':'#f0f9ff'}}>{fmt(Math.abs(wToC-wTiC),4)}</div><div className="ru">K {Math.abs(wToC-wTiC)<2?'⚠ too low':Math.abs(wToC-wTiC)<3?'⚠ low':''}</div></div>
         <div className="ri"><div className="rn">Flow</div><div className="rv">{fmt(wF,4)}</div><div className="ru">L/s</div></div>
         <div className="ri" style={{background:Math.abs(bal)>10?'rgba(248,113,113,.06)':'rgba(34,197,94,.06)',border:Math.abs(bal)>10?'1px solid rgba(248,113,113,.2)':'1px solid rgba(34,197,94,.2)'}}>
           <div className="rn">Q_heat - Air Heat Rejection (Control)</div>
@@ -458,7 +462,9 @@ function AirLiquid({unit,job,uid,setLog,setShowLog}){
         </div>
         <div className="ri"><div className="rn">dh air</div><div className="rv">{fmt(dh,4)}</div><div className="ru">kJ/kg</div></div>
       </div>
-      <div className="fml">
+      {Math.abs(wToC-wTiC)<2&&<div className="warn" style={{marginBottom:8}}>⚠ Water dT = {fmt(Math.abs(wToC-wTiC),4)} K is very low — sensor uncertainty (±0.1°C) causes {fmt(0.1/Math.abs(wToC-wTiC)*100,0)}% Q error. Use more accurate sensors or increase flow.</div>}
+        {Math.abs(wToC-wTiC)>=2&&Math.abs(wToC-wTiC)<3&&<div className="warn" style={{marginBottom:8,background:'rgba(251,191,36,.08)',border:'1px solid rgba(251,191,36,.2)',color:'#fbbf24'}}>⚠ Water dT = {fmt(Math.abs(wToC-wTiC),4)} K is low — verify sensor accuracy.</div>}
+        <div className="fml">
         <strong>Q_water</strong> = 4.18 x V(L/s) x dT = 4.18 x {fmt(wF,4)} x {fmt(Math.abs(wToC-wTiC),2)} = <strong>{fmt(Qw,4)} kW</strong><br/>
         <strong>EER</strong> = Q_water / P_el = {fmt(Qw,4)} / {fmt(pw,4)} = <strong>{fmt(pw>0?Qw/pw:0,4)}</strong><br/>
         <strong>Q_heat</strong> = m x (h_ut - h_inn) = {fmt(mfA,4)} x {fmt(dh,4)} = <strong>{fmt(Qa,4)} kW</strong> (heat rejection control)
@@ -545,16 +551,19 @@ function LiqLiq({unit,job,uid,setLog,setShowLog}){
       <div className="rl2">Results</div>
       <div className="rg">
         <div className="ri big"><div className="rn">Q_cold - Cooling Output</div><div className="rv">{fmt(Qc,4)} kW</div><div className="ru">{fmt(Qc*3412.14,4)} BTU/h - {fmt(Qc/3.517,4)} tons</div></div>
-        <div className="ri" style={{background:Math.abs(bal)>10?'rgba(248,113,113,.06)':'rgba(34,197,94,.06)',border:Math.abs(bal)>10?'1px solid rgba(248,113,113,.2)':'1px solid rgba(34,197,94,.2)'}}>
+        <div className="ri" style={{background:Qh<Qc?'rgba(248,113,113,.15)':Math.abs(bal)>10?'rgba(248,113,113,.06)':'rgba(34,197,94,.06)',border:Qh<Qc?'2px solid #f87171':Math.abs(bal)>10?'1px solid rgba(248,113,113,.2)':'1px solid rgba(34,197,94,.2)'}}>
           <div className="rn">Q_hot - Condenser</div>
-          <div className="rv" style={{fontSize:22,color:Math.abs(bal)>10?'#f87171':'#22c55e'}}>{fmt(Qh,4)} kW</div>
-          <div className="ru">{Math.abs(bal)>10?'Balance error: '+fmt(Math.abs(bal),1)+'%':'Balance OK: '+fmt(Math.abs(bal),1)+'%'}</div>
-        </div>
+          <div className="rv" style={{fontSize:22,color:Qh<Qc?'#f87171':Math.abs(bal)>10?'#f87171':'#22c55e'}}>{fmt(Qh,4)} kW</div>
+          <div className="ru">{Qh<Qc?'IMPOSSIBLE: Q_hot < Q_cold!':Math.abs(bal)>10?'Balance error: '+fmt(Math.abs(bal),2)+'%':'OK: '+fmt(Math.abs(bal),2)+'% dev'}</div>
+        </div>>
         <div className="ri"><div className="rn">COP / EER</div><div className="rv" style={{color:ec}}>{fmt(eer,4)}</div><div className="ru">Q_cold / P_el</div></div>
         <div className="ri"><div className="rn">P_el</div><div className="rv">{fmt(pw,4)}</div><div className="ru">kW</div></div>
         <div className="ri"><div className="rn">dT cold</div><div className="rv">{fmt(Math.abs(cToC-cTiC),2)}</div><div className="ru">K</div></div>
         <div className="ri"><div className="rn">dT hot</div><div className="rv">{fmt(Math.abs(hTiC-hToC),2)}</div><div className="ru">K</div></div>
       </div>
+      {Math.abs(cToC-cTiC)<2&&<div className="warn" style={{marginBottom:8}}>⚠ Cold side dT = {fmt(Math.abs(cToC-cTiC),4)} K — very low. Sensor uncertainty causes {fmt(0.1/Math.abs(cToC-cTiC)*100,0)}% Q error.</div>}
+      {Math.abs(hTiC-hToC)<2&&<div className="warn" style={{marginBottom:8}}>⚠ Hot side dT = {fmt(Math.abs(hTiC-hToC),4)} K — very low. Sensor uncertainty causes {fmt(0.1/Math.abs(hTiC-hToC)*100,0)}% Q error.</div>}
+      {Qh<Qc&&<div className="warn" style={{marginBottom:8,background:'rgba(248,113,113,.12)',border:'2px solid rgba(248,113,113,.4)'}}>⚠ IMPOSSIBLE: Q_hot ({fmt(Qh,2)} kW) &lt; Q_cold ({fmt(Qc,2)} kW). Check flow meters and temperature sensors on both sides.</div>}
       <div className="fml">
         <strong>Q_cold</strong> = V(L/s) x rho x cp x dT = {fmt(cF,4)} x {fmt(rC,4)} x {fmt(cpC,4)} x {fmt(Math.abs(cToC-cTiC),2)} = <strong>{fmt(Qc,4)} kW</strong><br/>
         <strong>Q_hot</strong> = {fmt(mH,4)} x {fmt(cpH,4)} x {fmt(Math.abs(hTiC-hToC),2)} = <strong>{fmt(Qh,4)} kW</strong><br/>
@@ -888,10 +897,16 @@ function EnergyRating({mode}){
   const [u_Cd,     setU_Cd]     = React.useState(0.25);
 
   // ── A/L + L/L shared EER inputs ──────────────────────────────────────
-  const [eer100, setEer100] = React.useState(3.0);
-  const [eer75,  setEer75]  = React.useState(3.8);
-  const [eer50,  setEer50]  = React.useState(4.5);
-  const [eer25,  setEer25]  = React.useState(5.2);
+  // A/L + L/L direct measurement inputs
+  const [al_wTi,  setAl_wTi]  = React.useState(7.0);
+  const [al_wTo,  setAl_wTo]  = React.useState(12.0);
+  const [al_wF,   setAl_wF]   = React.useState(0.5);
+  const [al_gly,  setAl_gly]  = React.useState(0);
+  const [al_hTi,  setAl_hTi]  = React.useState(35.0);
+  const [al_hTo,  setAl_hTo]  = React.useState(40.0);
+  const [al_hF,   setAl_hF]   = React.useState(0.6);
+  const [al_hGly, setAl_hGly] = React.useState(0);
+  const [al_pw,   setAl_pw]   = React.useState(1.2);
 
   const isAA=mode==="aa", isAL=mode==="al", isLL=mode==="ll";
   function fn(n,d=2){if(!isFinite(n)||isNaN(n))return"--";return n.toFixed(d);}
@@ -1220,51 +1235,120 @@ function EnergyRating({mode}){
 
       {open&&(isAL||isLL)&&(
         <div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:10,marginBottom:14}}>
-            {[{pct:"100%",col:"#f87171",val:eer100,set:setEer100,lbl:isAL?"35°C outdoor":"29.4°C CW in"},
-              {pct:"75%", col:"#facc15",val:eer75, set:setEer75, lbl:isAL?"30°C outdoor":"23.9°C CW in"},
-              {pct:"50%", col:"#86efac",val:eer50, set:setEer50, lbl:isAL?"25°C outdoor":"18.3°C CW in"},
-              {pct:"25%", col:"#22c55e",val:eer25, set:setEer25, lbl:isAL?"20°C outdoor":"12.8°C CW in"},
-            ].map(({pct,col,val,set,lbl})=>(
-              <div key={pct} style={{background:'rgba(0,0,0,.2)',borderRadius:8,padding:'12px'}}>
-                <div style={{fontSize:9,color:col,textTransform:'uppercase',letterSpacing:'.1em',marginBottom:4}}>{pct} load</div>
-                <div style={{fontSize:9,color:'#64748b',marginBottom:8}}>{lbl}</div>
-                <div className="field" style={{marginBottom:0}}>
-                  <div className="lbl"><span>EER</span><span className="utag">W/W</span></div>
-                  <input type="number" min={0} max={20} step={0.01} value={val} onChange={e=>set(parseFloat(e.target.value)||0)}/>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:14}}>
+            <div style={{background:'rgba(56,189,248,.07)',border:'1px solid rgba(56,189,248,.2)',borderRadius:8,padding:'10px 12px',fontSize:9,color:'#7dd3fc',lineHeight:1.7}}>
+              <strong>EU — EN 14511 EER</strong><br/>
+              {isAL?'Q = 4.18 x V(L/s) x dT_water':'Q = V x rho x cp x dT'}<br/>
+              EER = Q_cold / P_el<br/>
+              Rated at: CW 7°C supply / 12°C return
+            </div>
+            <div style={{background:'rgba(139,92,246,.07)',border:'1px solid rgba(139,92,246,.2)',borderRadius:8,padding:'10px 12px',fontSize:9,color:'#c4b5fd',lineHeight:1.7}}>
+              <strong>US — AHRI 550/590 EER</strong><br/>
+              Same Q formula, result in BTU/Wh<br/>
+              EER_BTU = EER_WW x 3.412<br/>
+              Rated at: CW 6.7°C / 12.2°C
+            </div>
+          </div>
+
+          <div className="slbl">Measured Data — Direct EER Calculation</div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14,marginBottom:14}}>
+            <div>
+              <div style={{fontSize:9,color:'#38bdf8',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:8}}>
+                {isAL?'Water Side (Chilled Water)':'Cold Side (Chilled Water)'}
+              </div>
+              <NumField label="T inlet" val={al_wTi} set={setAl_wTi} utag="°C" step={0.0001}/>
+              <NumField label="T outlet" val={al_wTo} set={setAl_wTo} utag="°C" step={0.0001}/>
+              <NumField label="Flow" val={al_wF} set={setAl_wF} utag="L/s" step={0.0001}/>
+              {!isAL&&<NumField label="Glycol %" val={al_gly} set={setAl_gly} utag="%" step={1}/>}
+              <div style={{fontSize:9,color:'#94a3b8',marginTop:6}}>
+                dT = {fn(Math.abs(al_wTo-al_wTi),4)} K<br/>
+                Q = {fn(isAL?4.18*al_wF*Math.abs(al_wTo-al_wTi):(4.18-(4.18-2.38)*(al_gly/100))*al_wF*(1+0.0012*al_gly)*Math.abs(al_wTo-al_wTi),4)} kW
+              </div>
+            </div>
+            {isLL&&(
+              <div>
+                <div style={{fontSize:9,color:'#fbbf24',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:8}}>Hot Side (Condenser)</div>
+                <NumField label="T inlet" val={al_hTi} set={setAl_hTi} utag="°C" step={0.0001}/>
+                <NumField label="T outlet" val={al_hTo} set={setAl_hTo} utag="°C" step={0.0001}/>
+                <NumField label="Flow" val={al_hF} set={setAl_hF} utag="L/s" step={0.0001}/>
+                <NumField label="Glycol %" val={al_hGly} set={setAl_hGly} utag="%" step={1}/>
+                <div style={{fontSize:9,color:'#94a3b8',marginTop:6}}>
+                  dT = {fn(Math.abs(al_hTi-al_hTo),4)} K<br/>
+                  Q_hot = {fn((4.18-(4.18-2.38)*(al_hGly/100))*al_hF*(1+0.0012*al_hGly)*Math.abs(al_hTi-al_hTo),4)} kW
                 </div>
               </div>
-            ))}
-          </div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-            <div style={{background:'rgba(0,0,0,.25)',borderRadius:12,padding:'14px',border:'1px solid rgba(56,189,248,.25)'}}>
-              <div style={{fontSize:9,color:'#38bdf8',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:8}}>EU EN 14511</div>
-              <div style={{fontFamily:'Syne,sans-serif',fontSize:28,fontWeight:800,color:'#38bdf8',lineHeight:1}}>{fn(ESEER,2)}</div>
-              <div style={{fontSize:10,color:'#64748b',marginTop:2,marginBottom:8}}>ESEER</div>
-              <div style={{background:euChillerRating.bg,borderRadius:7,padding:'7px',textAlign:'center',border:'1px solid '+euChillerRating.color}}>
-                <div style={{fontFamily:'Syne,sans-serif',fontSize:18,fontWeight:800,color:euChillerRating.color}}>{euChillerRating.cls}</div>
-                <div style={{fontSize:10,color:euChillerRating.color}}>EU Energy Label</div>
-              </div>
-              <div style={{fontSize:9,color:'#475569',marginTop:8,lineHeight:1.6}}>
-                <div>0.03×EER100 + 0.33×EER75</div>
-                <div>+ 0.41×EER50 + 0.23×EER25</div>
-                <div style={{color:'#64748b',marginTop:2}}>A+++≥6.4 · A++≥5.5 · A+≥5.1</div>
-              </div>
-            </div>
-            <div style={{background:'rgba(0,0,0,.25)',borderRadius:12,padding:'14px',border:'1px solid rgba(139,92,246,.25)'}}>
-              <div style={{fontSize:9,color:'#a855f7',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:8}}>US AHRI 550/590</div>
-              <div style={{fontFamily:'Syne,sans-serif',fontSize:28,fontWeight:800,color:'#a855f7',lineHeight:1}}>{fn(IPLV,2)}</div>
-              <div style={{fontSize:10,color:'#64748b',marginTop:2,marginBottom:8}}>IPLV (COP)</div>
-              <div style={{background:'rgba(139,92,246,.1)',borderRadius:7,padding:'7px',textAlign:'center',border:'1px solid rgba(139,92,246,.3)'}}>
-                <div style={{fontFamily:'Syne,sans-serif',fontSize:13,fontWeight:700,color:iplvRating.color}}>{iplvRating.cls}</div>
-              </div>
-              <div style={{fontSize:9,color:'#475569',marginTop:8,lineHeight:1.6}}>
-                <div>0.01×A + 0.42×B + 0.45×C + 0.12×D</div>
-                <div>High Eff≥5.0 · Std≥3.8 · Min≥3.0</div>
-                <div style={{color:'#64748b',marginTop:2}}>{isAL?"Outdoor bins: 35/26.7/18.3/12.8°C":"CW bins: 29.4/23.9/18.3/12.8°C"}</div>
+            )}
+            {isAL&&<div/>}
+            <div>
+              <div style={{fontSize:9,color:'#a855f7',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:8}}>Electrical Input</div>
+              <NumField label="Compressor power" val={al_pw} set={setAl_pw} utag="kW" step={0.0001}/>
+              <div style={{fontSize:9,color:'#64748b',marginTop:8,lineHeight:1.6}}>
+                EER = Q_cold / P_el<br/>
+                EER_BTU = EER x 3.412
               </div>
             </div>
           </div>
+
+          {/* Results */}
+          {(()=>{
+            const cpC=isLL?4.18-(4.18-2.38)*(al_gly/100):4.18;
+            const rC=isLL?1+0.0012*al_gly:1.0;
+            const Qc=isAL?4.18*al_wF*Math.abs(al_wTo-al_wTi):cpC*al_wF*rC*Math.abs(al_wTo-al_wTi);
+            const cpH=4.18-(4.18-2.38)*(al_hGly/100);
+            const rH=1+0.0012*al_hGly;
+            const Qh=isLL?cpH*al_hF*rH*Math.abs(al_hTi-al_hTo):Qc+al_pw;
+            const eer=al_pw>0?Qc/al_pw:0;
+            const eerBTU=eer*3.412;
+            const bal=Qc>0?((Qh-Qc)/Qc)*100:0;
+            const ec=eer>=4?'#22c55e':eer>=3?'#86efac':eer>=2.5?'#facc15':'#f87171';
+            function euCh(v){
+              if(v>=6.4)return{cls:'A+++',color:'#166534',bg:'#bbf7d0'};
+              if(v>=5.5)return{cls:'A++', color:'#15803d',bg:'#dcfce7'};
+              if(v>=5.1)return{cls:'A+',  color:'#16a34a',bg:'#f0fdf4'};
+              if(v>=4.6)return{cls:'A',   color:'#65a30d',bg:'#f7fee7'};
+              if(v>=4.0)return{cls:'B',   color:'#ca8a04',bg:'#fefce8'};
+              if(v>=3.5)return{cls:'C',   color:'#d97706',bg:'#fffbeb'};
+              if(v>=3.0)return{cls:'D',   color:'#ea580c',bg:'#fff7ed'};
+              return{cls:'E',color:'#dc2626',bg:'#fef2f2'};
+            }
+            const eR=euCh(eer);
+            return(
+              <div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:12}}>
+                  <div style={{background:'rgba(0,0,0,.25)',borderRadius:12,padding:'14px',border:'1px solid rgba(56,189,248,.25)'}}>
+                    <div style={{fontSize:9,color:'#38bdf8',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:8}}>Q Cold — Cooling Output</div>
+                    <div style={{fontFamily:'Syne,sans-serif',fontSize:28,fontWeight:800,color:'#38bdf8',lineHeight:1}}>{fn(Qc,4)}</div>
+                    <div style={{fontSize:10,color:'#64748b',marginTop:2}}>kW</div>
+                    <div style={{fontSize:9,color:'#475569',marginTop:8}}>{fn(Qc*3412.14,0)} BTU/h<br/>{fn(Qc/3.517,4)} tons</div>
+                  </div>
+                  <div style={{background:'rgba(0,0,0,.25)',borderRadius:12,padding:'14px',border:'1px solid '+ec+'66'}}>
+                    <div style={{fontSize:9,color:ec,letterSpacing:'.12em',textTransform:'uppercase',marginBottom:8}}>EER / COP</div>
+                    <div style={{fontFamily:'Syne,sans-serif',fontSize:28,fontWeight:800,color:ec,lineHeight:1}}>{fn(eer,4)}</div>
+                    <div style={{fontSize:10,color:'#64748b',marginTop:2}}>W/W</div>
+                    <div style={{background:eR.bg,borderRadius:7,padding:'6px 8px',textAlign:'center',border:'1px solid '+eR.color,marginTop:8}}>
+                      <div style={{fontFamily:'Syne,sans-serif',fontSize:16,fontWeight:800,color:eR.color}}>{eR.cls}</div>
+                      <div style={{fontSize:9,color:eR.color}}>EU EN 14511</div>
+                    </div>
+                    <div style={{fontSize:9,color:'#475569',marginTop:8}}>{fn(eerBTU,4)} BTU/Wh (US)</div>
+                  </div>
+                  <div style={{background:Math.abs(bal)>10?'rgba(248,113,113,.06)':'rgba(34,197,94,.06)',borderRadius:12,padding:'14px',border:'1px solid '+(Math.abs(bal)>10?'rgba(248,113,113,.3)':'rgba(34,197,94,.3)')}}>
+                    <div style={{fontSize:9,color:Math.abs(bal)>10?'#f87171':'#22c55e',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:8}}>{isLL?'Energy Balance':'Heat Rejection'}</div>
+                    <div style={{fontFamily:'Syne,sans-serif',fontSize:28,fontWeight:800,color:Math.abs(bal)>10?'#f87171':'#22c55e',lineHeight:1}}>{fn(Qh,4)}</div>
+                    <div style={{fontSize:10,color:'#64748b',marginTop:2}}>{isLL?'kW (hot side)':'kW (Q_cold + P_el)'}</div>
+                    <div style={{fontSize:9,color:Math.abs(bal)>10?'#f87171':'#22c55e',marginTop:8}}>
+                      {isLL?`Balance: ${fn(Math.abs(bal),2)}% deviation`:`Expected: ${fn(Qc+al_pw,4)} kW`}<br/>
+                      {Math.abs(bal)>10?'Check measurements':'✓ OK'}
+                    </div>
+                  </div>
+                </div>
+                <div className="fml">
+                  {isAL&&<><strong>Q</strong> = 4.18 x {fn(al_wF,4)} L/s x {fn(Math.abs(al_wTo-al_wTi),4)} K = <strong>{fn(Qc,4)} kW</strong><br/></>}
+                  {isLL&&<><strong>Q_cold</strong> = {fn(al_wF,4)} x {fn(rC,3)} x {fn(cpC,3)} x {fn(Math.abs(al_wTo-al_wTi),4)} = <strong>{fn(Qc,4)} kW</strong><br/></>}
+                  <strong>EER</strong> = {fn(Qc,4)} / {fn(al_pw,4)} = <strong>{fn(eer,4)}</strong> W/W = <strong>{fn(eerBTU,4)}</strong> BTU/Wh
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>
