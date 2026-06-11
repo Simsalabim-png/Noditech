@@ -214,9 +214,9 @@ function RefSec({unit,refr,setRefr,sP,setSP,dP,setDP,sT,setST}){
 // Generic float input - allows typing decimals without React interfering
 function FloatInput({value, onChange, min, max, step, style, placeholder}){
   const [raw, setRaw] = React.useState(value === undefined ? '' : String(value));
+  const editing = React.useRef(false);
   React.useEffect(()=>{
-    const parsed = parseFloat(raw);
-    if(isNaN(parsed) || Math.abs(parsed - value) > 0.000001){
+    if(!editing.current){
       setRaw(value === undefined || value === null ? '' : String(value));
     }
   }, [value]);
@@ -227,15 +227,15 @@ function FloatInput({value, onChange, min, max, step, style, placeholder}){
       value={raw}
       style={style}
       placeholder={placeholder}
+      onFocus={()=>{ editing.current=true; }}
       onChange={e=>{
         const v = e.target.value;
         setRaw(v);
         const n = parseFloat(v);
-        if(!isNaN(n)){
-          if((min===undefined||n>=min) && (max===undefined||n<=max)) onChange(n);
-        }
+        if(!isNaN(n)) onChange(n);
       }}
       onBlur={e=>{
+        editing.current=false;
         const n = parseFloat(raw);
         if(isNaN(n)){
           setRaw(value === undefined ? '' : String(value));
