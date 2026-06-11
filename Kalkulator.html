@@ -210,6 +210,43 @@ function RefSec({unit,refr,setRefr,sP,setSP,dP,setDP,sT,setST}){
   );
 }
 
+
+// RH input that allows typing decimals without React interfering
+function RHInput({value, onChange, style}){
+  const [raw, setRaw] = React.useState(String(value));
+  // Sync if parent changes value externally (e.g. range slider)
+  React.useEffect(()=>{
+    // Only sync if not currently being edited (value differs from parsed raw)
+    const parsed = parseFloat(raw);
+    if(isNaN(parsed) || Math.abs(parsed - value) > 0.00001){
+      setRaw(String(value));
+    }
+  }, [value]);
+  return(
+    <input
+      type="number"
+      min={0} max={100} step={0.0001}
+      value={raw}
+      style={style}
+      onChange={e=>{
+        const v = e.target.value;
+        setRaw(v);
+        const n = parseFloat(v);
+        if(!isNaN(n) && n >= 0 && n <= 100) onChange(n);
+      }}
+      onBlur={e=>{
+        const n = parseFloat(raw);
+        if(isNaN(n) || n < 0 || n > 100){
+          setRaw(String(value));
+        } else {
+          setRaw(String(n));
+          onChange(n);
+        }
+      }}
+    />
+  );
+}
+
 function AirAir({unit,job,uid,setLog,setShowLog}){
   const [eDB,setEDB]=useState(26);const [eRH,setERH]=useState(50);
   const [lDB,setLDB]=useState(14);const [lRH,setLRH]=useState(90);
@@ -239,7 +276,7 @@ function AirAir({unit,job,uid,setLog,setShowLog}){
           <input type="range" min={mn} max={mx} step={0.1} value={eDB} onChange={e=>setEDB(parseFloat(e.target.value))}/>
         </div>
         <div className="field"><div className="lbl"><span>Relative Humidity</span><span className="utag">%</span></div>
-          <input type="number" min={0} max={100} step={0.0001} value={eRH} onChange={e=>{const _v=parseFloat(e.target.value);if(!isNaN(_v))setERH(_v);}}/>
+          <RHInput value={eRH} onChange={setERH}/>
           <input type="range" min={0} max={100} step={0.0001} value={eRH} onChange={e=>setERH(parseFloat(e.target.value))}/>
         </div>
       </div>
@@ -258,7 +295,7 @@ function AirAir({unit,job,uid,setLog,setShowLog}){
           <input type="range" min={mn} max={mx} step={0.1} value={lDB} onChange={e=>setLDB(parseFloat(e.target.value))}/>
         </div>
         <div className="field"><div className="lbl"><span>Leaving RH</span><span className="utag">% measured</span></div>
-          <input type="number" min={0} max={100} step={0.0001} value={lRH} onChange={e=>{const _v=parseFloat(e.target.value);if(!isNaN(_v))setLRH(_v);}} style={{borderColor:'rgba(56,189,248,.4)'}}/>
+          <RHInput value={lRH} onChange={setLRH} style={{borderColor:'rgba(56,189,248,.4)'}}/>
           <input type="range" min={0} max={100} step={0.0001} value={lRH} onChange={e=>setLRH(parseFloat(e.target.value))}/>
         </div>
       </div>
@@ -300,7 +337,7 @@ function AirAir({unit,job,uid,setLog,setShowLog}){
           <input type="range" min={mn} max={mx} step={0.1} value={oDB} onChange={e=>setODB(parseFloat(e.target.value))} max={unit==="F"?140:60}/>
         </div>
         <div className="field"><div className="lbl"><span>Relative Humidity</span><span className="utag">%</span></div>
-          <input type="number" min={0} max={100} step={0.0001} value={oRH} onChange={e=>{const _v=parseFloat(e.target.value);if(!isNaN(_v))setORH(_v);}} style={{borderColor:'rgba(251,191,36,.4)'}}/>
+          <RHInput value={oRH} onChange={setORH} style={{borderColor:'rgba(251,191,36,.4)'}}/>
           <input type="range" min={0} max={100} step={0.0001} value={oRH} onChange={e=>setORH(parseFloat(e.target.value))}/>
         </div>
       </div>
@@ -382,7 +419,7 @@ function AirLiquid({unit,job,uid,setLog,setShowLog}){
           <input type="range" min={mn} max={unit==="F"?140:60} step={0.1} value={oDB} onChange={e=>setODB(parseFloat(e.target.value))}/>
         </div>
         <div className="field"><div className="lbl"><span>Ambient Relative Humidity</span><span className="utag">%</span></div>
-          <input type="number" min={0} max={100} step={0.0001} value={oRH} onChange={e=>{const _v=parseFloat(e.target.value);if(!isNaN(_v))setORH(_v);}} style={{borderColor:'rgba(251,191,36,.4)'}}/>
+          <RHInput value={oRH} onChange={setORH} style={{borderColor:'rgba(251,191,36,.4)'}}/>
           <input type="range" min={0} max={100} step={0.0001} value={oRH} onChange={e=>setORH(parseFloat(e.target.value))}/>
         </div>
       </div>
@@ -401,7 +438,7 @@ function AirLiquid({unit,job,uid,setLog,setShowLog}){
           <input type="range" min={mn} max={mx} step={0.1} value={lDB} onChange={e=>setLDB(parseFloat(e.target.value))}/>
         </div>
         <div className="field"><div className="lbl"><span>Leaving RH</span><span className="utag">% measured</span></div>
-          <input type="number" min={0} max={100} step={0.0001} value={lRH} onChange={e=>{const _v=parseFloat(e.target.value);if(!isNaN(_v))setLRH(_v);}} style={{borderColor:'rgba(56,189,248,.4)'}}/>
+          <RHInput value={lRH} onChange={setLRH} style={{borderColor:'rgba(56,189,248,.4)'}}/>
           <input type="range" min={0} max={100} step={0.0001} value={lRH} onChange={e=>setLRH(parseFloat(e.target.value))}/>
         </div>
       </div>
