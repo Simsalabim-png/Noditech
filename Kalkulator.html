@@ -168,16 +168,16 @@ function RefSec({unit,refr,setRefr,sP,setSP,dP,setDP,sT,setST}){
       <div className="two">
         <div className="field">
           <div className="lbl"><span>Suction Pressure</span><span className="utag">bar g</span></div>
-          <input type="number" min={0} max={60} step={0.0001} value={sP} onChange={e=>{const _v=parseFloat(e.target.value);if(!isNaN(_v))setSP(_v);}}/>
+          <FloatInput value={sP} onChange={setSP} min={0} max={60} step={0.0001}/>
         </div>
         <div className="field">
           <div className="lbl"><span>Discharge Pressure</span><span className="utag">bar g</span></div>
-          <input type="number" min={0} max={120} step={0.0001} value={dP} onChange={e=>{const _v=parseFloat(e.target.value);if(!isNaN(_v))setDP(_v);}}/>
+          <FloatInput value={dP} onChange={setDP} min={0} max={120} step={0.0001}/>
         </div>
       </div>
       <div className="field">
         <div className="lbl"><span>Suction Gas Temperature</span><span className="utag">deg {unit}</span></div>
-        <input type="number" min={-60} max={100} step={0.0001} value={sT} onChange={e=>{const _v=parseFloat(e.target.value);if(!isNaN(_v))setST(_v);}}/>
+        <FloatInput value={sT} onChange={setST} min={-60} max={100} step={0.0001}/>
       </div>
       {refr!=="Other"&&(
         <div className="three" style={{marginTop:12}}>
@@ -211,41 +211,44 @@ function RefSec({unit,refr,setRefr,sP,setSP,dP,setDP,sT,setST}){
 }
 
 
-// RH input that allows typing decimals without React interfering
-function RHInput({value, onChange, style}){
-  const [raw, setRaw] = React.useState(String(value));
-  // Sync if parent changes value externally (e.g. range slider)
+// Generic float input - allows typing decimals without React interfering
+function FloatInput({value, onChange, min, max, step, style, placeholder}){
+  const [raw, setRaw] = React.useState(value === undefined ? '' : String(value));
   React.useEffect(()=>{
-    // Only sync if not currently being edited (value differs from parsed raw)
     const parsed = parseFloat(raw);
-    if(isNaN(parsed) || Math.abs(parsed - value) > 0.00001){
-      setRaw(String(value));
+    if(isNaN(parsed) || Math.abs(parsed - value) > 0.000001){
+      setRaw(value === undefined || value === null ? '' : String(value));
     }
   }, [value]);
   return(
     <input
       type="number"
-      min={0} max={100} step={0.0001}
+      min={min} max={max} step={step||0.0001}
       value={raw}
       style={style}
+      placeholder={placeholder}
       onChange={e=>{
         const v = e.target.value;
         setRaw(v);
         const n = parseFloat(v);
-        if(!isNaN(n) && n >= 0 && n <= 100) onChange(n);
+        if(!isNaN(n)){
+          if((min===undefined||n>=min) && (max===undefined||n<=max)) onChange(n);
+        }
       }}
       onBlur={e=>{
         const n = parseFloat(raw);
-        if(isNaN(n) || n < 0 || n > 100){
-          setRaw(String(value));
+        if(isNaN(n)){
+          setRaw(value === undefined ? '' : String(value));
         } else {
-          setRaw(String(n));
-          onChange(n);
+          const clamped = Math.min(max!==undefined?max:n, Math.max(min!==undefined?min:n, n));
+          setRaw(String(clamped));
+          onChange(clamped);
         }
       }}
     />
   );
 }
+
 
 function AirAir({unit,job,uid,setLog,setShowLog}){
   const [eDB,setEDB]=useState(26);const [eRH,setERH]=useState(50);
@@ -272,11 +275,11 @@ function AirAir({unit,job,uid,setLog,setShowLog}){
       <div className="slbl">Inn - Entering Evaporator (Return Air)</div>
       <div className="two">
         <div className="field"><div className="lbl"><span>Dry-Bulb <span className="badge bd">DB</span></span><span className="utag">deg {unit}</span></div>
-          <input type="number" min={mn} max={mx} step={0.0001} value={eDB} onChange={e=>{const _v=parseFloat(e.target.value);if(!isNaN(_v))setEDB(_v);}}/>
+          <FloatInput value={eDB} onChange={setEDB} min={mn} max={mx} step={0.0001}/>
           <input type="range" min={mn} max={mx} step={0.1} value={eDB} onChange={e=>setEDB(parseFloat(e.target.value))}/>
         </div>
         <div className="field"><div className="lbl"><span>Relative Humidity</span><span className="utag">%</span></div>
-          <RHInput value={eRH} onChange={setERH}/>
+          <FloatInput value={eRH} onChange={setERH}/>
           <input type="range" min={0} max={100} step={0.0001} value={eRH} onChange={e=>setERH(parseFloat(e.target.value))}/>
         </div>
       </div>
@@ -291,11 +294,11 @@ function AirAir({unit,job,uid,setLog,setShowLog}){
       <div className="slbl" style={{color:'#38bdf8'}}>Ut - Leaving Evaporator (Supply Air)</div>
       <div className="two">
         <div className="field"><div className="lbl"><span>Leaving DB <span className="badge bd">DB</span></span><span className="utag">deg {unit} measured</span></div>
-          <input type="number" min={mn} max={mx} step={0.0001} value={lDB} onChange={e=>{const _v=parseFloat(e.target.value);if(!isNaN(_v))setLDB(_v);}} style={{borderColor:'rgba(56,189,248,.4)'}}/>
+          <FloatInput value={lDB} onChange={setLDB} min={mn} max={mx} step={0.0001} style={{borderColor:'rgba(56,189,248,.4)'}}/>
           <input type="range" min={mn} max={mx} step={0.1} value={lDB} onChange={e=>setLDB(parseFloat(e.target.value))}/>
         </div>
         <div className="field"><div className="lbl"><span>Leaving RH</span><span className="utag">% measured</span></div>
-          <RHInput value={lRH} onChange={setLRH} style={{borderColor:'rgba(56,189,248,.4)'}}/>
+          <FloatInput value={lRH} onChange={setLRH} style={{borderColor:'rgba(56,189,248,.4)'}}/>
           <input type="range" min={0} max={100} step={0.0001} value={lRH} onChange={e=>setLRH(parseFloat(e.target.value))}/>
         </div>
       </div>
@@ -333,11 +336,11 @@ function AirAir({unit,job,uid,setLog,setShowLog}){
       <div className="slbl" style={{color:'#fbbf24'}}>Outdoor Unit - Ambient (Condenser)</div>
       <div className="two">
         <div className="field"><div className="lbl"><span>Ambient DB</span><span className="utag">deg {unit}</span></div>
-          <input type="number" min={mn} max={mx} step={0.0001} value={oDB} onChange={e=>{const _v=parseFloat(e.target.value);if(!isNaN(_v))setODB(_v);}} style={{borderColor:'rgba(251,191,36,.4)'}} max={unit==="F"?140:60}/>
+          <FloatInput value={oDB} onChange={setODB} min={mn} max={mx} step={0.0001} style={{borderColor:'rgba(251,191,36,.4)'}}/>
           <input type="range" min={mn} max={mx} step={0.1} value={oDB} onChange={e=>setODB(parseFloat(e.target.value))} max={unit==="F"?140:60}/>
         </div>
         <div className="field"><div className="lbl"><span>Relative Humidity</span><span className="utag">%</span></div>
-          <RHInput value={oRH} onChange={setORH} style={{borderColor:'rgba(251,191,36,.4)'}}/>
+          <FloatInput value={oRH} onChange={setORH} style={{borderColor:'rgba(251,191,36,.4)'}}/>
           <input type="range" min={0} max={100} step={0.0001} value={oRH} onChange={e=>setORH(parseFloat(e.target.value))}/>
         </div>
       </div>
@@ -353,11 +356,11 @@ function AirAir({unit,job,uid,setLog,setShowLog}){
       <div className="slbl">Airflow and Electrical Input</div>
       <div className="two">
         <div className="field"><div className="lbl"><span>Airflow (at outlet)</span><span className="utag">m3/h</span></div>
-          <input type="number" min={10} max={50000} step={10} value={af} onChange={e=>{const _v=parseFloat(e.target.value);if(!isNaN(_v))setAf(_v);}}/>
+          <FloatInput value={af} onChange={setAf} min={10} max={50000} step={10}/>
           <div style={{fontSize:11,color:'#475569',marginTop:5}}>{fmt(afs*1000,4)} L/s</div>
         </div>
         <div className="field"><div className="lbl"><span>Compressor Power</span><span className="utag">kW</span></div>
-          <input type="number" min={0.1} max={500} step={0.05} value={pw} onChange={e=>{const _v=parseFloat(e.target.value);if(!isNaN(_v))setPw(_v);}}/>
+          <FloatInput value={pw} onChange={setPw} min={0.1} max={500} step={0.05}/>
         </div>
       </div>
       <div className="bar-l"><span>EER/COP: <strong style={{color:ec}}>{fmt(eer,4)} - {eLbl(eer)}</strong></span></div>
@@ -415,11 +418,11 @@ function AirLiquid({unit,job,uid,setLog,setShowLog}){
       <div className="slbl" style={{color:'#fbbf24'}}>Ambient - Entering Air (Outdoor / Condenser)</div>
       <div className="two">
         <div className="field"><div className="lbl"><span>Ambient Dry-Bulb <span className="badge bd">DB</span></span><span className="utag">deg {unit}</span></div>
-          <input type="number" min={mn} max={unit==="F"?140:60} step={0.0001} value={oDB} onChange={e=>{const _v=parseFloat(e.target.value);if(!isNaN(_v))setODB(_v);}} style={{borderColor:'rgba(251,191,36,.4)'}}/>
+          <FloatInput value={oDB} onChange={setODB} min={mn} max={unit==="F"?140:60} step={0.0001} style={{borderColor:'rgba(251,191,36,.4)'}}/>
           <input type="range" min={mn} max={unit==="F"?140:60} step={0.1} value={oDB} onChange={e=>setODB(parseFloat(e.target.value))}/>
         </div>
         <div className="field"><div className="lbl"><span>Ambient Relative Humidity</span><span className="utag">%</span></div>
-          <RHInput value={oRH} onChange={setORH} style={{borderColor:'rgba(251,191,36,.4)'}}/>
+          <FloatInput value={oRH} onChange={setORH} style={{borderColor:'rgba(251,191,36,.4)'}}/>
           <input type="range" min={0} max={100} step={0.0001} value={oRH} onChange={e=>setORH(parseFloat(e.target.value))}/>
         </div>
       </div>
@@ -434,11 +437,11 @@ function AirLiquid({unit,job,uid,setLog,setShowLog}){
       <div className="slbl" style={{color:'#f97316'}}>Air Side Ut - Leaving Air (Heat Rejection Control)</div>
       <div className="two">
         <div className="field"><div className="lbl"><span>Leaving DB <span style={{fontSize:9,color:'#f97316'}}>warmer</span></span><span className="utag">deg {unit} measured</span></div>
-          <input type="number" min={mn} max={mx} step={0.0001} value={lDB} onChange={e=>{const _v=parseFloat(e.target.value);if(!isNaN(_v))setLDB(_v);}} style={{borderColor:'rgba(56,189,248,.4)'}}/>
+          <FloatInput value={lDB} onChange={setLDB} min={mn} max={mx} step={0.0001} style={{borderColor:'rgba(56,189,248,.4)'}}/>
           <input type="range" min={mn} max={mx} step={0.1} value={lDB} onChange={e=>setLDB(parseFloat(e.target.value))}/>
         </div>
         <div className="field"><div className="lbl"><span>Leaving RH</span><span className="utag">% measured</span></div>
-          <RHInput value={lRH} onChange={setLRH} style={{borderColor:'rgba(56,189,248,.4)'}}/>
+          <FloatInput value={lRH} onChange={setLRH} style={{borderColor:'rgba(56,189,248,.4)'}}/>
           <input type="range" min={0} max={100} step={0.0001} value={lRH} onChange={e=>setLRH(parseFloat(e.target.value))}/>
         </div>
       </div>
@@ -453,13 +456,13 @@ function AirLiquid({unit,job,uid,setLog,setShowLog}){
       <div className="slbl" style={{color:'#0ea5e9'}}>Liquid Side - Chilled Water</div>
       <div className="three">
         <div className="field"><div className="lbl"><span>Water Inlet T</span><span className="utag">deg {unit}</span></div>
-          <input type="number" min={-20} max={50} step={0.0001} value={wTi} onChange={e=>{const _v=parseFloat(e.target.value);if(!isNaN(_v))setWTi(_v);}} style={{borderColor:'rgba(14,165,233,.4)'}}/>
+          <FloatInput value={wTi} onChange={setWTi} min={-20} max={50} step={0.0001} style={{borderColor:'rgba(14,165,233,.4)'}}/>
         </div>
         <div className="field"><div className="lbl"><span>Water Outlet T</span><span className="utag">deg {unit}</span></div>
-          <input type="number" min={-20} max={50} step={0.0001} value={wTo} onChange={e=>{const _v=parseFloat(e.target.value);if(!isNaN(_v))setWTo(_v);}} style={{borderColor:'rgba(14,165,233,.4)'}}/>
+          <FloatInput value={wTo} onChange={setWTo} min={-20} max={50} step={0.0001} style={{borderColor:'rgba(14,165,233,.4)'}}/>
         </div>
         <div className="field"><div className="lbl"><span>Water Flow</span><span className="utag">L/s</span></div>
-          <input type="number" min={0.001} max={100} step={0.0001} value={wF} onChange={e=>{const _v=parseFloat(e.target.value);if(!isNaN(_v))setWF(_v);}} style={{borderColor:'rgba(14,165,233,.4)'}}/>
+          <FloatInput value={wF} onChange={setWF} min={0.001} max={100} step={0.0001} style={{borderColor:'rgba(14,165,233,.4)'}}/>
         </div>
       </div>
       <div className="irow" style={{borderColor:'rgba(14,165,233,.25)',background:'rgba(14,165,233,.05)'}}>
@@ -473,10 +476,10 @@ function AirLiquid({unit,job,uid,setLog,setShowLog}){
       <div className="slbl">Airflow and Power</div>
       <div className="two">
         <div className="field"><div className="lbl"><span>Airflow</span><span className="utag">m3/h</span></div>
-          <input type="number" min={10} max={50000} step={10} value={af} onChange={e=>{const _v=parseFloat(e.target.value);if(!isNaN(_v))setAf(_v);}}/>
+          <FloatInput value={af} onChange={setAf} min={10} max={50000} step={10}/>
         </div>
         <div className="field"><div className="lbl"><span>Power Input</span><span className="utag">kW</span></div>
-          <input type="number" min={0.1} max={500} step={0.05} value={pw} onChange={e=>{const _v=parseFloat(e.target.value);if(!isNaN(_v))setPw(_v);}}/>
+          <FloatInput value={pw} onChange={setPw} min={0.1} max={500} step={0.05}/>
         </div>
       </div>
     </div>
@@ -541,13 +544,13 @@ function LiqLiq({unit,job,uid,setLog,setShowLog}){
         <select value={cFt} onChange={e=>setCFt(e.target.value)}><option value="water">Water</option><option value="glycol">Ethylene Glycol / Water</option></select>
       </div>
       {cFt==="glycol"&&<div className="field"><div className="lbl"><span>Glycol Concentration</span><span className="utag">%</span></div>
-        <input type="number" min={0} max={60} step={1} value={cGp} onChange={e=>{const _v=parseFloat(e.target.value);if(!isNaN(_v))setCGp(_v);}}/>
+        <FloatInput value={cGp} onChange={setCGp} min={0} max={60} step={1}/>
         <div style={{fontSize:11,color:'#475569',marginTop:5}}>cp = {fmt(cpC,4)} kJ/kg K</div>
       </div>}
       <div className="three">
-        <div className="field"><div className="lbl"><span>T Inlet</span><span className="utag">deg {unit}</span></div><input type="number" min={-30} max={50} step={0.0001} value={cTi} onChange={e=>{const _v=parseFloat(e.target.value);if(!isNaN(_v))setCTi(_v);}} style={{borderColor:'rgba(56,189,248,.4)'}}/></div>
-        <div className="field"><div className="lbl"><span>T Outlet</span><span className="utag">deg {unit}</span></div><input type="number" min={-30} max={50} step={0.0001} value={cTo} onChange={e=>{const _v=parseFloat(e.target.value);if(!isNaN(_v))setCTo(_v);}} style={{borderColor:'rgba(56,189,248,.4)'}}/></div>
-        <div className="field"><div className="lbl"><span>Flow</span><span className="utag">L/s</span></div><input type="number" min={0.001} max={100} step={0.0001} value={cF} onChange={e=>{const _v=parseFloat(e.target.value);if(!isNaN(_v))setCF(_v);}} style={{borderColor:'rgba(56,189,248,.4)'}}/></div>
+        <div className="field"><div className="lbl"><span>T Inlet</span><span className="utag">deg {unit}</span></div><FloatInput value={cTi} onChange={setCTi} min={-30} max={50} step={0.0001} style={{borderColor:'rgba(56,189,248,.4)'}}/></div>
+        <div className="field"><div className="lbl"><span>T Outlet</span><span className="utag">deg {unit}</span></div><FloatInput value={cTo} onChange={setCTo} min={-30} max={50} step={0.0001} style={{borderColor:'rgba(56,189,248,.4)'}}/></div>
+        <div className="field"><div className="lbl"><span>Flow</span><span className="utag">L/s</span></div><FloatInput value={cF} onChange={setCF} min={0.001} max={100} step={0.0001} style={{borderColor:'rgba(56,189,248,.4)'}}/></div>
       </div>
       <div className="irow" style={{borderColor:'rgba(56,189,248,.25)',background:'rgba(56,189,248,.05)'}}>
         <span><span className="ik">dT</span><span className="iv" style={{color:'#38bdf8'}}>{fmt(Math.abs(cToC-cTiC),2)}</span><span className="iu"> K</span></span>
@@ -561,13 +564,13 @@ function LiqLiq({unit,job,uid,setLog,setShowLog}){
         <select value={hFt} onChange={e=>setHFt(e.target.value)}><option value="water">Water</option><option value="glycol">Ethylene Glycol / Water</option></select>
       </div>
       {hFt==="glycol"&&<div className="field"><div className="lbl"><span>Glycol Concentration</span><span className="utag">%</span></div>
-        <input type="number" min={0} max={60} step={1} value={hGp} onChange={e=>{const _v=parseFloat(e.target.value);if(!isNaN(_v))setHGp(_v);}}/>
+        <FloatInput value={hGp} onChange={setHGp} min={0} max={60} step={1}/>
         <div style={{fontSize:11,color:'#475569',marginTop:5}}>cp = {fmt(cpH,4)} kJ/kg K</div>
       </div>}
       <div className="three">
-        <div className="field"><div className="lbl"><span>T Inlet</span><span className="utag">deg {unit}</span></div><input type="number" min={-30} max={80} step={0.0001} value={hTi} onChange={e=>{const _v=parseFloat(e.target.value);if(!isNaN(_v))setHTi(_v);}} style={{borderColor:'rgba(251,191,36,.4)'}}/></div>
-        <div className="field"><div className="lbl"><span>T Outlet</span><span className="utag">deg {unit}</span></div><input type="number" min={-30} max={80} step={0.0001} value={hTo} onChange={e=>{const _v=parseFloat(e.target.value);if(!isNaN(_v))setHTo(_v);}} style={{borderColor:'rgba(251,191,36,.4)'}}/></div>
-        <div className="field"><div className="lbl"><span>Flow</span><span className="utag">L/s</span></div><input type="number" min={0.001} max={100} step={0.0001} value={hF} onChange={e=>{const _v=parseFloat(e.target.value);if(!isNaN(_v))setHF(_v);}} style={{borderColor:'rgba(251,191,36,.4)'}}/></div>
+        <div className="field"><div className="lbl"><span>T Inlet</span><span className="utag">deg {unit}</span></div><FloatInput value={hTi} onChange={setHTi} min={-30} max={80} step={0.0001} style={{borderColor:'rgba(251,191,36,.4)'}}/></div>
+        <div className="field"><div className="lbl"><span>T Outlet</span><span className="utag">deg {unit}</span></div><FloatInput value={hTo} onChange={setHTo} min={-30} max={80} step={0.0001} style={{borderColor:'rgba(251,191,36,.4)'}}/></div>
+        <div className="field"><div className="lbl"><span>Flow</span><span className="utag">L/s</span></div><FloatInput value={hF} onChange={setHF} min={0.001} max={100} step={0.0001} style={{borderColor:'rgba(251,191,36,.4)'}}/></div>
       </div>
       <div className="irow" style={{borderColor:'rgba(251,191,36,.25)',background:'rgba(251,191,36,.05)'}}>
         <span><span className="ik">dT</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(Math.abs(hTiC-hToC),2)}</span><span className="iu"> K</span></span>
@@ -578,7 +581,7 @@ function LiqLiq({unit,job,uid,setLog,setShowLog}){
     <div className="card">
       <div className="slbl">Electrical Input</div>
       <div className="field"><div className="lbl"><span>Compressor Power</span><span className="utag">kW</span></div>
-        <input type="number" min={0.1} max={500} step={0.05} value={pw} onChange={e=>{const _v=parseFloat(e.target.value);if(!isNaN(_v))setPw(_v);}}/>
+        <FloatInput value={pw} onChange={setPw} min={0.1} max={500} step={0.05}/>
       </div>
       <div className="bar-l"><span>COP: <strong style={{color:ec}}>{fmt(eer,4)} - {eLbl(eer)}</strong></span></div>
       <div className="bar-t"><div className="bar-f" style={{width:Math.min(100,(eer/6)*100)+'%',background:ec}}/></div>
@@ -888,11 +891,11 @@ function toggleGuide(id){
   btn.classList.toggle('open');
 }
 
-function NumField({label,val,set,utag,step=1}){
+function NumField({label,val,set,utag,step=1,min,max}){
   return(
     <div className="field">
       <div className="lbl"><span>{label}</span><span className="utag">{utag}</span></div>
-      <input type="number" step={step} value={val} onChange={e=>set(parseFloat(e.target.value)||0)}/>
+      <FloatInput value={val} onChange={set} step={step} min={min} max={max}/>
     </div>
   );
 }
