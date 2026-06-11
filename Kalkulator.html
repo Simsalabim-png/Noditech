@@ -1008,9 +1008,7 @@ function EnergyRating({mode}){
   }
   const usRating=usClass(SEER_US);
 
-  // ── Chiller ESEER / IPLV ──────────────────────────────────────────────
-  const ESEER=0.03*eer100+0.33*eer75+0.41*eer50+0.23*eer25;
-  const IPLV =0.01*eer100+0.42*eer75+0.45*eer50+0.12*eer25;
+  // ── Chiller EU class helper ──────────────────────────────────────────────
   function euClassChiller(v){
     if(v>=6.4)return{cls:"A+++",color:"#166534",bg:"#bbf7d0"};
     if(v>=5.5)return{cls:"A++", color:"#15803d",bg:"#dcfce7"};
@@ -1021,14 +1019,6 @@ function EnergyRating({mode}){
     if(v>=3.0)return{cls:"D",   color:"#ea580c",bg:"#fff7ed"};
     return{cls:"E",color:"#dc2626",bg:"#fef2f2"};
   }
-  function iplvClass(v){
-    if(v>=5.0)return{cls:"High Eff.",color:"#15803d"};
-    if(v>=3.8)return{cls:"Standard", color:"#65a30d"};
-    if(v>=3.0)return{cls:"Min req.", color:"#ca8a04"};
-    return{cls:"Below min",color:"#dc2626"};
-  }
-  const euChillerRating=euClassChiller(ESEER);
-  const iplvRating=iplvClass(IPLV);
 
   // ── Tab button style ──────────────────────────────────────────────────
   function tabStyle(id){
