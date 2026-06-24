@@ -10,83 +10,83 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    body{background:#080c18;font-family:'DM Mono',monospace;color:#e2e8f0}
-    .app{min-height:100vh;background:radial-gradient(ellipse at 20% 10%,#0f2a4a,#080c18 60%);padding:32px 20px}
+    body{background:#120903;font-family:'DM Mono',monospace;color:#f0e8d8}
+    .app{min-height:100vh;background:radial-gradient(ellipse at 20% 10%,#2d1c06,#120903 60%);padding:32px 20px}
     .wrap{max-width:740px;margin:0 auto}
-    .card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:22px 26px;margin-bottom:14px}
-    .slbl{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#64748b;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.1)}
+    .card{background:rgba(255,220,150,.04);border:1px solid rgba(201,168,76,.18);border-radius:16px;padding:22px 26px;margin-bottom:14px}
+    .slbl{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#8a7a65;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid rgba(201,168,76,.15)}
     .field{margin-bottom:16px}
     .field:last-child{margin-bottom:0}
-    .lbl{display:flex;justify-content:space-between;font-size:12px;color:#b0bdd0;margin-bottom:6px}
-    .utag{font-size:10px;color:#7a8fa8;background:rgba(255,255,255,.07);padding:2px 7px;border-radius:4px}
-    input[type=number],input[type=text],select{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);border-radius:8px;color:#f8fafc;font-family:'DM Mono',monospace;font-size:14px;padding:9px 13px;width:100%;outline:none;-moz-appearance:textfield}
+    .lbl{display:flex;justify-content:space-between;font-size:12px;color:#c8b89a;margin-bottom:6px}
+    .utag{font-size:10px;color:#8a7a65;background:rgba(201,168,76,.08);padding:2px 7px;border-radius:4px}
+    input[type=number],input[type=text],select{background:rgba(255,220,150,.06);border:1px solid rgba(201,168,76,.25);border-radius:8px;color:#f5f0e8;font-family:'DM Mono',monospace;font-size:14px;padding:9px 13px;width:100%;outline:none;-moz-appearance:textfield}
     input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
-    input[type=number]:focus,input[type=text]:focus,select:focus{border-color:#38bdf8}
-    select option{background:#0f172a}
-    input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;background:rgba(255,255,255,.18);outline:none;cursor:pointer;margin-top:7px}
-    input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:#38bdf8;box-shadow:0 0 0 3px rgba(56,189,248,.2)}
+    input[type=number]:focus,input[type=text]:focus,select:focus{border-color:#d4a843}
+    select option{background:#1a0f04}
+    input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;background:rgba(201,168,76,.2);outline:none;cursor:pointer;margin-top:7px}
+    input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:#d4a843;box-shadow:0 0 0 3px rgba(212,168,67,.25)}
     .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
     .three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
-    .irow{display:flex;flex-wrap:wrap;gap:10px;padding:9px 13px;background:rgba(56,189,248,.09);border:1px solid rgba(56,189,248,.22);border-radius:8px;margin-top:9px}
-    .ik{font-size:10px;color:#64748b;margin-right:3px;text-transform:uppercase}
-    .iv{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:#7dd3fc}
+    .irow{display:flex;flex-wrap:wrap;gap:10px;padding:9px 13px;background:rgba(201,168,76,.09);border:1px solid rgba(201,168,76,.25);border-radius:8px;margin-top:9px}
+    .ik{font-size:10px;color:#8a7a65;margin-right:3px;text-transform:uppercase}
+    .iv{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:#d4a843}
     .iu{font-size:11px;color:#475569}
-    .res{background:linear-gradient(135deg,rgba(14,165,233,.13),rgba(56,189,248,.04));border:1px solid rgba(56,189,248,.45);border-radius:16px;padding:24px 26px;margin-bottom:14px}
-    .rl2{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#38bdf8;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid rgba(56,189,248,.15)}
+    .res{background:linear-gradient(135deg,rgba(201,168,76,.13),rgba(212,168,67,.04));border:1px solid rgba(201,168,76,.45);border-radius:16px;padding:24px 26px;margin-bottom:14px}
+    .rl2{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#d4a843;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid rgba(201,168,76,.15)}
     .rg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .ri{background:rgba(0,0,0,.35);border-radius:10px;padding:13px 15px}
-    .ri.big{grid-column:1/-1;background:rgba(56,189,248,.14);border:1px solid rgba(56,189,248,.35)}
-    .rn{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#7a8fa8;margin-bottom:6px}
-    .rv{font-family:'Syne',sans-serif;font-size:24px;font-weight:700;color:#f8fafc;line-height:1}
-    .ri.big .rv{font-size:34px;color:#7dd3fc}
-    .ru{font-size:11px;color:#64748b;margin-top:3px}
-    .fml{font-size:11px;color:#64748b;line-height:1.8;padding:11px 15px;background:rgba(255,255,255,.02);border-left:2px solid rgba(56,189,248,.3);border-radius:0 6px 6px 0;margin-top:13px}
-    .fml strong{color:#b0bdd0}
+    .ri{background:rgba(0,0,0,.4);border-radius:10px;padding:13px 15px}
+    .ri.big{grid-column:1/-1;background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.4)}
+    .rn{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#8a7a65;margin-bottom:6px}
+    .rv{font-family:'Syne',sans-serif;font-size:24px;font-weight:700;color:#f5f0e8;line-height:1}
+    .ri.big .rv{font-size:34px;color:#d4a843}
+    .ru{font-size:11px;color:#8a7a65;margin-top:3px}
+    .fml{font-size:11px;color:#8a7a65;line-height:1.8;padding:11px 15px;background:rgba(255,255,255,.02);border-left:2px solid rgba(201,168,76,.35);border-radius:0 6px 6px 0;margin-top:13px}
+    .fml strong{color:#c8b89a}
     .warn{font-size:11px;color:#f87171;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:6px;padding:8px 12px;margin-top:9px}
     .ok{font-size:11px;color:#22c55e;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:6px;padding:8px 12px;margin-top:9px}
     .vb{font-family:'Syne',sans-serif;font-size:16px;font-weight:700}
     .bt{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:8px;font-family:'DM Mono',monospace;font-size:12px;border:none;cursor:pointer;transition:all .2s}
-    .bt-g{background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.25)}
-    .bt-b{background:rgba(56,189,248,.12);color:#38bdf8;border:1px solid rgba(56,189,248,.25)}
-    .bt-y{background:rgba(251,191,36,.12);color:#fbbf24;border:1px solid rgba(251,191,36,.25)}
+    .bt-g{background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.3)}
+    .bt-b{background:rgba(201,168,76,.12);color:#d4a843;border:1px solid rgba(201,168,76,.3)}
+    .bt-y{background:rgba(201,168,76,.12);color:#d4a843;border:1px solid rgba(201,168,76,.3)}
     .bt-r{background:rgba(248,113,113,.1);color:#f87171;border:1px solid rgba(248,113,113,.2);padding:4px 9px;font-size:11px;border-radius:5px}
     .brow{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
-    .bar-t{height:5px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden;margin-top:7px}
+    .bar-t{height:5px;background:rgba(201,168,76,.1);border-radius:3px;overflow:hidden;margin-top:7px}
     .bar-f{height:100%;border-radius:3px;transition:width .5s}
     .bar-l{display:flex;justify-content:space-between;font-size:10px;color:#64748b;margin-top:9px;margin-bottom:4px}
     .pt{width:100%;border-collapse:collapse;font-size:12px}
-    .pt th{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#64748b;padding:5px 9px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06)}
+    .pt th{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#8a7a65;padding:5px 9px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06)}
     .pt td{padding:8px 9px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:top}
     .pt tr:last-child td{border-bottom:none}
-    .pt .re td{color:#b0bdd0}
-    .pt .rl td{color:#38bdf8}
-    .pt .rd td{color:#7a8fa8}
+    .pt .re td{color:#c8b89a}
+    .pt .rl td{color:#d4a843}
+    .pt .rd td{color:#8a7a65}
     .badge{display:inline-block;font-size:9px;border-radius:3px;padding:1px 6px;margin-left:5px}
     .bd{background:rgba(251,191,36,.13);color:#fbbf24}
-    .bw{background:rgba(56,189,248,.13);color:#38bdf8}
+    .bw{background:rgba(201,168,76,.13);color:#38bdf8}
     .bc{background:rgba(34,197,94,.13);color:#22c55e}
     /* Mode selector */
     .modes{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:22px}
-    .mbt{padding:13px 6px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.04);color:#64748b;font-family:'DM Mono',monospace;font-size:11px;text-align:center;cursor:pointer;transition:all .2s}
-    .mbt.on{border-color:#38bdf8;background:rgba(56,189,248,.12);color:#38bdf8}
+    .mbt{padding:13px 6px;border-radius:12px;border:1px solid rgba(201,168,76,.15);background:rgba(255,220,150,.03);color:#8a7a65;font-family:'DM Mono',monospace;font-size:11px;text-align:center;cursor:pointer;transition:all .2s}
+    .mbt.on{border-color:#d4a843;background:rgba(212,168,67,.15);color:#d4a843}
     .mbt .mi{font-size:22px;display:block;margin-bottom:5px}
     .mbt .ml{font-family:'Syne',sans-serif;font-weight:700;font-size:12px;display:block;margin-bottom:2px}
-    .mbt .ms{font-size:10px;color:#475569;display:block}
-    .mbt.on .ms{color:rgba(56,189,248,.7)}
+    .mbt .ms{font-size:10px;color:#8a7a65;display:block}
+    .mbt.on .ms{color:rgba(212,168,67,.8)}
     /* Log */
     .lt{width:100%;border-collapse:collapse;font-size:11px}
-    .lt th{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#475569;padding:5px 7px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06);white-space:nowrap}
+    .lt th{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#8a7a65;padding:5px 7px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06);white-space:nowrap}
     .lt td{padding:6px 7px;border-bottom:1px solid rgba(255,255,255,.03);color:#94a3b8}
     .lt tr:last-child td{border-bottom:none}
 
-    .guide-btn{width:100%;padding:10px 14px;border-radius:8px;border:1px solid rgba(56,189,248,.25);background:rgba(56,189,248,.07);color:#7dd3fc;font-family:'DM Mono',monospace;font-size:12px;text-align:left;cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
-    .guide-btn:hover{background:rgba(56,189,248,.12)}
+    .guide-btn{width:100%;padding:10px 14px;border-radius:8px;border:1px solid rgba(201,168,76,.25);background:rgba(201,168,76,.07);color:#d4a843;font-family:'DM Mono',monospace;font-size:12px;text-align:left;cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+    .guide-btn:hover{background:rgba(201,168,76,.12)}
     .guide-btn .arr{transition:transform .2s}
     .guide-btn.open .arr{transform:rotate(180deg)}
-    .guide-panel{display:none;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:18px 20px;margin-bottom:14px;background:rgba(255,255,255,.02)}
+    .guide-panel{display:none;border:1px solid rgba(201,168,76,.15);border-radius:12px;padding:18px 20px;margin-bottom:14px;background:rgba(255,255,255,.02)}
     .guide-panel.open{display:block}
     .gs{font-size:9px;letter-spacing:.18em;text-transform:uppercase;font-weight:500;padding:4px 10px;border-radius:4px;margin-bottom:10px;display:inline-block}
-    .gs-blue{background:rgba(56,189,248,.15);color:#7dd3fc}
+    .gs-blue{background:rgba(201,168,76,.15);color:#d4a843}
     .gs-amber{background:rgba(245,158,11,.15);color:#fcd34d}
     .gs-teal{background:rgba(20,184,166,.15);color:#5eead4}
     .gs-purple{background:rgba(139,92,246,.15);color:#c4b5fd}
@@ -95,8 +95,8 @@
     .guide-content h4{font-size:11px;font-weight:500;color:#f0f9ff;margin-bottom:3px}
     .guide-content p{font-size:10px;color:#94a3b8;line-height:1.6;margin:0}
     .guide-content ul{font-size:10px;color:#94a3b8;line-height:1.7;margin:3px 0 0 14px;padding:0}
-    .gtip{font-size:10px;color:#475569;background:rgba(255,255,255,.03);border-left:2px solid rgba(56,189,248,.3);padding:6px 10px;border-radius:0 5px 5px 0;margin-top:8px;line-height:1.6}
-    .gtip strong{color:#94a3b8}
+    .gtip{font-size:10px;color:#475569;background:rgba(255,255,255,.03);border-left:2px solid rgba(201,168,76,.35);padding:6px 10px;border-radius:0 5px 5px 0;margin-top:8px;line-height:1.6}
+    .gtip strong{color:#c8b89a}
     @media(max-width:520px){.two,.three,.modes,.rg{grid-template-columns:1fr}.ri.big{grid-column:1}.brow{flex-direction:column}}
     @media print{body{background:#fff!important;color:#000!important}.app{background:#fff!important;padding:10px}.card,.res{border:1px solid #ddd!important;background:#fff!important;break-inside:avoid}.rv,.vb,.iv{color:#000!important}.ru,.iu,.ik,.rn,.fml{color:#555!important}.ri{background:#f9f9f9!important}.ri.big{background:#e8f4fd!important}.modes,.brow,.no-print{display:none!important}}
   </style>
@@ -108,12 +108,14 @@ const {useState,useEffect} = React;
 
 function fmt(n,d=4){if(!isFinite(n)||isNaN(n))return"--";return n.toFixed(d)}
 function pSat(T){return 611.21*Math.exp((18.678-T/234.5)*(T/(257.14+T)))}
-function humR(T,RH){const pv=(RH/100)*pSat(T);return 0.622*pv/(101325-pv)}
-function enth(T,RH){const W=humR(T,RH);return 1.006*T+W*(2501+1.86*T)}
-function sVol(T,RH){const pv=(RH/100)*pSat(T);return 287.058*(T+273.15)/(101325-pv)}
-function wBulb(T,RH){
+function humR(T,RH,p=101500){const pv=(RH/100)*pSat(T);return 0.622*pv/(p-pv)}
+function enth(T,RH,p=101500){const W=humR(T,RH,p);return 1.006*T+W*(2501+1.86*T)}
+function sVol(T,RH,p=101500){const pv=(RH/100)*pSat(T);return 287.058*(T+273.15)/(p-pv)}
+function wBulb(T,RH,p=101500){
   const pv=(RH/100)*pSat(T);let Tw=T-(1-RH/100)*10;
-  for(let i=0;i<60;i++){const f=pSat(Tw)-66*(T-Tw)-pv;const df=(pSat(Tw+.001)-pSat(Tw-.001))/.002+66;const d=f/df;Tw-=d;if(Math.abs(d)<.0001)break;}
+  // Sprung coefficient A = 66 Pa/°C at sea level, scales with pressure
+  const A=66*(p/101500);
+  for(let i=0;i<60;i++){const f=pSat(Tw)-A*(T-Tw)-pv;const df=(pSat(Tw+.001)-pSat(Tw-.001))/.002+A;const d=f/df;Tw-=d;if(Math.abs(d)<.0001)break;}
   return Tw;
 }
 function eCol(e){if(e>=4)return"#22c55e";if(e>=3)return"#86efac";if(e>=2.5)return"#facc15";return"#f87171"}
@@ -132,6 +134,13 @@ const SAT_TABLES={
   R134a: [[-40,51.3],[-30,84.4],[-20,132.7],[-10,200.7],[0,292.8],[5,349.9],[10,414.6],[15,488.3],[20,572.1],[25,666.3],[30,771.8],[35,889.6],[40,1017],[45,1160],[50,1318],[55,1490],[60,1682],[65,1893],[70,2117]],
   R407C: [[-40,157.5],[-30,239.9],[-20,351.0],[-10,497.8],[0,686.8],[5,801.4],[10,928.7],[15,1070],[20,1227],[25,1400],[30,1590],[35,1797],[40,2024],[45,2271],[50,2539],[55,2831],[60,3151],[65,3507]],
   R404A: [[-40,208.1],[-30,306.3],[-20,432.8],[-10,591.4],[0,788.4],[5,908.4],[10,1040],[15,1185],[20,1344],[25,1518],[30,1708],[35,1915],[40,2141],[45,2386],[50,2651],[55,2940],[60,3265]],
+,
+  R454B:  [[-40,171.2],[-30,256.8],[-20,371.5],[-10,520.2],[0,708.4],[5,821.3],[10,946.8],[15,1086],[20,1241],[25,1413],[30,1603],[35,1812],[40,2042],[45,2294],[50,2570],[55,2871],[60,3198],[65,3554],[70,3940]],
+  R1234yf:[[-40,51.8], [-30,87.7], [-20,141.7],[-10,218.4],[0,322.7],[5,386.5],[10,459.6],[15,543.0],[20,637.8],[25,744.8],[30,865.0],[35,999.4],[40,1149], [45,1316], [50,1500], [55,1703], [60,1926]],
+  R1234ze:[[-40,35.3], [-30,61.8], [-20,102.2],[-10,161.0],[0,243.1],[5,294.0],[10,352.6],[15,419.8],[20,496.6],[25,583.9],[30,682.8],[35,794.3],[40,919.5],[45,1059], [50,1214], [55,1386], [60,1576]],
+  R744:   [[-40,1017], [-30,1428], [-20,1970], [-10,2650], [0,3486], [5,3991], [10,4556], [15,5188], [20,5893], [25,6679], [30,7554], [31.1,7377]],
+  R513A:  [[-40,58.2], [-30,97.6], [-20,155.4],[-10,236.2],[0,344.8],[5,412.5],[10,489.5],[15,577.0],[20,675.9],[25,787.2],[30,912.0],[35,1051], [40,1205], [45,1375], [50,1563], [55,1770], [60,1996]],
+  R452A:  [[-40,176.3],[-30,264.8],[-20,382.0],[-10,534.8],[0,728.6],[5,844.0],[10,972.8],[15,1116], [20,1275], [25,1452], [30,1647], [35,1862], [40,2098], [45,2357], [50,2641], [55,2951], [60,3290]]
 };
 
 function satT(ref,pBar){
@@ -147,8 +156,8 @@ function satT(ref,pBar){
   }
   return null;
 }
-const REFS=['R32','R290','R410A','R22','R134a','R407C','R404A','Other'];
-const RCOL={R32:'#a855f7',R290:'#f97316',R410A:'#38bdf8',R22:'#fbbf24',R134a:'#22c55e',R407C:'#f472b6',R404A:'#60a5fa',Other:'#94a3b8'};
+const REFS=['R32','R290','R410A','R22','R134a','R407C','R404A','R454B','R1234yf','R1234ze','R744','R513A','R452A','Other'];
+const RCOL={R32:'#a855f7',R290:'#f97316',R410A:'#d4a843',R22:'#fbbf24',R134a:'#22c55e',R407C:'#f472b6',R404A:'#60a5fa',Other:'#94a3b8'};
 
 function RefSec({unit,refr,setRefr,sP,setSP,dP,setDP,sT,setST}){
   const toC=v=>unit==="F"?(v-32)*5/9:v;
@@ -250,7 +259,7 @@ function FloatInput({value, onChange, min, max, step, style, placeholder}){
 }
 
 
-function AirAir({unit,job,uid,setLog,setShowLog}){
+function AirAir({unit,job,uid,setLog,setShowLog,pAtm=101500}){
   const [eDB,setEDB]=useState(26);const [eRH,setERH]=useState(50);
   const [lDB,setLDB]=useState(14);const [lRH,setLRH]=useState(90);
   const [oDB,setODB]=useState(35);const [oRH,setORH]=useState(40);
@@ -258,9 +267,9 @@ function AirAir({unit,job,uid,setLog,setShowLog}){
   const [ref,setRef]=useState("R32");const [sP,setSP]=useState(8);const [dP,setDP]=useState(28);const [sT,setST]=useState(15);
   const C=v=>unit==="F"?(v-32)*5/9:v;const F=v=>unit==="F"?v*9/5+32:v;const d=(c,n=1)=>fmt(F(c),n);
   const eC=C(eDB),lC=C(lDB),oC=C(oDB);
-  const hE=enth(eC,eRH),vE=sVol(eC,eRH),wE=wBulb(eC,eRH),WE=humR(eC,eRH);
-  const hL=enth(lC,lRH),vL=sVol(lC,lRH),wL=wBulb(lC,lRH),WL=humR(lC,lRH);
-  const wO=wBulb(oC,oRH),WO=humR(oC,oRH);
+  const hE=enth(eC,eRH,pAtm),vE=sVol(eC,eRH,pAtm),wE=wBulb(eC,eRH,pAtm),WE=humR(eC,eRH,pAtm);
+  const hL=enth(lC,lRH,pAtm),vL=sVol(lC,lRH,pAtm),wL=wBulb(lC,lRH,pAtm),WL=humR(lC,lRH,pAtm);
+  const wO=wBulb(oC,oRH,pAtm),WO=humR(oC,oRH,pAtm);
   const afs=af/3600,mf=afs/vL,dh=Math.max(0,hE-hL),Q=mf*dh,eer=pw>0?Q/pw:0;
   const dT=eC-lC,sr=dh>0?Math.max(0,Math.min(1,1.006*dT/dh)):0;
   const qs=Q*sr,ql=Q-qs;
@@ -290,15 +299,15 @@ function AirAir({unit,job,uid,setLog,setShowLog}){
         <span><span className="ik">W_inn</span><span className="iv">{fmt(WE*1000,4)}</span><span className="iu"> g/kg</span></span>
       </div>
     </div>
-    <div className="card" style={{borderColor:'rgba(56,189,248,.2)'}}>
-      <div className="slbl" style={{color:'#38bdf8'}}>Ut - Leaving Evaporator (Supply Air)</div>
+    <div className="card" style={{borderColor:'rgba(201,168,76,.2)'}}>
+      <div className="slbl" style={{color:'#d4a843'}}>Ut - Leaving Evaporator (Supply Air)</div>
       <div className="two">
         <div className="field"><div className="lbl"><span>Leaving DB <span className="badge bd">DB</span></span><span className="utag">deg {unit} measured</span></div>
-          <FloatInput value={lDB} onChange={setLDB} min={mn} max={mx} step={0.0001} style={{borderColor:'rgba(56,189,248,.4)'}}/>
+          <FloatInput value={lDB} onChange={setLDB} min={mn} max={mx} step={0.0001} style={{borderColor:'rgba(201,168,76,.4)'}}/>
           <input type="range" min={mn} max={mx} step={0.1} value={lDB} onChange={e=>setLDB(parseFloat(e.target.value))}/>
         </div>
         <div className="field"><div className="lbl"><span>Leaving RH</span><span className="utag">% measured</span></div>
-          <FloatInput value={lRH} onChange={setLRH} style={{borderColor:'rgba(56,189,248,.4)'}}/>
+          <FloatInput value={lRH} onChange={setLRH} style={{borderColor:'rgba(201,168,76,.4)'}}/>
           <input type="range" min={0} max={100} step={0.0001} value={lRH} onChange={e=>setLRH(parseFloat(e.target.value))}/>
         </div>
       </div>
@@ -307,16 +316,16 @@ function AirAir({unit,job,uid,setLog,setShowLog}){
         {lRH>95&&lRH<=98&&<div className="warn" style={{background:'rgba(251,191,36,.08)',border:'1px solid rgba(251,191,36,.2)',color:'#fbbf24'}}>Leaving RH &gt; 95% — near saturation. Allow 5-10 min extra stabilisation.</div>}
         {lRH>98&&<div className="warn">⚠ Leaving RH &gt; 98% — condensation possible on sensor. Reading may be unreliable. Verify with sling psychrometer.</div>}
         {lRH>95&&lRH<=98&&<div className="warn" style={{background:'rgba(251,191,36,.08)',border:'1px solid rgba(251,191,36,.2)',color:'#fbbf24'}}>⚠ Leaving RH &gt; 95% — near saturation. Allow extra stabilisation time (5-10 min).</div>}
-      <div style={{marginTop:12,padding:'13px 15px',background:'rgba(56,189,248,.07)',border:'1px solid rgba(56,189,248,.18)',borderRadius:8}}>
-        <div style={{fontSize:10,letterSpacing:'.15em',textTransform:'uppercase',color:'#38bdf8',marginBottom:9}}>DB + RH - Wet-Bulb Converter</div>
+      <div style={{marginTop:12,padding:'13px 15px',background:'rgba(201,168,76,.07)',border:'1px solid rgba(201,168,76,.18)',borderRadius:8}}>
+        <div style={{fontSize:10,letterSpacing:'.15em',textTransform:'uppercase',color:'#d4a843',marginBottom:9}}>DB + RH - Wet-Bulb Converter</div>
         <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:10}}>
           <div style={{background:'rgba(0,0,0,.25)',borderRadius:8,padding:'9px 14px',textAlign:'center'}}><div style={{fontSize:10,color:'#475569',marginBottom:3}}>DB</div><div style={{fontFamily:'Syne,sans-serif',fontSize:20,fontWeight:700,color:'#f0f9ff'}}>{lDB} deg</div></div>
           <div style={{color:'#475569',fontSize:16}}>+</div>
           <div style={{background:'rgba(0,0,0,.25)',borderRadius:8,padding:'9px 14px',textAlign:'center'}}><div style={{fontSize:10,color:'#475569',marginBottom:3}}>RH</div><div style={{fontFamily:'Syne,sans-serif',fontSize:20,fontWeight:700,color:'#f0f9ff'}}>{lRH}%</div></div>
           <div style={{color:'#475569',fontSize:16}}>-&gt;</div>
-          <div style={{background:'rgba(56,189,248,.12)',border:'1px solid rgba(56,189,248,.3)',borderRadius:8,padding:'9px 14px',textAlign:'center'}}><div style={{fontSize:10,color:'#38bdf8',marginBottom:3}}>Wet-Bulb WB</div><div style={{fontFamily:'Syne,sans-serif',fontSize:20,fontWeight:700,color:'#38bdf8'}}>{d(wL,2)} deg</div></div>
+          <div style={{background:'rgba(201,168,76,.12)',border:'1px solid rgba(201,168,76,.3)',borderRadius:8,padding:'9px 14px',textAlign:'center'}}><div style={{fontSize:10,color:'#d4a843',marginBottom:3}}>Wet-Bulb WB</div><div style={{fontFamily:'Syne,sans-serif',fontSize:20,fontWeight:700,color:'#d4a843'}}>{d(wL,2)} deg</div></div>
         </div>
-        <div className="irow" style={{borderColor:'rgba(56,189,248,.18)',background:'rgba(0,0,0,.15)',marginTop:0}}>
+        <div className="irow" style={{borderColor:'rgba(201,168,76,.18)',background:'rgba(0,0,0,.15)',marginTop:0}}>
           <span><span className="ik">h_ut</span><span className="iv">{fmt(hL)}</span><span className="iu"> kJ/kg</span></span>
           <span><span className="ik">v_ut</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(vL,4)}</span><span className="iu"> m3/kg</span></span>
           <span><span className="ik">W_ut</span><span className="iv">{fmt(WL*1000,4)}</span><span className="iu"> g/kg</span></span>
@@ -390,125 +399,316 @@ function AirAir({unit,job,uid,setLog,setShowLog}){
   </>);
 }
 
-function AirLiquid({unit,job,uid,setLog,setShowLog}){
-  const [eDB,setEDB]=useState(26);const [eRH,setERH]=useState(50);
-  const [lDB,setLDB]=useState(14);const [lRH,setLRH]=useState(90);
-  const [wTi,setWTi]=useState(7);const [wTo,setWTo]=useState(12);const [wF,setWF]=useState(0.50);
-  const [af,setAf]=useState(600);const [pw,setPw]=useState(1.2);
-  const [ref,setRef]=useState("R32");const [sP,setSP]=useState(8);const [dP,setDP]=useState(28);const [sT,setST]=useState(15);
-  const [oDB,setODB]=useState(35);
-  const [oRH,setORH]=useState(40);
-  const C=v=>unit==="F"?(v-32)*5/9:v;const F=v=>unit==="F"?v*9/5+32:v;const d=(c,n=1)=>fmt(F(c),n);
-  const oC=C(oDB);
-  const wBO=wBulb(oC,oRH),WO=humR(oC,oRH);
-  const eC=C(eDB),lC=C(lDB),wTiC=C(wTi),wToC=C(wTo);
-  const hE=enth(eC,eRH),vE=sVol(eC,eRH),wBE=wBulb(eC,eRH),WE=humR(eC,eRH);
-  const hL=enth(lC,lRH),vL=sVol(lC,lRH),wBL=wBulb(lC,lRH),WL=humR(lC,lRH);
-  const afs=af/3600,mfA=afs/vL,dh=Math.max(0,hL-hE),Qa=mfA*dh;
-  const Qw=4.18*wF*Math.abs(wToC-wTiC);const mfW=wF;
-  const eer=pw>0?Qw/pw:0,bal=Qw>0?((Qa-Qw)/Qw)*100:0;
-  const mn=unit==="F"?23:-5,mx=unit==="F"?113:45,ec=eCol(eer);
+function AirLiquid({unit,job,uid,setLog,setShowLog,pAtm=101500}){
+  // ── Liquid side state (PRIMARY) ──────────────────────────
+  const [useGly,  setUseGly]  = React.useState(true);
+  const [glyType, setGlyType] = React.useState('EG');   // EG=ethylene, PG=propylene
+  const [glyPct,  setGlyPct]  = React.useState(30);
+  const [wTi,     setWTi]     = React.useState(7.0);
+  const [wTo,     setWTo]     = React.useState(12.0);
+  const [wF,      setWF]      = React.useState(0.5);
+  const [pw,      setPw]      = React.useState(1.2);
+
+  // ── Air side state (VERIFICATION) ────────────────────────
+  const [oDB,  setODB]  = React.useState(35);
+  const [oRH,  setORH]  = React.useState(40);
+  const [lDB,  setLDB]  = React.useState(null);   // null = AUTO
+  const [lRH,  setLRH]  = React.useState(null);
+  const [af,   setAf]   = React.useState(null);
+  const [lDBm, setLDBm] = React.useState(14);     // manual value
+  const [lRHm, setLRHm] = React.useState(90);
+  const [afm,  setAfm]  = React.useState(600);
+
+  // ── Refrigerant state ─────────────────────────────────────
+  const [ref, setRef] = React.useState('R32');
+  const [sP,  setSP]  = React.useState(8);
+  const [dP,  setDP]  = React.useState(28);
+  const [sT,  setST]  = React.useState(15);
+
+  const C = v => unit==='F'?(v-32)*5/9:v;
+  const F = v => unit==='F'?v*9/5+32:v;
+  const d = (c,n=2) => fmt(F(c),n);
+
+  // ── Glycol tables ─────────────────────────────────────────
+  // Ethylene glycol: [pct, cp kJ/kgK, rho kg/L, freeze °C]
+  const EG_TABLE = [
+    [0,4.18,1.000,0],[10,4.09,1.014,-3.5],[15,4.04,1.021,-6],
+    [20,3.98,1.028,-9],[25,3.91,1.035,-13],[30,3.84,1.041,-16],
+    [35,3.74,1.048,-21],[40,3.63,1.054,-25],[45,3.52,1.059,-31],[50,3.40,1.064,-37],
+  ];
+  // Propylene glycol: [pct, cp, rho, freeze]
+  const PG_TABLE = [
+    [0,4.18,1.000,0],[10,4.13,1.009,-3],[15,4.09,1.013,-5],
+    [20,4.03,1.018,-8],[25,3.97,1.022,-11],[30,3.89,1.026,-15],
+    [35,3.81,1.030,-20],[40,3.72,1.034,-24],[45,3.62,1.037,-29],[50,3.51,1.040,-34],
+  ];
+  function glyProps(type, pct){
+    const tbl = type==='EG' ? EG_TABLE : PG_TABLE;
+    for(let i=0;i<tbl.length-1;i++){
+      if(pct>=tbl[i][0]&&pct<=tbl[i+1][0]){
+        const f=(pct-tbl[i][0])/(tbl[i+1][0]-tbl[i][0]);
+        return{
+          cp:    tbl[i][1]+f*(tbl[i+1][1]-tbl[i][1]),
+          rho:   tbl[i][2]+f*(tbl[i+1][2]-tbl[i][2]),
+          freeze:tbl[i][3]+f*(tbl[i+1][3]-tbl[i][3]),
+        };
+      }
+    }
+    return{cp:4.18,rho:1.0,freeze:0};
+  }
+
+  const gp   = useGly ? glyProps(glyType, glyPct) : {cp:4.18, rho:1.0, freeze:0};
+  const wTiC = C(wTi), wToC = C(wTo);
+  const dTw  = Math.abs(wToC - wTiC);
+  const mW   = wF * gp.rho;
+  const Qw   = mW * gp.cp * dTw;  // PRIMARY Q
+  const eer  = pw>0 ? Qw/pw : 0;
+
+  // ── Auto-estimate air side from Qw ───────────────────────
+  const oC   = C(oDB);
+  const hE   = enth(oC, oRH);
+  const vE   = sVol(oC, oRH);
+  const wBE  = wBulb(oC, oRH);
+  const WE   = humR(oC, oRH);
+
+  // Auto leaving air: estimate based on Qw and assumed airflow
+  const afAuto  = af  !== null ? afm  : Math.max(100, Qw * 3600 / Math.max(0.1, hE - 35) * vE);
+  const afs     = afAuto / 3600;
+  // Estimate leaving enthalpy
+  const hLauto  = Qw > 0 ? hE - Qw / (afs / vE) : hE - 10;
+  // Estimate leaving DB/RH from leaving enthalpy (simplified: assume WL=WE for sensible)
+  const lDBAuto = oC - (hE - Math.max(hLauto, 20)) / 1.006;
+  const lRHAuto = Math.min(95, oRH + 20);
+
+  const lDBuse = lDB !== null ? C(lDBm) : Math.max(oC - 25, lDBAuto);
+  const lRHuse = lRH !== null ? lRHm   : lRHAuto;
+  const afUse  = af  !== null ? afm    : Math.max(100, afAuto);
+
+  const hL  = enth(lDBuse, lRHuse);
+  const vL  = sVol(lDBuse, lRHuse);
+  const wBL = wBulb(lDBuse, lRHuse);
+  const afsUse = afUse / 3600;
+  const mA  = afsUse / vL;
+  const dh  = Math.max(0, hL - hE);  // heat rejection: leaving > entering
+  const Qa  = mA * dh;
+
+  const bal = Qw > 0 ? ((Qa - Qw) / Qw) * 100 : 0;
+  const ec  = eerColor(eer);
+
+  function resetAir(){
+    setLDB(null); setLRH(null); setAf(null);
+    setLDBm(14); setLRHm(90); setAfm(600);
+  }
+
   function save(){
-    const tE=refr!=="Other"?satT(refr,sP):null;const sC=unit==="F"?C(sT):sT;const sh=tE!=null?sC-tE:null;const tCond=ref!=="Other"?satT(ref,dP):null;
-    setLog(p=>[{id:Date.now(),date:new Date().toLocaleString(),mode:'Air/Liquid',job:job||"--",uid:uid||"--",ref,t1:fmt(F(eC),2),t2:fmt(F(lC),2),wb1:d(wBE,2),wb2:d(wBL,2),oDB:fmt(F(oC),2),oRH:fmt(oRH,2),rh1:fmt(eRH,4),rh2:fmt(lRH,4),wTi:fmt(F(wTiC),2),wTo:fmt(F(wToC),2),wF:fmt(wF,4),af,pw:fmt(pw,4),Q:fmt(Qa,4),Qw:fmt(Qw,4),eer:fmt(eer,4),tE:tE!=null?fmt(tE,4):"--",sh:sh!=null?fmt(sh,4):"--",tC:tCond!=null?fmt(tCond,4):"--",sP:fmt(sP,4),dP:fmt(dP,4),unit},...p]);
+    const tE=ref!=='Other'?satT(ref,sP):null;
+    const sC=unit==='F'?C(sT):sT;
+    const sh=tE!=null?sC-tE:null;
+    const tCond=ref!=='Other'?satT(ref,dP):null;
+    setLog(p=>[{
+      id:Date.now(),date:new Date().toLocaleString(),mode:'Air/Liquid',
+      job:job||'--',uid:uid||'--',ref,
+      t1:fmt(F(oC),4),t2:fmt(F(lDBuse),4),
+      wb1:d(wBE,4),wb2:d(wBL,4),
+      rh1:fmt(oRH,4),rh2:fmt(lRHuse,4),
+      wTi:fmt(F(wTiC),4),wTo:fmt(F(wToC),4),wF:fmt(wF,4),
+      af:fmt(afUse,1),pw:fmt(pw,4),
+      Q:fmt(Qw,4),Qw:fmt(Qa,4),eer:fmt(eer,4),
+      tE:tE!=null?fmt(tE,4):'--',sh:sh!=null?fmt(sh,4):'--',
+      tC:tCond!=null?fmt(tCond,4):'--',
+      sP:fmt(sP,4),dP:fmt(dP,4),unit
+    },...p]);
     setShowLog(true);
   }
+
+  const mn=unit==='F'?23:-5, mx=unit==='F'?113:45;
+
   return(<>
-    <div className="card" style={{borderColor:'rgba(251,191,36,.18)'}}>
-      <div className="slbl" style={{color:'#fbbf24'}}>Ambient - Entering Air (Outdoor / Condenser)</div>
-      <div className="two">
-        <div className="field"><div className="lbl"><span>Ambient Dry-Bulb <span className="badge bd">DB</span></span><span className="utag">deg {unit}</span></div>
-          <FloatInput value={oDB} onChange={setODB} min={mn} max={unit==="F"?140:60} step={0.0001} style={{borderColor:'rgba(251,191,36,.4)'}}/>
-          <input type="range" min={mn} max={unit==="F"?140:60} step={0.1} value={oDB} onChange={e=>setODB(parseFloat(e.target.value))}/>
-        </div>
-        <div className="field"><div className="lbl"><span>Ambient Relative Humidity</span><span className="utag">%</span></div>
-          <FloatInput value={oRH} onChange={setORH} style={{borderColor:'rgba(251,191,36,.4)'}}/>
-          <input type="range" min={0} max={100} step={0.0001} value={oRH} onChange={e=>setORH(parseFloat(e.target.value))}/>
-        </div>
+    {/* ── LIQUID SIDE (PRIMARY) ── */}
+    <div className="card" style={{borderColor:'rgba(180,145,60,.3)'}}>
+      <div className="slbl" style={{color:'#0ea5e9'}}>Liquid Side — Primary (Chilled Water)</div>
+
+      {/* Glycol toggle */}
+      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
+        <button onClick={()=>setUseGly(v=>!v)} style={{
+          padding:'6px 14px',borderRadius:6,fontSize:11,cursor:'pointer',
+          fontFamily:'DM Mono,monospace',border:'1px solid',
+          borderColor:useGly?'#0ea5e9':'rgba(255,255,255,.15)',
+          background:useGly?'rgba(180,145,60,.15)':'rgba(255,255,255,.03)',
+          color:useGly?'#0ea5e9':'#64748b'
+        }}>{useGly?'Glycol ON':'Glycol OFF'}</button>
+        {useGly&&<>
+          <select value={glyType} onChange={e=>setGlyType(e.target.value)} style={{flex:1}}>
+            <option value="EG">Ethylene Glycol (MEG)</option>
+            <option value="PG">Propylene Glycol (MPG)</option>
+          </select>
+          <select value={glyPct} onChange={e=>setGlyPct(parseInt(e.target.value))} style={{width:80}}>
+            {[10,15,20,25,30,35,40,45,50].map(p=><option key={p} value={p}>{p}%</option>)}
+          </select>
+        </>}
       </div>
-      <div className="irow" style={{borderColor:'rgba(251,191,36,.25)',background:'rgba(251,191,36,.06)'}}>
-        <span><span className="ik">DB</span><span className="iv" style={{color:'#fbbf24'}}>{d(oC,2)} deg {unit}</span></span>
-        <span><span className="ik">WB</span><span className="iv" style={{color:'#fbbf24'}}>{d(wBO,2)} deg {unit}</span></span>
-        <span><span className="ik">RH</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(oRH,2)}%</span></span>
-        <span><span className="ik">W</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(WO*1000,2)}</span><span className="iu"> g/kg</span></span>
-      </div>
-    </div>
-    <div className="card" style={{borderColor:'rgba(249,115,22,.25)'}}>
-      <div className="slbl" style={{color:'#f97316'}}>Air Side Ut - Leaving Air (Heat Rejection Control)</div>
-      <div className="two">
-        <div className="field"><div className="lbl"><span>Leaving DB <span style={{fontSize:9,color:'#f97316'}}>warmer</span></span><span className="utag">deg {unit} measured</span></div>
-          <FloatInput value={lDB} onChange={setLDB} min={mn} max={mx} step={0.0001} style={{borderColor:'rgba(56,189,248,.4)'}}/>
-          <input type="range" min={mn} max={mx} step={0.1} value={lDB} onChange={e=>setLDB(parseFloat(e.target.value))}/>
-        </div>
-        <div className="field"><div className="lbl"><span>Leaving RH</span><span className="utag">% measured</span></div>
-          <FloatInput value={lRH} onChange={setLRH} style={{borderColor:'rgba(56,189,248,.4)'}}/>
-          <input type="range" min={0} max={100} step={0.0001} value={lRH} onChange={e=>setLRH(parseFloat(e.target.value))}/>
-        </div>
-      </div>
-      <div className="irow" style={{marginTop:10,borderColor:'rgba(249,115,22,.25)',background:'rgba(249,115,22,.06)'}}>
-        <span><span className="ik">WBut</span><span className="iv" style={{color:'#f97316'}}>{d(wBL,2)} deg {unit}</span><span className="badge bc" style={{marginLeft:5}}>calc</span></span>
-        <span><span className="ik">h_ut</span><span className="iv" style={{color:'#f97316'}}>{fmt(hL)}</span><span className="iu"> kJ/kg</span></span>
-        <span><span className="ik">v_ut</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(vL,4)}</span><span className="iu"> m3/kg</span></span>
-        <span><span className="ik">Δh heat</span><span className="iv" style={{color:'#f97316'}}>{fmt(dh,4)}</span><span className="iu"> kJ/kg</span></span>
-      </div>
-    </div>
-    <div className="card" style={{borderColor:'rgba(14,165,233,.25)'}}>
-      <div className="slbl" style={{color:'#0ea5e9'}}>Liquid Side - Chilled Water</div>
+
+      {useGly&&<div className="irow" style={{borderColor:'rgba(180,145,60,.2)',background:'rgba(180,145,60,.06)',marginBottom:14}}>
+        <span><span className="ik">Type</span><span className="iv" style={{color:'#0ea5e9',fontSize:13}}>{glyType==='EG'?'Ethylene':'Propylene'} {glyPct}%</span></span>
+        <span><span className="ik">cp</span><span className="iv" style={{color:'#0ea5e9'}}>{fmt(gp.cp,3)}</span><span className="iu"> kJ/kg·K</span></span>
+        <span><span className="ik">rho</span><span className="iv" style={{color:'#0ea5e9'}}>{fmt(gp.rho,3)}</span><span className="iu"> kg/L</span></span>
+        <span><span className="ik">freeze</span><span className="iv" style={{color:'#0ea5e9'}}>{fmt(gp.freeze,1)}</span><span className="iu"> °C</span></span>
+      </div>}
+
       <div className="three">
-        <div className="field"><div className="lbl"><span>Water Inlet T</span><span className="utag">deg {unit}</span></div>
-          <FloatInput value={wTi} onChange={setWTi} min={-20} max={50} step={0.0001} style={{borderColor:'rgba(14,165,233,.4)'}}/>
+        <div className="field"><div className="lbl"><span>T Inlet</span><span className="utag">deg {unit}</span></div>
+          <FloatInput value={wTi} onChange={setWTi} min={-30} max={50} step={0.0001}/>
         </div>
-        <div className="field"><div className="lbl"><span>Water Outlet T</span><span className="utag">deg {unit}</span></div>
-          <FloatInput value={wTo} onChange={setWTo} min={-20} max={50} step={0.0001} style={{borderColor:'rgba(14,165,233,.4)'}}/>
+        <div className="field"><div className="lbl"><span>T Outlet</span><span className="utag">deg {unit}</span></div>
+          <FloatInput value={wTo} onChange={setWTo} min={-30} max={50} step={0.0001}/>
         </div>
-        <div className="field"><div className="lbl"><span>Water Flow</span><span className="utag">L/s</span></div>
-          <FloatInput value={wF} onChange={setWF} min={0.001} max={100} step={0.0001} style={{borderColor:'rgba(14,165,233,.4)'}}/>
+        <div className="field"><div className="lbl"><span>Flow</span><span className="utag">L/s</span></div>
+          <FloatInput value={wF} onChange={setWF} min={0.001} max={100} step={0.0001}/>
         </div>
       </div>
-      <div className="irow" style={{borderColor:'rgba(14,165,233,.25)',background:'rgba(14,165,233,.05)'}}>
-        <span><span className="ik">dT water</span><span className="iv" style={{color:'#0ea5e9'}}>{fmt(Math.abs(wToC-wTiC),2)}</span><span className="iu"> K</span></span>
-        <span><span className="ik">m water</span><span className="iv" style={{color:'#0ea5e9'}}>{fmt(mfW,4)}</span><span className="iu"> kg/s</span></span>
-        <span><span className="ik">Q water</span><span className="iv" style={{color:'#0ea5e9'}}>{fmt(Qw,4)}</span><span className="iu"> kW</span></span>
-        <span><span className="ik">flow</span><span className="iv" style={{color:'#0ea5e9'}}>{fmt(wF,4)}</span><span className="iu"> L/s</span></span>
+
+      {dTw<2&&<div className="warn">⚠ dT = {fmt(dTw,4)} K — very low. Sensor uncertainty causes ~{fmt(0.1/Math.max(dTw,0.01)*100,0)}% Q error.</div>}
+      {dTw>=2&&dTw<3&&<div className="warn" style={{background:'rgba(251,191,36,.08)',border:'1px solid rgba(251,191,36,.2)',color:'#fbbf24'}}>⚠ dT = {fmt(dTw,4)} K — low. Verify sensor accuracy.</div>}
+
+      <div className="irow" style={{borderColor:'rgba(180,145,60,.25)',background:'rgba(180,145,60,.06)',marginTop:10}}>
+        <span><span className="ik">dT</span><span className="iv" style={{color:'#0ea5e9'}}>{fmt(dTw,4)}</span><span className="iu"> K</span></span>
+        <span><span className="ik">m</span><span className="iv" style={{color:'#0ea5e9'}}>{fmt(mW,4)}</span><span className="iu"> kg/s</span></span>
+        <span><span className="ik">Q liquid</span><span className="iv" style={{color:'#0ea5e9',fontSize:18}}>{fmt(Qw,4)}</span><span className="iu"> kW</span></span>
+        <span><span className="ik">BTU/h</span><span className="iv" style={{color:'#0ea5e9'}}>{fmt(Qw*3412.14,0)}</span></span>
+      </div>
+
+      <div className="field" style={{marginTop:14}}>
+        <div className="lbl"><span>Compressor Power P_el</span><span className="utag">kW</span></div>
+        <FloatInput value={pw} onChange={setPw} min={0.01} max={500} step={0.0001}/>
       </div>
     </div>
-    <div className="card">
-      <div className="slbl">Airflow and Power</div>
+
+    {/* ── AIR SIDE (VERIFICATION) ── */}
+    <div className="card" style={{borderColor:'rgba(249,115,22,.2)'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+        <div className="slbl" style={{color:'#f97316',marginBottom:0}}>Air Side — Verification (Heat Rejection)</div>
+        <button onClick={resetAir} style={{
+          padding:'5px 12px',borderRadius:6,fontSize:10,cursor:'pointer',
+          fontFamily:'DM Mono,monospace',border:'1px solid rgba(249,115,22,.3)',
+          background:'rgba(249,115,22,.08)',color:'#f97316'
+        }}>Reset to AUTO</button>
+      </div>
+      <div style={{fontSize:9,color:'#64748b',marginBottom:12}}>
+        Fields marked AUTO are estimated from liquid Q. Edit to override — will not affect liquid side.
+      </div>
+
+      {/* Entering ambient */}
+      <div style={{fontSize:9,color:'#fbbf24',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}}>Entering Ambient Air</div>
       <div className="two">
-        <div className="field"><div className="lbl"><span>Airflow</span><span className="utag">m3/h</span></div>
-          <FloatInput value={af} onChange={setAf} min={10} max={50000} step={10}/>
+        <div className="field"><div className="lbl"><span>Ambient DB</span><span className="utag">deg {unit}</span></div>
+          <FloatInput value={oDB} onChange={setODB} min={mn} max={unit==='F'?140:60} step={0.0001} style={{borderColor:'rgba(251,191,36,.4)'}}/>
         </div>
-        <div className="field"><div className="lbl"><span>Power Input</span><span className="utag">kW</span></div>
-          <FloatInput value={pw} onChange={setPw} min={0.1} max={500} step={0.05}/>
+        <div className="field"><div className="lbl"><span>Ambient RH</span><span className="utag">%</span></div>
+          <RHInput value={oRH} onChange={setORH} style={{borderColor:'rgba(251,191,36,.4)'}}/>
         </div>
       </div>
+      <div className="irow" style={{borderColor:'rgba(251,191,36,.2)',background:'rgba(251,191,36,.05)',marginBottom:14}}>
+        <span><span className="ik">WB</span><span className="iv" style={{color:'#fbbf24'}}>{d(wBE,4)} deg {unit}</span></span>
+        <span><span className="ik">h_inn</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(hE,4)}</span><span className="iu"> kJ/kg</span></span>
+        <span><span className="ik">W</span><span className="iv" style={{color:'#fbbf24'}}>{fmt(WE*1000,4)}</span><span className="iu"> g/kg</span></span>
+      </div>
+
+      {/* Leaving air */}
+      <div style={{fontSize:9,color:'#f97316',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}}>Leaving Air (warmer — heat rejection)</div>
+      <div className="three">
+        <div className="field">
+          <div className="lbl">
+            <span>Leaving DB</span>
+            <span className="badge" style={{background:lDB===null?'rgba(34,197,94,.15)':'rgba(251,191,36,.15)',color:lDB===null?'#22c55e':'#fbbf24',marginLeft:4}}>{lDB===null?'AUTO':'MANUAL'}</span>
+          </div>
+          <FloatInput value={lDB===null?fmt(F(lDBuse),4):lDBm} onChange={v=>{setLDB(true);setLDBm(v);}} min={mn} max={mx} step={0.0001} style={{borderColor:'rgba(249,115,22,.4)'}}/>
+        </div>
+        <div className="field">
+          <div className="lbl">
+            <span>Leaving RH</span>
+            <span className="badge" style={{background:lRH===null?'rgba(34,197,94,.15)':'rgba(251,191,36,.15)',color:lRH===null?'#22c55e':'#fbbf24',marginLeft:4}}>{lRH===null?'AUTO':'MANUAL'}</span>
+          </div>
+          <RHInput value={lRH===null?lRHuse:lRHm} onChange={v=>{setLRH(true);setLRHm(v);}} style={{borderColor:'rgba(249,115,22,.4)'}}/>
+        </div>
+        <div className="field">
+          <div className="lbl">
+            <span>Airflow</span>
+            <span className="badge" style={{background:af===null?'rgba(34,197,94,.15)':'rgba(251,191,36,.15)',color:af===null?'#22c55e':'#fbbf24',marginLeft:4}}>{af===null?'AUTO':'MANUAL'}</span>
+          </div>
+          <FloatInput value={af===null?fmt(afUse,1):afm} onChange={v=>{setAf(true);setAfm(v);}} min={10} max={50000} step={1} style={{borderColor:'rgba(249,115,22,.4)'}}/>
+        </div>
+      </div>
+      {lRHuse>98&&<div className="warn">⚠ Leaving RH &gt; 98% — condensation on sensor possible.</div>}
+      {lRHuse>95&&lRHuse<=98&&<div className="warn" style={{background:'rgba(251,191,36,.08)',border:'1px solid rgba(251,191,36,.2)',color:'#fbbf24'}}>⚠ Leaving RH &gt; 95% — near saturation.</div>}
+      {lDBuse<=oC&&<div className="warn">⚠ Leaving DB should be warmer than ambient in heat rejection mode.</div>}
+
+      <div className="irow" style={{borderColor:'rgba(249,115,22,.2)',background:'rgba(249,115,22,.06)',marginTop:10}}>
+        <span><span className="ik">WB_ut</span><span className="iv" style={{color:'#f97316'}}>{d(wBL,4)} deg {unit}</span></span>
+        <span><span className="ik">h_ut</span><span className="iv" style={{color:'#f97316'}}>{fmt(hL,4)}</span><span className="iu"> kJ/kg</span></span>
+        <span><span className="ik">Δh</span><span className="iv" style={{color:'#f97316'}}>{fmt(dh,4)}</span><span className="iu"> kJ/kg</span></span>
+        <span><span className="ik">ṁ_air</span><span className="iv" style={{color:'#f97316'}}>{fmt(mA,4)}</span><span className="iu"> kg/s</span></span>
+        <span><span className="ik">Q_air</span><span className="iv" style={{color:'#f97316'}}>{fmt(Qa,4)}</span><span className="iu"> kW</span></span>
+      </div>
     </div>
+
+    {/* ── BALANCE INDICATOR ── */}
+    <div className="card" style={{borderColor:Math.abs(bal)>8?'rgba(248,113,113,.4)':Math.abs(bal)>3?'rgba(251,191,36,.4)':'rgba(34,197,94,.3)'}}>
+      <div className="slbl" style={{color:Math.abs(bal)>8?'#f87171':Math.abs(bal)>3?'#fbbf24':'#22c55e'}}>
+        Energy Balance — Liquid vs Air Side
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:12}}>
+        <div style={{background:'rgba(180,145,60,.08)',borderRadius:10,padding:'12px 14px',border:'1px solid rgba(180,145,60,.2)'}}>
+          <div className="rn">Q Liquid (primary)</div>
+          <div className="rv" style={{color:'#0ea5e9'}}>{fmt(Qw,4)} kW</div>
+          <div className="ru">{fmt(Qw*3412.14,0)} BTU/h</div>
+        </div>
+        <div style={{background:'rgba(249,115,22,.08)',borderRadius:10,padding:'12px 14px',border:'1px solid rgba(249,115,22,.2)'}}>
+          <div className="rn">Q Air (verification)</div>
+          <div className="rv" style={{color:'#f97316'}}>{fmt(Qa,4)} kW</div>
+          <div className="ru">{lDB===null&&lRH===null&&af===null?'auto estimated':'manual input'}</div>
+        </div>
+        <div style={{background:Math.abs(bal)>8?'rgba(248,113,113,.08)':Math.abs(bal)>3?'rgba(251,191,36,.08)':'rgba(34,197,94,.08)',borderRadius:10,padding:'12px 14px',border:`1px solid ${Math.abs(bal)>8?'rgba(248,113,113,.3)':Math.abs(bal)>3?'rgba(251,191,36,.3)':'rgba(34,197,94,.3)'}`}}>
+          <div className="rn">Deviation</div>
+          <div className="rv" style={{color:Math.abs(bal)>8?'#f87171':Math.abs(bal)>3?'#fbbf24':'#22c55e'}}>{fmt(Math.abs(bal),2)}%</div>
+          <div className="ru">{Math.abs(bal)>8?'❌ Check measurements':Math.abs(bal)>3?'⚠ Acceptable':'✅ Good'}</div>
+        </div>
+      </div>
+      <div className="bar-l">
+        <span style={{color:'#0ea5e9'}}>Liquid Q</span>
+        <span style={{color:Math.abs(bal)>8?'#f87171':Math.abs(bal)>3?'#fbbf24':'#22c55e'}}>{fmt(Math.abs(bal),2)}% deviation</span>
+        <span style={{color:'#f97316'}}>Air Q</span>
+      </div>
+      <div className="bar-t">
+        <div className="bar-f" style={{width:Math.min(100,(Math.abs(bal)/15)*100)+'%',background:Math.abs(bal)>8?'#f87171':Math.abs(bal)>3?'#fbbf24':'#22c55e'}}/>
+      </div>
+    </div>
+
+    {/* ── REFRIGERANT ── */}
     <RefSec unit={unit} refr={ref} setRefr={setRef} sP={sP} setSP={setSP} dP={dP} setDP={setDP} sT={sT} setST={setST}/>
+
+    {/* ── RESULTS ── */}
     <div className="res">
       <div className="rl2">Results</div>
       <div className="rg">
         <div className="ri big">
-          <div className="rn">Q_water - Primary Cooling Output (Water Side)</div>
+          <div className="rn">Q Liquid — Primary Cooling Output</div>
           <div className="rv">{fmt(Qw,4)} kW</div>
-          <div className="ru">{fmt(Qw*3412.14,4)} BTU/h - {fmt(Qw/3.517,4)} tons</div>
+          <div className="ru">{fmt(Qw*3412.14,0)} BTU/h — {fmt(Qw/3.517,4)} tons</div>
         </div>
-        <div className="ri"><div className="rn">EER / COP</div><div className="rv" style={{color:eCol(pw>0?Qw/pw:0)}}>{fmt(pw>0?Qw/pw:0,4)}</div><div className="ru">Q_water / P_el</div></div>
-        <div className="ri"><div className="rn">dT water</div><div className="rv" style={{color:Math.abs(wToC-wTiC)<2?'#f87171':Math.abs(wToC-wTiC)<3?'#fbbf24':'#f0f9ff'}}>{fmt(Math.abs(wToC-wTiC),4)}</div><div className="ru">K {Math.abs(wToC-wTiC)<2?'⚠ too low':Math.abs(wToC-wTiC)<3?'⚠ low':''}</div></div>
+        <div className="ri"><div className="rn">EER / COP</div><div className="rv" style={{color:ec}}>{fmt(eer,4)}</div><div className="ru">Q_liquid / P_el</div></div>
+        <div className="ri"><div className="rn">dT liquid</div><div className="rv">{fmt(dTw,4)}</div><div className="ru">K</div></div>
         <div className="ri"><div className="rn">Flow</div><div className="rv">{fmt(wF,4)}</div><div className="ru">L/s</div></div>
-        <div className="ri" style={{background:Math.abs(bal)>10?'rgba(248,113,113,.06)':'rgba(34,197,94,.06)',border:Math.abs(bal)>10?'1px solid rgba(248,113,113,.2)':'1px solid rgba(34,197,94,.2)'}}>
-          <div className="rn">Q_heat - Air Heat Rejection (Control)</div>
-          <div className="rv" style={{fontSize:20,color:Math.abs(bal)>10?'#f87171':'#22c55e'}}>{fmt(Qa,4)} kW</div>
-          <div className="ru">{Math.abs(bal)>10?'Deviation: '+fmt(Math.abs(bal),1)+'%':'OK: '+fmt(Math.abs(bal),1)+'% dev'}</div>
-        </div>
-        <div className="ri"><div className="rn">dh air</div><div className="rv">{fmt(dh,4)}</div><div className="ru">kJ/kg</div></div>
+        <div className="ri"><div className="rn">Q Air (verif)</div><div className="rv" style={{color:'#f97316'}}>{fmt(Qa,4)}</div><div className="ru">kW heat rejection</div></div>
+        <div className="ri"><div className="rn">Balance</div><div className="rv" style={{color:Math.abs(bal)>8?'#f87171':Math.abs(bal)>3?'#fbbf24':'#22c55e'}}>{fmt(Math.abs(bal),2)}%</div><div className="ru">deviation</div></div>
       </div>
-      {Math.abs(wToC-wTiC)<2&&<div className="warn" style={{marginBottom:8}}>⚠ Water dT = {fmt(Math.abs(wToC-wTiC),4)} K is very low — sensor uncertainty (±0.1°C) causes {fmt(0.1/Math.abs(wToC-wTiC)*100,0)}% Q error. Use more accurate sensors or increase flow.</div>}
-        {Math.abs(wToC-wTiC)>=2&&Math.abs(wToC-wTiC)<3&&<div className="warn" style={{marginBottom:8,background:'rgba(251,191,36,.08)',border:'1px solid rgba(251,191,36,.2)',color:'#fbbf24'}}>⚠ Water dT = {fmt(Math.abs(wToC-wTiC),4)} K is low — verify sensor accuracy.</div>}
-        <div className="fml">
-        <strong>Q_water</strong> = 4.18 x V(L/s) x dT = 4.18 x {fmt(wF,4)} x {fmt(Math.abs(wToC-wTiC),2)} = <strong>{fmt(Qw,4)} kW</strong><br/>
-        <strong>EER</strong> = Q_water / P_el = {fmt(Qw,4)} / {fmt(pw,4)} = <strong>{fmt(pw>0?Qw/pw:0,4)}</strong><br/>
-        <strong>Q_heat</strong> = m x (h_ut - h_inn) = {fmt(mfA,4)} x {fmt(dh,4)} = <strong>{fmt(Qa,4)} kW</strong> (heat rejection control)
-      </div></div>
+      <div className="fml">
+        {useGly
+          ? <><strong>Q</strong> = m × cp × dT = {fmt(wF,4)} × {fmt(gp.rho,3)} × {fmt(gp.cp,3)} × {fmt(dTw,4)} = <strong>{fmt(Qw,4)} kW</strong><br/></>
+          : <><strong>Q</strong> = 4.18 × V(L/s) × dT = 4.18 × {fmt(wF,4)} × {fmt(dTw,4)} = <strong>{fmt(Qw,4)} kW</strong><br/></>
+        }
+        <strong>EER</strong> = {fmt(Qw,4)} / {fmt(pw,4)} = <strong>{fmt(eer,4)}</strong>
+      </div>
+    </div>
     <GuideAL/>
     <div className="brow no-print">
       <button className="bt bt-g" onClick={save}>Save Measurement</button>
@@ -538,8 +738,8 @@ function LiqLiq({unit,job,uid,setLog,setShowLog}){
     setShowLog(true);
   }
   return(<>
-    <div className="card" style={{borderColor:'rgba(56,189,248,.25)'}}>
-      <div className="slbl" style={{color:'#38bdf8'}}>Cold Side - Chilled Water / Glycol</div>
+    <div className="card" style={{borderColor:'rgba(201,168,76,.25)'}}>
+      <div className="slbl" style={{color:'#d4a843'}}>Cold Side - Chilled Water / Glycol</div>
       <div className="field"><div className="lbl">Fluid Type</div>
         <select value={cFt} onChange={e=>setCFt(e.target.value)}><option value="water">Water</option><option value="glycol">Ethylene Glycol / Water</option></select>
       </div>
@@ -548,14 +748,14 @@ function LiqLiq({unit,job,uid,setLog,setShowLog}){
         <div style={{fontSize:11,color:'#475569',marginTop:5}}>cp = {fmt(cpC,4)} kJ/kg K</div>
       </div>}
       <div className="three">
-        <div className="field"><div className="lbl"><span>T Inlet</span><span className="utag">deg {unit}</span></div><FloatInput value={cTi} onChange={setCTi} min={-30} max={50} step={0.0001} style={{borderColor:'rgba(56,189,248,.4)'}}/></div>
-        <div className="field"><div className="lbl"><span>T Outlet</span><span className="utag">deg {unit}</span></div><FloatInput value={cTo} onChange={setCTo} min={-30} max={50} step={0.0001} style={{borderColor:'rgba(56,189,248,.4)'}}/></div>
-        <div className="field"><div className="lbl"><span>Flow</span><span className="utag">L/s</span></div><FloatInput value={cF} onChange={setCF} min={0.001} max={100} step={0.0001} style={{borderColor:'rgba(56,189,248,.4)'}}/></div>
+        <div className="field"><div className="lbl"><span>T Inlet</span><span className="utag">deg {unit}</span></div><FloatInput value={cTi} onChange={setCTi} min={-30} max={50} step={0.0001} style={{borderColor:'rgba(201,168,76,.4)'}}/></div>
+        <div className="field"><div className="lbl"><span>T Outlet</span><span className="utag">deg {unit}</span></div><FloatInput value={cTo} onChange={setCTo} min={-30} max={50} step={0.0001} style={{borderColor:'rgba(201,168,76,.4)'}}/></div>
+        <div className="field"><div className="lbl"><span>Flow</span><span className="utag">L/s</span></div><FloatInput value={cF} onChange={setCF} min={0.001} max={100} step={0.0001} style={{borderColor:'rgba(201,168,76,.4)'}}/></div>
       </div>
-      <div className="irow" style={{borderColor:'rgba(56,189,248,.25)',background:'rgba(56,189,248,.05)'}}>
-        <span><span className="ik">dT</span><span className="iv" style={{color:'#38bdf8'}}>{fmt(Math.abs(cToC-cTiC),2)}</span><span className="iu"> K</span></span>
-        <span><span className="ik">m</span><span className="iv" style={{color:'#38bdf8'}}>{fmt(mC,4)}</span><span className="iu"> kg/s</span></span>
-        <span><span className="ik">Q cold</span><span className="iv" style={{color:'#38bdf8'}}>{fmt(Qc,4)}</span><span className="iu"> kW</span></span>
+      <div className="irow" style={{borderColor:'rgba(201,168,76,.25)',background:'rgba(201,168,76,.05)'}}>
+        <span><span className="ik">dT</span><span className="iv" style={{color:'#d4a843'}}>{fmt(Math.abs(cToC-cTiC),2)}</span><span className="iu"> K</span></span>
+        <span><span className="ik">m</span><span className="iv" style={{color:'#d4a843'}}>{fmt(mC,4)}</span><span className="iu"> kg/s</span></span>
+        <span><span className="ik">Q cold</span><span className="iv" style={{color:'#d4a843'}}>{fmt(Qc,4)}</span><span className="iu"> kW</span></span>
       </div>
     </div>
     <div className="card" style={{borderColor:'rgba(251,191,36,.25)'}}>
@@ -667,7 +867,7 @@ function GuideAA(){
           <div>
             <div className="gs gs-blue">Airflow</div>
             <div className="guide-row">
-              <div className="guide-num" style={{background:'rgba(56,189,248,.2)',color:'#7dd3fc'}}>5</div>
+              <div className="guide-num" style={{background:'rgba(201,168,76,.2)',color:'#d4a843'}}>5</div>
               <div className="guide-content">
                 <h4>Volume flow (m3/h)</h4>
                 <p>Vane anemometer, min 5 points across grille. Multiply by free area factor (0.65-0.80). Steady-state only - system must run 10-15 min first.</p>
@@ -677,7 +877,7 @@ function GuideAA(){
           <div>
             <div className="gs gs-blue">Power</div>
             <div className="guide-row">
-              <div className="guide-num" style={{background:'rgba(56,189,248,.2)',color:'#7dd3fc'}}>6</div>
+              <div className="guide-num" style={{background:'rgba(201,168,76,.2)',color:'#d4a843'}}>6</div>
               <div className="guide-content">
                 <h4>Compressor power (kW)</h4>
                 <p>Clamp meter on live wire. Record kW not kVA. Steady-state only. Inverter units: average over 1 min.</p>
@@ -703,14 +903,14 @@ function GuideAL(){
           <div>
             <div className="gs gs-blue">Liquid side (primary)</div>
             <div className="guide-row">
-              <div className="guide-num" style={{background:'rgba(56,189,248,.2)',color:'#7dd3fc'}}>1</div>
+              <div className="guide-num" style={{background:'rgba(201,168,76,.2)',color:'#d4a843'}}>1</div>
               <div className="guide-content">
                 <h4>Water temperatures (T inn / T ut)</h4>
                 <p>Immersion sensor or insulated clamp-on PT100 directly on pipe. T inn = cold water in, T ut = warmer water out. Avoid elbows and valves.</p>
               </div>
             </div>
             <div className="guide-row">
-              <div className="guide-num" style={{background:'rgba(56,189,248,.2)',color:'#7dd3fc'}}>2</div>
+              <div className="guide-num" style={{background:'rgba(201,168,76,.2)',color:'#d4a843'}}>2</div>
               <div className="guide-content">
                 <h4>Water flow (L/s)</h4>
                 <p>Ultrasonic clamp-on flow meter. Min 10 pipe diameters straight run before sensor. Formula: Q = 4.18 x V(L/s) x dT. 5% flow error = 5% Q error.</p>
@@ -753,14 +953,14 @@ function GuideLL(){
           <div>
             <div className="gs gs-blue">Cold side (chilled water / glycol)</div>
             <div className="guide-row">
-              <div className="guide-num" style={{background:'rgba(56,189,248,.2)',color:'#7dd3fc'}}>1</div>
+              <div className="guide-num" style={{background:'rgba(201,168,76,.2)',color:'#d4a843'}}>1</div>
               <div className="guide-content">
                 <h4>T inlet + T outlet</h4>
                 <p>Immersion or insulated clamp-on PT100. Measure close to heat exchanger. Even 0.1 C error at 2 C dT = 5% Q error - 4 decimals matters here.</p>
               </div>
             </div>
             <div className="guide-row">
-              <div className="guide-num" style={{background:'rgba(56,189,248,.2)',color:'#7dd3fc'}}>2</div>
+              <div className="guide-num" style={{background:'rgba(201,168,76,.2)',color:'#d4a843'}}>2</div>
               <div className="guide-content">
                 <h4>Flow (L/s) + glycol %</h4>
                 <p>Ultrasonic clamp-on preferred. Use refractometer to verify actual glycol %. Wrong concentration = wrong cp = wrong Q. Calculator adjusts cp and density automatically.</p>
@@ -795,6 +995,7 @@ function App(){
   const [mode,setMode]=useState("aa");
   const [unit,setUnit]=useState("C");
   const [job,setJob]=useState("");const [uid,setUid]=useState("");
+  const [pKpa,setPKpa]=useState(101.5);
   const [log,setLog]=useState(()=>{try{return JSON.parse(localStorage.getItem('ndt_log')||'[]')}catch{return[]}});
   const [showLog,setShowLog]=useState(false);
   useEffect(()=>{localStorage.setItem('ndt_log',JSON.stringify(log))},[log]);
@@ -811,10 +1012,10 @@ function App(){
       <div className="wrap">
         <div style={{marginBottom:28}}>
           <div style={{fontFamily:'Syne,sans-serif',fontSize:'clamp(34px,7vw,66px)',fontWeight:800,color:'#f0f9ff',letterSpacing:'-.03em',lineHeight:1,marginBottom:5}}>
-            Nodi<span style={{color:'#38bdf8'}}>tech</span> <span style={{color:'#38bdf8'}}>AB</span>
+            Nodi<span style={{color:'#d4a843'}}>tech</span> <span style={{color:'#d4a843'}}>AB</span>
           </div>
-          <div style={{fontFamily:'Syne,sans-serif',fontSize:'clamp(16px,3vw,24px)',fontWeight:700,color:'#94a3b8',marginBottom:3}}>Cooling and EER Calculator</div>
-          <div style={{fontSize:11,color:'#475569',letterSpacing:'.08em',marginBottom:18}}>by Simen Olsen Allum</div>
+          <div style={{fontFamily:'Syne,sans-serif',fontSize:'clamp(16px,3vw,24px)',fontWeight:700,color:'#c8b89a',marginBottom:3}}>Cooling and EER Calculator</div>
+          <div style={{fontSize:11,color:'#8a7a65',letterSpacing:'.08em',marginBottom:18}}>by Simen Olsen Allum</div>
           <div className="modes">
             {[{id:"aa",icon:"A/A",label:"Air / Air",sub:"Luft til luft"},{id:"al",icon:"A/L",label:"Air / Liquid",sub:"Luft til vann"},{id:"ll",icon:"L/L",label:"Liquid / Liquid",sub:"Vann til vann"}].map(m=>(
               <button key={m.id} className={"mbt"+(mode===m.id?" on":"")} onClick={()=>setMode(m.id)}>
@@ -831,16 +1032,26 @@ function App(){
             <div className="field"><div className="lbl">Job / Location</div><input type="text" placeholder="e.g. Office 3rd floor" value={job} onChange={e=>setJob(e.target.value)}/></div>
             <div className="field"><div className="lbl">Unit ID / Serial</div><input type="text" placeholder="e.g. AHU-01" value={uid} onChange={e=>setUid(e.target.value)}/></div>
           </div>
+          <div className="field" style={{marginTop:10}}>
+            <div className="lbl">
+              <span>Atmospheric Pressure</span>
+              <span className="utag">kPa</span>
+            </div>
+            <FloatInput value={pKpa} onChange={setPKpa} min={90} max={106} step={0.1}/>
+            <div style={{fontSize:9,color:'#8a7a65',marginTop:4}}>
+              = {fmt(pKpa*1000,0)} Pa · Standard: 101.325 kPa · Norrköping typical: 101.5–102.3 kPa
+            </div>
+          </div>
         </div>
         <div className="card no-print">
           <div className="slbl">Temperature Unit</div>
           <div style={{display:'flex',gap:8}}>
-            {["C","F"].map(u=><button key={u} onClick={()=>setUnit(u)} style={{flex:1,padding:'9px',borderRadius:8,border:'1px solid',borderColor:unit===u?'#38bdf8':'rgba(255,255,255,.1)',background:unit===u?'rgba(56,189,248,.12)':'rgba(255,255,255,.03)',color:unit===u?'#38bdf8':'#64748b',fontFamily:'DM Mono,monospace',fontSize:13,cursor:'pointer'}}>deg {u}</button>)}
+            {["C","F"].map(u=><button key={u} onClick={()=>setUnit(u)} style={{flex:1,padding:'9px',borderRadius:8,border:'1px solid',borderColor:unit===u?'#d4a843':'rgba(255,255,255,.1)',background:unit===u?'rgba(201,168,76,.15)':'rgba(255,255,255,.03)',color:unit===u?'#d4a843':'#8a7a65',fontFamily:'DM Mono,monospace',fontSize:13,cursor:'pointer'}}>deg {u}</button>)}
           </div>
         </div>
-        {mode==="aa"&&<AirAir unit={unit} job={job} uid={uid} setLog={setLog} setShowLog={setShowLog}/>}
-        {mode==="al"&&<AirLiquid unit={unit} job={job} uid={uid} setLog={setLog} setShowLog={setShowLog}/>}
-        {mode==="ll"&&<LiqLiq unit={unit} job={job} uid={uid} setLog={setLog} setShowLog={setShowLog}/>}
+        {mode==="aa"&&<AirAir unit={unit} job={job} uid={uid} setLog={setLog} setShowLog={setShowLog} pAtm={pKpa*1000}/>}
+        {mode==="al"&&<AirLiquid unit={unit} job={job} uid={uid} setLog={setLog} setShowLog={setShowLog} pAtm={pKpa*1000}/>}
+        {mode==="ll"&&<LiqLiq unit={unit} job={job} uid={uid} setLog={setLog} setShowLog={setShowLog} pAtm={pKpa*1000}/>}
         <EnergyRating mode={mode}/>
         <div className="brow no-print" style={{marginTop:8}}>
           <button className="bt bt-y" onClick={()=>setShowLog(v=>!v)}>{showLog?"Hide":"Show"} Log ({log.length})</button>
@@ -861,8 +1072,8 @@ function App(){
                         <td>{e.uid}</td>
                         <td style={{color:RCOL[e.ref]||'#94a3b8',fontWeight:600}}>{e.ref}</td>
                         <td>{e.t1}</td>
-                        <td style={{color:'#38bdf8'}}>{e.t2}</td>
-                        <td style={{color:'#38bdf8',fontWeight:600}}>{e.Q}</td>
+                        <td style={{color:'#d4a843'}}>{e.t2}</td>
+                        <td style={{color:'#d4a843',fontWeight:600}}>{e.Q}</td>
                         <td style={{color:eCol(parseFloat(e.eer)),fontWeight:600}}>{e.eer}</td>
                         <td>{e.sh}</td>
                         <td>{e.tE}</td>
@@ -1063,8 +1274,8 @@ function EnergyRating({mode}){
   // ── Tab button style ──────────────────────────────────────────────────
   function tabStyle(id){
     const on=tab===id;
-    const cols={iseer:'#fbbf24',eu:'#38bdf8',us:'#a855f7'};
-    const c=cols[id]||'#38bdf8';
+    const cols={iseer:'#fbbf24',eu:'#d4a843',us:'#a855f7'};
+    const c=cols[id]||'#d4a843';
     return{flex:1,padding:'8px 6px',borderRadius:7,border:'1px solid',
       borderColor:on?c:'rgba(255,255,255,.08)',
       background:on?`rgba(${id==='iseer'?'245,158,11':id==='eu'?'56,189,248':'139,92,246'},.12)`:'rgba(255,255,255,.02)',
@@ -1077,7 +1288,7 @@ function EnergyRating({mode}){
   const modeLabel=isAA?"Air / Air":isAL?"Air / Liquid":"Liquid / Liquid";
 
   return(
-    <div className="card" style={{borderColor:'rgba(56,189,248,.15)',marginTop:14}}>
+    <div className="card" style={{borderColor:'rgba(201,168,76,.15)',marginTop:14}}>
       <button className="guide-btn" onClick={()=>setOpen(v=>!v)} style={{marginBottom:open?14:0}}>
         <span>Energy Rating — {modeLabel} &nbsp;
           <span style={{fontSize:10,opacity:.6}}>
@@ -1107,9 +1318,9 @@ function EnergyRating({mode}){
               </div>
             </div>
             {/* EU card */}
-            <div style={{background:'rgba(0,0,0,.25)',borderRadius:12,padding:'14px',border:'1px solid rgba(56,189,248,.25)',cursor:'pointer',outline:tab==='eu'?'2px solid #38bdf8':'none'}} onClick={()=>setTab('eu')}>
-              <div style={{fontSize:9,letterSpacing:'.12em',textTransform:'uppercase',color:'#38bdf8',marginBottom:8}}>EU ErP / EN 14825</div>
-              <div style={{fontFamily:'Syne,sans-serif',fontSize:28,fontWeight:800,color:'#38bdf8',lineHeight:1}}>{fn(SEER_EU,2)}</div>
+            <div style={{background:'rgba(0,0,0,.25)',borderRadius:12,padding:'14px',border:'1px solid rgba(201,168,76,.25)',cursor:'pointer',outline:tab==='eu'?'2px solid #38bdf8':'none'}} onClick={()=>setTab('eu')}>
+              <div style={{fontSize:9,letterSpacing:'.12em',textTransform:'uppercase',color:'#d4a843',marginBottom:8}}>EU ErP / EN 14825</div>
+              <div style={{fontFamily:'Syne,sans-serif',fontSize:28,fontWeight:800,color:'#d4a843',lineHeight:1}}>{fn(SEER_EU,2)}</div>
               <div style={{fontSize:10,color:'#64748b',marginTop:2,marginBottom:8}}>SEER</div>
               <div style={{background:euRating.bg,borderRadius:7,padding:'7px',textAlign:'center',border:'1px solid '+euRating.color}}>
                 <div style={{fontFamily:'Syne,sans-serif',fontSize:20,fontWeight:800,color:euRating.color}}>{euRating.cls}</div>
@@ -1181,8 +1392,8 @@ function EnergyRating({mode}){
 
           {/* EU inputs */}
           {tab==='eu'&&(
-            <div style={{background:'rgba(56,189,248,.05)',border:'1px solid rgba(56,189,248,.15)',borderRadius:10,padding:'14px 16px'}}>
-              <div style={{fontSize:9,color:'#38bdf8',letterSpacing:'.15em',textTransform:'uppercase',marginBottom:12}}>
+            <div style={{background:'rgba(201,168,76,.05)',border:'1px solid rgba(201,168,76,.15)',borderRadius:10,padding:'14px 16px'}}>
+              <div style={{fontSize:9,color:'#d4a843',letterSpacing:'.15em',textTransform:'uppercase',marginBottom:12}}>
                 EU SEER Test Data — EN 14825 / ErP Reg 2016/2281
               </div>
               <div style={{fontSize:9,color:'#64748b',marginBottom:12,lineHeight:1.6}}>
@@ -1192,25 +1403,25 @@ function EnergyRating({mode}){
               </div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14}}>
                 <div>
-                  <div style={{fontSize:9,color:'#38bdf8',marginBottom:6,textTransform:'uppercase',letterSpacing:'.08em'}}>35°C — Full load</div>
+                  <div style={{fontSize:9,color:'#d4a843',marginBottom:6,textTransform:'uppercase',letterSpacing:'.08em'}}>35°C — Full load</div>
                   <NumField label="Capacity" val={e_capF35} set={setE_capF35} utag="W"/>
                   <NumField label="Power" val={e_powF35} set={setE_powF35} utag="W"/>
                   <div style={{fontSize:9,color:'#94a3b8',marginTop:4}}>EER: {fn(e_capF35/e_powF35,3)}</div>
                 </div>
                 <div>
-                  <div style={{fontSize:9,color:'#38bdf8',marginBottom:6,textTransform:'uppercase',letterSpacing:'.08em'}}>29°C — Curve reference</div>
+                  <div style={{fontSize:9,color:'#d4a843',marginBottom:6,textTransform:'uppercase',letterSpacing:'.08em'}}>29°C — Curve reference</div>
                   <NumField label="Capacity" val={e_capF29} set={setE_capF29} utag="W"/>
                   <NumField label="Power" val={e_powF29} set={setE_powF29} utag="W"/>
                   <div style={{fontSize:9,color:'#94a3b8',marginTop:4}}>EER: {fn(e_capF29/e_powF29,3)}</div>
                 </div>
                 <div>
-                  <div style={{fontSize:9,color:'#38bdf8',marginBottom:6,textTransform:'uppercase',letterSpacing:'.08em'}}>Bins used (Strasbourg)</div>
+                  <div style={{fontSize:9,color:'#d4a843',marginBottom:6,textTransform:'uppercase',letterSpacing:'.08em'}}>Bins used (Strasbourg)</div>
                   <div style={{fontSize:9,color:'#475569',lineHeight:1.8,background:'rgba(0,0,0,.2)',borderRadius:6,padding:'8px 10px'}}>
                     <div>20°C — 205 hours</div>
                     <div>25°C — 227 hours</div>
                     <div>30°C — 225 hours</div>
                     <div>35°C — 270 hours</div>
-                    <div style={{marginTop:4,color:'#38bdf8'}}>Total: 927 hours</div>
+                    <div style={{marginTop:4,color:'#d4a843'}}>Total: 927 hours</div>
                   </div>
                   <NumField label="Degradation coeff. Cd" val={e_Cd} set={setE_Cd} utag="0–1" step={0.01}/>
                 </div>
@@ -1266,7 +1477,7 @@ function EnergyRating({mode}){
       {open&&(isAL||isLL)&&(
         <div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:14}}>
-            <div style={{background:'rgba(56,189,248,.07)',border:'1px solid rgba(56,189,248,.2)',borderRadius:8,padding:'10px 12px',fontSize:9,color:'#7dd3fc',lineHeight:1.7}}>
+            <div style={{background:'rgba(201,168,76,.07)',border:'1px solid rgba(201,168,76,.2)',borderRadius:8,padding:'10px 12px',fontSize:9,color:'#d4a843',lineHeight:1.7}}>
               <strong>EU — EN 14511 EER</strong><br/>
               {isAL?'Q = 4.18 x V(L/s) x dT_water':'Q = V x rho x cp x dT'}<br/>
               EER = Q_cold / P_el<br/>
@@ -1283,7 +1494,7 @@ function EnergyRating({mode}){
           <div className="slbl">Measured Data — Direct EER Calculation</div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14,marginBottom:14}}>
             <div>
-              <div style={{fontSize:9,color:'#38bdf8',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:8}}>
+              <div style={{fontSize:9,color:'#d4a843',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:8}}>
                 {isAL?'Water Side (Chilled Water)':'Cold Side (Chilled Water)'}
               </div>
               <NumField label="T inlet" val={al_wTi} set={setAl_wTi} utag="°C" step={0.0001}/>
@@ -1345,9 +1556,9 @@ function EnergyRating({mode}){
             return(
               <div>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:12}}>
-                  <div style={{background:'rgba(0,0,0,.25)',borderRadius:12,padding:'14px',border:'1px solid rgba(56,189,248,.25)'}}>
-                    <div style={{fontSize:9,color:'#38bdf8',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:8}}>Q Cold — Cooling Output</div>
-                    <div style={{fontFamily:'Syne,sans-serif',fontSize:28,fontWeight:800,color:'#38bdf8',lineHeight:1}}>{fn(Qc,4)}</div>
+                  <div style={{background:'rgba(0,0,0,.25)',borderRadius:12,padding:'14px',border:'1px solid rgba(201,168,76,.25)'}}>
+                    <div style={{fontSize:9,color:'#d4a843',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:8}}>Q Cold — Cooling Output</div>
+                    <div style={{fontFamily:'Syne,sans-serif',fontSize:28,fontWeight:800,color:'#d4a843',lineHeight:1}}>{fn(Qc,4)}</div>
                     <div style={{fontSize:10,color:'#64748b',marginTop:2}}>kW</div>
                     <div style={{fontSize:9,color:'#475569',marginTop:8}}>{fn(Qc*3412.14,0)} BTU/h<br/>{fn(Qc/3.517,4)} tons</div>
                   </div>
