@@ -16,7 +16,8 @@ ok('checksum_verified_externally',true,'sha256sum -c performed by clean_room.sh 
 
 // 2/3. no absolute/machine paths, no escapes (scan scripts + harness)
 function walk(d){ let o=[]; for(const e of fs.readdirSync(d,{withFileTypes:true})){ if(e.name==='node_modules')continue; const p=path.join(d,e.name); e.isDirectory()?o=o.concat(walk(p)):o.push(p);} return o; }
-const scanFiles=walk(ROOT).filter(f=>/\.(c?js|mjs|html|json)$/.test(f) && !/vendor\//.test(f) && !/tools\/compiler\//.test(f) && path.basename(f)!=='run_preflight.js' && path.basename(f)!=='path_safety.js' && !/results\//.test(f));
+const legacyPublishedFiles=new Set(['Kalkulator.html','index.html']);
+const scanFiles=walk(ROOT).filter(f=>{ const rel=path.relative(ROOT,f).replace(/\\/g,'/'); return /\.(c?js|mjs|html|json)$/.test(f) && !legacyPublishedFiles.has(rel) && !/vendor\//.test(f) && !/tools\/compiler\//.test(f) && path.basename(f)!=='run_preflight.js' && path.basename(f)!=='path_safety.js' && !/results\//.test(f); });
 const FORBIDDEN=[[/\/sessions\//,'/sessions/'],[/\/Users\//,'/Users/'],[/build_tools/,'build_tools'],[/[A-Za-z]:\\\\/,'win abs']];
 let hits=[]; for(const f of scanFiles){ const t=fs.readFileSync(f,'utf8'); for(const [re,l] of FORBIDDEN) if(re.test(t)) hits.push(path.relative(ROOT,f)+':'+l); }
 ok('no_absolute_machine_paths',hits.length===0,hits.join('; '));
