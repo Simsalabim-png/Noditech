@@ -1,0 +1,18 @@
+{
+  "name": "engcalc-step3-browser-gate",
+  "version": "3.7.0",
+  "private": true,
+  "description": "Step 3.7 browser gate. Product Owner & IP Owner: Simen Allum. Noditech: Customer Zero only.",
+  "engines": { "node": ">=22" },
+  "dependencies": {},
+  "devDependencies": {},
+  "scripts": {
+    "extract": "node tests/extract_app_source.js",
+    "compile": "node tests/compile_app.js",
+    "preflight": "node tests/run_preflight.js",
+    "offline": "node tests/run_offline_suite.js",
+    "server": "node chromium/server.js",
+    "chromium": "node chromium/run_chromium.js"
+  },
+  "note": "No npm dependencies. The only build dependency is the locked, packaged compiler tools/compiler/babel.standalone.7.23.2.min.js, pinned by SHA-256 in tools/compiler/compiler.lock.json. The browser runner uses Node built-ins (WebSocket, http) only."
+}

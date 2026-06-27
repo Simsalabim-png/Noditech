@@ -1,0 +1,13 @@
+{
+  "runtime_npm_dependencies": [],
+  "build_dependencies": [
+    {"name":"@babel/standalone","version":"7.23.2","role":"build-time JSX compiler (non-browser)","file":"tools/compiler/babel.standalone.7.23.2.min.js","lockfile":"tools/compiler/compiler.lock.json","pinned_by":"sha256","sha256":"7bcd2533d8908a1545817804bcb78aeaf9bd6771694bc0f62cc44bfce4f135b2"}
+  ],
+  "browser_runtime_files": [
+    {"library":"react","version":"18.2.0","file":"vendor/react.production.min.js"},
+    {"library":"react-dom","version":"18.2.0","file":"vendor/react-dom.production.min.js"}
+  ],
+  "browser_control": "chromium/run_chromium.js (Node built-in WebSocket CDP driver; no npm).",
+  "static_server": "chromium/server.js (Node built-in http; no npm).",
+  "lock_strategy": "Network-independent: every dependency is packaged inside the ZIP and pinned by SHA-256. No npm install is required to run the gate."
+}

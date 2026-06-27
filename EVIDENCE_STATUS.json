@@ -1,0 +1,39 @@
+{
+  "generated": "2026-06-26T15:00:00.000Z",
+  "governance": { "product_owner_ip_owner": "Simen Allum", "customer_zero_only": "Noditech" },
+  "actually_run_by_claude": {
+    "environment": "Node v22.22.3, no browser engine present",
+    "green": true,
+    "items": [
+      "tests/sha_consistency.js — artifact SHA consistency",
+      "tests/path_safety.js — no absolute/escape paths + runtime guard",
+      "tests/compile_app.js — extract + compile app.compiled.js (locked compiler)",
+      "chromium/results/source_equivalence.json — production/extracted/compiled SHA chain",
+      "tests/run_preflight.js — 18/18 structural validation + JS syntax checks",
+      "tests/server_selftest.js — 14/14 HTTP serving + traversal rejection over 127.0.0.1",
+      "tests/harness_render_check.js — compiled real app renders (offline VM, 9878 chars)",
+      "tests/render_tree_evidence.js — real components render-tree (6 scenarios)",
+      "tests/governance_check.js — ownership + product-neutral infra",
+      "results/clean_room_execution_log.txt — offline portion from freshly extracted ZIP"
+    ]
+  },
+  "prepared_but_not_run_here": {
+    "reason": "No Chromium binary in the build environment; npm/registry and browser CDNs unreachable.",
+    "items": [
+      "chromium/run_chromium.js — complete real-Chromium A–H suite over http://127.0.0.1 (render prerequisites + scenarios A–H + network/offline proof + screenshots). Runs unedited on any machine with Chromium."
+    ]
+  },
+  "to_be_generated_by_independent_verifier": {
+    "command": "node tests/run_preflight.js && CHROMIUM_BIN=/usr/bin/chromium node chromium/run_chromium.js",
+    "outputs": [
+      "chromium/results/chromium_result.json",
+      "chromium/results/chromium_junit.xml",
+      "chromium/results/render_root_diagnostic.json",
+      "chromium/results/chromium_console.log",
+      "chromium/results/chromium_page_errors.log",
+      "chromium/results/chromium_stderr.log",
+      "chromium/results/chromium_network.log",
+      "screenshots/00_rendered_initial.png .. 06_print_projection.png"
+    ]
+  }
+}

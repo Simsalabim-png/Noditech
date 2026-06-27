@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="step3.8-preflight" tests="23" failures="0">
+  <testsuite name="preflight" tests="23" failures="0">
+    <testcase classname="step3.8.preflight" name="checksum_verified_externally"></testcase>
+    <testcase classname="step3.8.preflight" name="no_absolute_machine_paths"></testcase>
+    <testcase classname="step3.8.preflight" name="no_package_root_escape"></testcase>
+    <testcase classname="step3.8.preflight" name="exactly_one_root"></testcase>
+    <testcase classname="step3.8.preflight" name="html_parses"></testcase>
+    <testcase classname="step3.8.preflight" name="referenced_scripts_exist"></testcase>
+    <testcase classname="step3.8.preflight" name="no_external_resource_refs"></testcase>
+    <testcase classname="step3.8.preflight" name="react_parses_js"></testcase>
+    <testcase classname="step3.8.preflight" name="reactdom_parses_js"></testcase>
+    <testcase classname="step3.8.preflight" name="app_compiled_parses_js"></testcase>
+    <testcase classname="step3.8.preflight" name="app_compiled_no_jsx"></testcase>
+    <testcase classname="step3.8.preflight" name="app_compiled_no_text_babel"></testcase>
+    <testcase classname="step3.8.preflight" name="app_compiled_no_script_tags"></testcase>
+    <testcase classname="step3.8.preflight" name="app_compiled_no_cdn"></testcase>
+    <testcase classname="step3.8.preflight" name="production_artifact_sha"></testcase>
+    <testcase classname="step3.8.preflight" name="source_equivalence_prod_sha"></testcase>
+    <testcase classname="step3.8.preflight" name="source_equivalence_compiled_matches_file"></testcase>
+    <testcase classname="step3.8.preflight" name="obsolete_sha_absent"></testcase>
+    <testcase classname="step3.8.preflight" name="extracted_source_sha"></testcase>
+    <testcase classname="step3.8.preflight" name="generated_app_sha"></testcase>
+    <testcase classname="step3.8.preflight" name="browser_assertions_present"></testcase>
+    <testcase classname="step3.8.preflight" name="governance_data_present"></testcase>
+    <testcase classname="step3.8.preflight" name="result_dirs_writable"></testcase>
+  </testsuite>
+</testsuites>

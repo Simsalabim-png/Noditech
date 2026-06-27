@@ -1,0 +1,35 @@
+{
+  "generated": "2026-06-26T15:00:00.000Z",
+  "summary": {
+    "total": 4,
+    "pass": 4,
+    "fails": 0
+  },
+  "checks": [
+    {
+      "name": "product_owner_simen_allum",
+      "pass": true,
+      "detail": "PO/IP = Simen Allum"
+    },
+    {
+      "name": "noditech_customer_zero",
+      "pass": true,
+      "detail": "Noditech = Customer Zero only"
+    },
+    {
+      "name": "reusable_infra_product_neutral",
+      "pass": true,
+      "detail": "no hardcoded customer name in: none"
+    },
+    {
+      "name": "neutral_harness_identity",
+      "pass": true,
+      "detail": "EngCalc neutral identity"
+    }
+  ],
+  "ownership": {
+    "product_owner": "Simen Allum",
+    "ip_owner": "Simen Allum",
+    "customer_zero": "Noditech"
+  }
+}

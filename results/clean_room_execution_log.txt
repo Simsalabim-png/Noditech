@@ -1,0 +1,117 @@
+Step 3.8 CLEAN-ROOM EXECUTION LOG
+Date: 2026-06-26T22:17:54Z  Node: v22.22.3  OS: Linux 6.8.0-124-generic
+Method: extract delivered ZIP into NEW empty dir; run ONLY packaged files.
+====================
+clean-room dir: /sessions/friendly-dreamy-bohr/tmp/tmp.29RxLZYN6y
+package root: /sessions/friendly-dreamy-bohr/tmp/tmp.29RxLZYN6y/extracted/STEP3_8_BROWSER_GATE
+
+== 2. verify SHA256SUMS.txt ==
+.github/workflows/step3-browser-gate.yml: OK
+CI_EXECUTION_INSTRUCTIONS.md: OK
+EVIDENCE_STATUS.json: OK
+INDEPENDENT_VERIFIER_WEB_CHECKLIST.md: OK
+MANIFEST.md: OK
+STEP3_8_COMPLETION_REPORT.md: OK
+chromium/generated/app.compiled.js: OK
+chromium/results/PENDING_BROWSER_RESULTS.md: OK
+chromium/results/js_syntax_check.json: OK
+chromium/results/preflight_junit.xml: OK
+chromium/results/source_equivalence.json: OK
+chromium/results/structural_validation.json: OK
+chromium/run_chromium.js: OK
+chromium/server.js: OK
+chromium/test_harness.html: OK
+corrected/Kalkulator_build9.6-rc8_step3_4.src.html: OK
+dependency_manifest.json: OK
+package.json: OK
+results/defect_evidence_update.json: OK
+results/governance_result.json: OK
+results/offline_junit.xml: OK
+results/offline_suite_result.json: OK
+results/render_tree_evidence.json: OK
+tests/clean_room.sh: OK
+tests/compile_app.js: OK
+tests/engine.js: OK
+tests/extract_app_source.js: OK
+tests/governance_check.js: OK
+tests/harness_render_check.js: OK
+tests/mount.js: OK
+tests/path_safety.js: OK
+tests/render_tree_evidence.js: OK
+tests/run_offline_suite.js: OK
+tests/run_preflight.js: OK
+tests/server_selftest.js: OK
+tests/sha_consistency.js: OK
+tools/compiler/babel.standalone.7.23.2.min.js: OK
+tools/compiler/compiler.lock.json: OK
+vendor/VENDOR_MANIFEST.json: OK
+vendor/react-dom.production.min.js: OK
+vendor/react.production.min.js: OK
+
+== 3. path / package-boundary checks ==
+PASS no machine-specific/absolute paths in package scripts
+PASS all generators resolve via __dirname
+PASS runtime guard: compile performed no filesystem access outside package root
+
+PATH-SAFETY OK
+
+== 4. extract application source ==
+prod_sha 8a0e39b68116c87797f380756ec4affd6ed5d79e3aef03521d5e63e58d82813b
+source_sha 1d841f323b3646af5ac0c0c64d83f3d7bbedf8b9fefe48930748d7394fa38bbd bytes 287659
+
+== 5. compile app.compiled.js ==
+compiled -> chromium/generated/app.compiled.js | source_sha 1d841f323b36 | compiled_sha 02a033a96c13
+
+== 6. source equivalence ==
+PASS packaged production SHA = 8a0e39b6… (current)
+PASS obsolete SHA 8ce2c498… absent
+PASS runner binds current SHA, not obsolete
+PASS source_equivalence production SHA == current
+
+SHA-CONSISTENCY OK
+
+== 7-9. structural + JS syntax ==
+PASS checksum_verified_externally
+PASS no_absolute_machine_paths
+PASS no_package_root_escape
+PASS exactly_one_root
+PASS html_parses
+PASS referenced_scripts_exist
+PASS no_external_resource_refs
+PASS react_parses_js
+PASS reactdom_parses_js
+PASS app_compiled_parses_js
+PASS app_compiled_no_jsx
+PASS app_compiled_no_text_babel
+PASS app_compiled_no_script_tags
+PASS app_compiled_no_cdn
+PASS production_artifact_sha
+PASS source_equivalence_prod_sha
+PASS source_equivalence_compiled_matches_file
+PASS obsolete_sha_absent
+PASS extracted_source_sha
+PASS generated_app_sha
+PASS browser_assertions_present
+PASS governance_data_present
+PASS result_dirs_writable
+
+PREFLIGHT 23/23  ALL GREEN
+
+== 10. local static server ==
+SERVER SELF-TEST 14/14  ALL GREEN
+
+== render proofs (offline) ==
+harness render check (compiled app): PASS | executed=true render=true textLen=9878 
+
+== consolidated offline suite ==
+OFFLINE SUITE 8/8  ALL GREEN
+
+== 11. real Chromium A–H suite ==
+CHROMIUM RUN ERROR: no installed Chromium found. Set CHROMIUM_BIN=/path/to/chrome and re-run. This package does NOT download a browser.
+  Chromium: PENDING_INDEPENDENT_BROWSER_VERIFICATION (no installed browser here) — run in CI / set CHROMIUM_BIN
+
+================ CLEAN-ROOM SUMMARY ================
+offline gate failures: 0
+chromium: PENDING (exit 3; 0=pass, 3=no browser present)
+CLEAN-ROOM OFFLINE: ALL GREEN
+CLEAN-ROOM SCRIPT EXIT: 0

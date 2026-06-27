@@ -1,0 +1,35 @@
+{
+  "defect_id": "DEF-AL-PRESSURE",
+  "title": "A/L air-side ignored supplied atmospheric pressure (used hidden 101500 Pa default)",
+  "state": "PENDING_INDEPENDENT_BROWSER_VERIFICATION",
+  "governance": {
+    "product_owner_ip_owner": "Simen Allum",
+    "customer_zero_only": "Noditech",
+    "reusable_code": "product-neutral"
+  },
+  "corrected_artifact": {
+    "file": "corrected/Kalkulator_build9.6-rc8_step3_4.src.html",
+    "sha256": "8a0e39b68116c87797f380756ec4affd6ed5d79e3aef03521d5e63e58d82813b",
+    "note": "Byte-identical to the corrected Step 3 production artifact; Step 3.7 changes only browser verification infrastructure (no production change)."
+  },
+  "original_rc8_evidence_retained": {
+    "symptom": "Air-side capacity computed against 101500 Pa regardless of operator-supplied site pressure; no provenance; missing pressure silently treated as standard atmosphere.",
+    "retained": true
+  },
+  "verification_model": {
+    "executed_by_claude_offline": "results/offline_suite_result.json (8/8): sha-consistency, path-safety, compile, source-equivalence, structural validation, server self-test, compiled-app render proof, render-tree, governance.",
+    "real_browser_suite": "chromium/run_chromium.js — A–H against the real rendered app over http://127.0.0.1; executed by the independent verifier (Chromium unavailable in the build environment).",
+    "resolution_rule": "Set RESOLVED only after the independent clean-room real-Chromium run is green (all A–H pass, JUnit failures = 0, zero uncaught page errors, zero external runtime dependencies). Then retain RC8 evidence, record corrected SHA 8a0e39b68116c87797f380756ec4affd6ed5d79e3aef03521d5e63e58d82813b, link the passing chromium_result.json and the acceptance-test IDs (A.*, B.*, C.*, D.*, E.*, F.*, G.*, H.*)."
+  },
+  "do_not_resolve": [
+    "pressure-constant defects unrelated to A/L",
+    "export defects unrelated to A/L"
+  ],
+  "step_3_8_ci_gate": {
+    "workflow": ".github/workflows/step3-browser-gate.yml",
+    "instructions": "CI_EXECUTION_INSTRUCTIONS.md",
+    "reason": "Verifier desktop env blocked Chromium localhost navigation (net::ERR_BLOCKED_BY_ADMINISTRATOR); GitHub-hosted Ubuntu runners permit loopback.",
+    "navigation_classification": "ENVIRONMENT_BLOCKED handled in chromium/run_chromium.js (exit 4; not an app/render failure)"
+  },
+  "resolution_rule": "Set RESOLVED only after a real passing GitHub Actions run of .github/workflows/step3-browser-gate.yml (status PASSED, JUnit failures=0, zero external application requests). Then link the workflow run, chromium_result.json and chromium_junit.xml, and retain production SHA '8a0e39b6…'."
+}

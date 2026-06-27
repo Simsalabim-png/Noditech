@@ -1,0 +1,88 @@
+{
+  "artifact_sha256": "8a0e39b68116c87797f380756ec4affd6ed5d79e3aef03521d5e63e58d82813b",
+  "runtime": "Node.js v22.22.3 (virtual React render tree — NOT a pixel browser)",
+  "note": "Substitute for Chromium screenshots: the REAL App/AirLiquid components rendered to a React element tree and asserted. A real browser run is in chromium/pc_step3_4.spec.js (NOT RUN here — no engine).",
+  "scenarios": [
+    {
+      "id": "A-initial",
+      "data": {
+        "data-pressure-state": "missing",
+        "data-pressure-reason": "pressure_missing"
+      },
+      "pressure_missing": true,
+      "no_implicit_101_5": true,
+      "reference_button": true
+    },
+    {
+      "id": "B-missing",
+      "withheld_expected": true,
+      "withheld_actual": true,
+      "data": {
+        "data-air-status": "withheld",
+        "data-air-reason": "pressure_non_finite",
+        "data-air-balance-cell": "1"
+      },
+      "no_positive": true,
+      "no_zero_pct": true,
+      "no_naninf": true,
+      "liquid_visible": true,
+      "pass": true
+    },
+    {
+      "id": "B-zero",
+      "withheld_expected": true,
+      "withheld_actual": true,
+      "data": {
+        "data-air-status": "withheld",
+        "data-air-reason": "pressure_non_finite",
+        "data-air-balance-cell": "1"
+      },
+      "no_positive": true,
+      "no_zero_pct": true,
+      "no_naninf": true,
+      "liquid_visible": true,
+      "pass": true
+    },
+    {
+      "id": "B-above",
+      "withheld_expected": true,
+      "withheld_actual": true,
+      "data": {
+        "data-air-status": "withheld",
+        "data-air-reason": "pressure_non_finite",
+        "data-air-balance-cell": "1"
+      },
+      "no_positive": true,
+      "no_zero_pct": true,
+      "no_naninf": true,
+      "liquid_visible": true,
+      "pass": true
+    },
+    {
+      "id": "C-valid-95",
+      "withheld_expected": false,
+      "withheld_actual": false,
+      "data": {
+        "data-air-balance-cell": "1"
+      },
+      "no_positive": true,
+      "no_zero_pct": true,
+      "no_naninf": true,
+      "liquid_visible": true,
+      "pass": true
+    },
+    {
+      "id": "D-reference",
+      "withheld_expected": false,
+      "withheld_actual": false,
+      "data": {
+        "data-air-balance-cell": "1"
+      },
+      "no_positive": true,
+      "no_zero_pct": true,
+      "no_naninf": true,
+      "liquid_visible": true,
+      "pass": true
+    }
+  ]
+}

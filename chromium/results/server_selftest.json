@@ -1,0 +1,118 @@
+{
+  "generated": "2026-06-26T15:00:00.000Z",
+  "bound": "127.0.0.1",
+  "port": 45127,
+  "summary": {
+    "total": 14,
+    "pass": 14,
+    "fails": 0
+  },
+  "checks": [
+    {
+      "name": "serves /chromium/test_harness.html",
+      "pass": true,
+      "detail": "status=200 bytes=468"
+    },
+    {
+      "name": "content-match /chromium/test_harness.html",
+      "pass": true,
+      "detail": "sha f13bea8061ce"
+    },
+    {
+      "name": "serves /vendor/react.production.min.js",
+      "pass": true,
+      "detail": "status=200 bytes=10737"
+    },
+    {
+      "name": "content-match /vendor/react.production.min.js",
+      "pass": true,
+      "detail": "sha 4b4969fa4ef3"
+    },
+    {
+      "name": "serves /vendor/react-dom.production.min.js",
+      "pass": true,
+      "detail": "status=200 bytes=131882"
+    },
+    {
+      "name": "content-match /vendor/react-dom.production.min.js",
+      "pass": true,
+      "detail": "sha 21758ed084cd"
+    },
+    {
+      "name": "serves /chromium/generated/app.compiled.js",
+      "pass": true,
+      "detail": "status=200 bytes=333287"
+    },
+    {
+      "name": "content-match /chromium/generated/app.compiled.js",
+      "pass": true,
+      "detail": "sha 02a033a96c13"
+    },
+    {
+      "name": "rejects path traversal (../etc/passwd)",
+      "pass": true,
+      "detail": "status=404"
+    },
+    {
+      "name": "rejects encoded traversal",
+      "pass": true,
+      "detail": "status=404"
+    },
+    {
+      "name": "bound to 127.0.0.1",
+      "pass": true,
+      "detail": "http://127.0.0.1:45127"
+    },
+    {
+      "name": "dynamic free port",
+      "pass": true,
+      "detail": "port=45127"
+    },
+    {
+      "name": "request log populated",
+      "pass": true,
+      "detail": "6 requests"
+    },
+    {
+      "name": "clean shutdown",
+      "pass": true,
+      "detail": ""
+    }
+  ],
+  "request_log": [
+    {
+      "url": "/chromium/test_harness.html",
+      "status": 200,
+      "file": "chromium/test_harness.html",
+      "bytes": 468
+    },
+    {
+      "url": "/vendor/react.production.min.js",
+      "status": 200,
+      "file": "vendor/react.production.min.js",
+      "bytes": 10737
+    },
+    {
+      "url": "/vendor/react-dom.production.min.js",
+      "status": 200,
+      "file": "vendor/react-dom.production.min.js",
+      "bytes": 131882
+    },
+    {
+      "url": "/chromium/generated/app.compiled.js",
+      "status": 200,
+      "file": "chromium/generated/app.compiled.js",
+      "bytes": 333287
+    },
+    {
+      "url": "/etc/passwd",
+      "status": 404,
+      "file": "etc/passwd"
+    },
+    {
+      "url": "/etc/passwd",
+      "status": 404,
+      "file": "etc/passwd"
+    }
+  ]
+}

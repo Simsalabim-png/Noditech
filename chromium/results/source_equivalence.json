@@ -1,0 +1,17 @@
+{
+  "generated": "2026-06-26T15:00:00.000Z",
+  "production_artifact_sha256": "8a0e39b68116c87797f380756ec4affd6ed5d79e3aef03521d5e63e58d82813b",
+  "extracted_application_source_sha256": "1d841f323b3646af5ac0c0c64d83f3d7bbedf8b9fefe48930748d7394fa38bbd",
+  "compiled_application_sha256": "02a033a96c13a135d0f2e84d6a085116d5a67070d1d808a0d408c7ef5bc89e3b",
+  "compiled_application_inner_sha256": "7eafc29c5aeaa3fa8ea132b4bf8cd68209872b639ff35f6f8ca3bc1f31b5a536",
+  "extraction_script_sha256": "3eecdb9673d68d1f030a1c0867825977320b302520cceb1b5dc60a5558b51cae",
+  "compiler": "@babel/standalone",
+  "compiler_version": "7.23.2",
+  "compiler_integrity_sha256": "7bcd2533d8908a1545817804bcb78aeaf9bd6771694bc0f62cc44bfce4f135b2",
+  "presets": [
+    "react"
+  ],
+  "command": "node tests/compile_app.js",
+  "guards_passed": true,
+  "equivalence_status": "EQUIVALENT — app.compiled.js is the build-time compilation of the byte-identical application source extracted from the packaged production artifact"
+}

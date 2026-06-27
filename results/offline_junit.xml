@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="step3.7-offline" tests="8" failures="0">
+  <testsuite name="offline" tests="8" failures="0">
+    <testcase classname="step3.7.offline" name="sha_consistency"></testcase>
+    <testcase classname="step3.7.offline" name="path_safety"></testcase>
+    <testcase classname="step3.7.offline" name="compile_app"></testcase>
+    <testcase classname="step3.7.offline" name="preflight_structural_validation"></testcase>
+    <testcase classname="step3.7.offline" name="server_selftest"></testcase>
+    <testcase classname="step3.7.offline" name="harness_render_check"></testcase>
+    <testcase classname="step3.7.offline" name="render_tree_evidence"></testcase>
+    <testcase classname="step3.7.offline" name="governance"></testcase>
+  </testsuite>
+</testsuites>

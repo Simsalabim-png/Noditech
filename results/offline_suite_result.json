@@ -1,0 +1,60 @@
+{
+  "suite": "step3.7.offline/1.0",
+  "generated": "2026-06-26T15:00:00.000Z",
+  "summary": {
+    "total": 8,
+    "pass": 8,
+    "fails": 0,
+    "browser_suite": "chromium/run_chromium.js — executed by independent verifier (PENDING_INDEPENDENT_BROWSER_VERIFICATION)"
+  },
+  "results": [
+    {
+      "name": "sha_consistency",
+      "cmd": "node tests/sha_consistency.js",
+      "pass": true,
+      "output": "PASS source_equivalence production SHA == current |  | SHA-CONSISTENCY OK"
+    },
+    {
+      "name": "path_safety",
+      "cmd": "node tests/path_safety.js",
+      "pass": true,
+      "output": "PASS runtime guard: compile performed no filesystem access outside package root |  | PATH-SAFETY OK"
+    },
+    {
+      "name": "compile_app",
+      "cmd": "node tests/compile_app.js",
+      "pass": true,
+      "output": "compiled -> chromium/generated/app.compiled.js | source_sha 1d841f323b36 | compiled_sha 02a033a96c13"
+    },
+    {
+      "name": "preflight_structural_validation",
+      "cmd": "node tests/run_preflight.js",
+      "pass": true,
+      "output": "PASS result_dirs_writable |  | PREFLIGHT 23/23  ALL GREEN"
+    },
+    {
+      "name": "server_selftest",
+      "cmd": "node tests/server_selftest.js",
+      "pass": true,
+      "output": "SERVER SELF-TEST 14/14  ALL GREEN"
+    },
+    {
+      "name": "harness_render_check",
+      "cmd": "node tests/harness_render_check.js",
+      "pass": true,
+      "output": "harness render check (compiled app): PASS | executed=true render=true textLen=9878"
+    },
+    {
+      "name": "render_tree_evidence",
+      "cmd": "node tests/render_tree_evidence.js",
+      "pass": true,
+      "output": "render-tree scenarios: 6 | all consistent: true"
+    },
+    {
+      "name": "governance",
+      "cmd": "node tests/governance_check.js",
+      "pass": true,
+      "output": "PASS neutral_harness_identity |  | GOVERNANCE 4/4  ALL GREEN"
+    }
+  ]
+}

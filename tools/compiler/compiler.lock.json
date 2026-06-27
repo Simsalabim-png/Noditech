@@ -1,0 +1,12 @@
+{
+  "compiler": "@babel/standalone",
+  "version": "7.23.2",
+  "file": "tools/compiler/babel.standalone.7.23.2.min.js",
+  "source": "https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js",
+  "license": "MIT",
+  "integrity_sha256": "7bcd2533d8908a1545817804bcb78aeaf9bd6771694bc0f62cc44bfce4f135b2",
+  "presets": ["react"],
+  "usage": "non-browser build-time compile of the extracted application source into chromium/generated/app.compiled.js. NOT loaded by the browser harness.",
+  "locked": true,
+  "note": "Pinned by exact file + SHA-256 (network-independent lock). The browser harness loads only vendored React/ReactDOM + the precompiled app; Babel is never sent to the browser."
+}

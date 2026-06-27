@@ -1,0 +1,79 @@
+Step 3.8 verification — final packaged files — 2026-06-26
+Node: v22.22.3  OS: Linux 6.8.0-124-generic
+
+== sha256sum -c ==
+.github/workflows/step3-browser-gate.yml: OK
+CI_EXECUTION_INSTRUCTIONS.md: OK
+EVIDENCE_STATUS.json: OK
+INDEPENDENT_VERIFIER_WEB_CHECKLIST.md: OK
+MANIFEST.md: OK
+STEP3_8_COMPLETION_REPORT.md: OK
+chromium/generated/app.compiled.js: OK
+chromium/results/PENDING_BROWSER_RESULTS.md: OK
+chromium/results/js_syntax_check.json: OK
+chromium/results/preflight_junit.xml: OK
+chromium/results/source_equivalence.json: OK
+chromium/results/structural_validation.json: OK
+chromium/run_chromium.js: OK
+chromium/server.js: OK
+chromium/test_harness.html: OK
+corrected/Kalkulator_build9.6-rc8_step3_4.src.html: OK
+dependency_manifest.json: OK
+package.json: OK
+results/defect_evidence_update.json: OK
+results/governance_result.json: OK
+results/offline_junit.xml: OK
+results/offline_suite_result.json: OK
+results/render_tree_evidence.json: OK
+tests/clean_room.sh: OK
+tests/compile_app.js: OK
+tests/engine.js: OK
+tests/extract_app_source.js: OK
+tests/governance_check.js: OK
+tests/harness_render_check.js: OK
+tests/mount.js: OK
+tests/path_safety.js: OK
+tests/render_tree_evidence.js: OK
+tests/run_offline_suite.js: OK
+tests/run_preflight.js: OK
+tests/server_selftest.js: OK
+tests/sha_consistency.js: OK
+tools/compiler/babel.standalone.7.23.2.min.js: OK
+tools/compiler/compiler.lock.json: OK
+vendor/VENDOR_MANIFEST.json: OK
+vendor/react-dom.production.min.js: OK
+vendor/react.production.min.js: OK
+
+== preflight 23/23 ==
+PASS checksum_verified_externally
+PASS no_absolute_machine_paths
+PASS no_package_root_escape
+PASS exactly_one_root
+PASS html_parses
+PASS referenced_scripts_exist
+PASS no_external_resource_refs
+PASS react_parses_js
+PASS reactdom_parses_js
+PASS app_compiled_parses_js
+PASS app_compiled_no_jsx
+PASS app_compiled_no_text_babel
+PASS app_compiled_no_script_tags
+PASS app_compiled_no_cdn
+PASS production_artifact_sha
+PASS source_equivalence_prod_sha
+PASS source_equivalence_compiled_matches_file
+PASS obsolete_sha_absent
+PASS extracted_source_sha
+PASS generated_app_sha
+PASS browser_assertions_present
+PASS governance_data_present
+PASS result_dirs_writable
+
+PREFLIGHT 23/23  ALL GREEN
+
+== offline suite 8/8 ==
+OFFLINE SUITE 8/8  ALL GREEN
+
+== chromium attempt (honest) ==
+CHROMIUM RUN ERROR: no installed Chromium found. Set CHROMIUM_BIN=/path/to/chrome and re-run. This package does NOT download a browser.
+exit: 3 (3=no browser here)

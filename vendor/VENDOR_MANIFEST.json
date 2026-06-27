@@ -1,0 +1,8 @@
+{
+  "generated": "2026-06-26T15:00:00.000Z",
+  "note": "Clean, unmodified runtime files served as-is over HTTP by the harness. No inlining, no text rewriting. Babel is NOT a runtime dependency (it is the build-time compiler under tools/compiler/).",
+  "runtimes": [
+    {"library":"react","version":"18.2.0","file":"vendor/react.production.min.js","source":"https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js","license":"MIT","sha256":"4b4969fa4ef3594324da2c6d78ce8766fbbc2fd121fff395aedf997db0a99a06","js_syntax_check":"pass"},
+    {"library":"react-dom","version":"18.2.0","file":"vendor/react-dom.production.min.js","source":"https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js","license":"MIT","sha256":"21758ed084cd0e37e735722ee4f3957ea960628a29dfa6c3ce1a1d47a2d6e4f7","js_syntax_check":"pass"}
+  ]
+}
