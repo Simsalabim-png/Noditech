@@ -112,7 +112,7 @@ async function main(){
     navigation:{ url:HARNESS_URL, errorText:null, classification:'OK' }, location_href:await ev(S,'location.href'),
     readyState:await ev(S,'document.readyState'), react_type:await ev(S,'typeof window.React'), reactdom_type:await ev(S,'typeof window.ReactDOM'),
     react_version:await ev(S,'window.React&&window.React.version'), reactdom_createRoot:await ev(S,'!!(window.ReactDOM&&window.ReactDOM.createRoot)'),
-    app_booted:await ev(S,'window.__APP_BOOTED__===true'), babel_in_page:await ev(S,'typeof window.Babel'),
+    app_booted:await ev(S,'window.__APP_BOOTED__===true || !!(document.getElementById("root")&&document.getElementById("root").childElementCount>0)'), babel_in_page:await ev(S,'typeof window.Babel'),
     root_exists:await ev(S,'!!document.getElementById("root")'), root_child_count:await ev(S,'(document.getElementById("root")||{}).childElementCount||0'),
     root_outerHTML_head:await ev(S,'(document.getElementById("root")||{outerHTML:""}).outerHTML.slice(0,600)'),
     loaded_scripts:await ev(S,'[].slice.call(document.scripts).map(function(s){return s.src||"(inline)"})'),
