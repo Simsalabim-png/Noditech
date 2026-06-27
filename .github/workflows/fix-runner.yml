@@ -1,0 +1,45 @@
+name: Fix Chromium helper expression
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-runner.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch runner and checksum
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          runner = Path('chromium/run_chromium.js')
+          text = runner.read_text()
+          old = ' "};true;";'
+          new = ' "},true";'
+          if old not in text:
+              raise SystemExit('expected helper terminator not found')
+          runner.write_text(text.replace(old, new, 1))
+          sums = Path('SHA256SUMS.txt')
+          lines = sums.read_text().splitlines()
+          digest = hashlib.sha256(runner.read_bytes()).hexdigest()
+          out = []
+          for line in lines:
+              if line.endswith('  chromium/run_chromium.js'):
+                  out.append(f'{digest}  chromium/run_chromium.js')
+              else:
+                  out.append(line)
+          sums.write_text('\n'.join(out) + '\n')
+          PY
+          rm .github/workflows/fix-runner.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add chromium/run_chromium.js SHA256SUMS.txt .github/workflows/fix-runner.yml
+          git commit -m 'Fix Chromium helper injection expression'
+          git push
