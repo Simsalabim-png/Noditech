@@ -1,0 +1,146 @@
+name: Rebind Step 3 CI to pc6
+
+on:
+  push:
+    paths:
+      - '.github/workflows/rebind-pc6-ci.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  rebind:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify immutable pc6 artifact
+        shell: bash
+        run: |
+          echo 'b9f8be84731b9038a814ecc32b876d8856d8526ccf28cd35cc1bb1d74167dc50  Kalkulator_build9.7-pc6.html' | sha256sum -c -
+
+      - name: Rebind source, compiler, preflight and Chromium runner
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          OLD_FILE = 'corrected/Kalkulator_build9.6-rc8_step3_4.src.html'
+          OLD_BASE = 'Kalkulator_build9.6-rc8_step3_4.src.html'
+          OLD_SHA = '8a0e39b68116c87797f380756ec4affd6ed5d79e3aef03521d5e63e58d82813b'
+          NEW_FILE = 'Kalkulator_build9.7-pc6.html'
+          NEW_SHA = 'b9f8be84731b9038a814ecc32b876d8856d8526ccf28cd35cc1bb1d74167dc50'
+
+          replacements = {
+              'tests/extract_app_source.js': [
+                  ("path.join(ROOT,'corrected','Kalkulator_build9.6-rc8_step3_4.src.html')", "path.join(ROOT,'Kalkulator_build9.7-pc6.html')"),
+                  (OLD_SHA, NEW_SHA),
+                  ('corrected production', 'pc6 production candidate'),
+              ],
+              'tests/compile_app.js': [
+                  (OLD_FILE, NEW_FILE),
+              ],
+              'tests/run_preflight.js': [
+                  (OLD_SHA, NEW_SHA),
+                  ("path.join(ROOT,'corrected','Kalkulator_build9.6-rc8_step3_4.src.html')", "path.join(ROOT,'Kalkulator_build9.7-pc6.html')"),
+              ],
+              'tests/sha_consistency.js': [
+                  ("path.join(ROOT,'corrected','Kalkulator_build9.6-rc8_step3_4.src.html')", "path.join(ROOT,'Kalkulator_build9.7-pc6.html')"),
+                  (OLD_SHA, NEW_SHA),
+                  ('8a0e39b6… (current)', 'b9f8be84… (pc6)'),
+              ],
+              'chromium/run_chromium.js': [
+                  ("path.join(ROOT,'corrected','Kalkulator_build9.6-rc8_step3_4.src.html')", "path.join(ROOT,'Kalkulator_build9.7-pc6.html')"),
+                  (OLD_SHA, NEW_SHA),
+              ],
+          }
+
+          for name, pairs in replacements.items():
+              p = Path(name)
+              text = p.read_text()
+              for old, new in pairs:
+                  if old not in text:
+                      raise SystemExit(f'Expected text missing in {name}: {old}')
+                  text = text.replace(old, new)
+              p.write_text(text)
+
+          # Fail closed if active CI scripts still bind the old artifact.
+          active = [Path(p) for p in replacements]
+          leftovers = [str(p) for p in active if OLD_FILE in p.read_text() or OLD_SHA in p.read_text()]
+          if leftovers:
+              raise SystemExit('Old production binding remains in: ' + ', '.join(leftovers))
+          PY
+
+      - name: Regenerate compiled application and source equivalence
+        shell: bash
+        env:
+          BUILD_TS: '2026-06-28T00:00:00.000Z'
+        run: |
+          node tests/extract_app_source.js
+          node tests/compile_app.js
+          node --check tests/extract_app_source.js
+          node --check tests/compile_app.js
+          node --check tests/run_preflight.js
+          node --check tests/sha_consistency.js
+          node --check chromium/run_chromium.js
+          node --check chromium/generated/app.compiled.js
+          node tests/sha_consistency.js
+
+      - name: Verify pc6 source equivalence
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const e=JSON.parse(fs.readFileSync('chromium/results/source_equivalence.json','utf8'));
+          const want='b9f8be84731b9038a814ecc32b876d8856d8526ccf28cd35cc1bb1d74167dc50';
+          if(e.production_artifact_sha256!==want) throw new Error('source_equivalence not bound to pc6');
+          if(!e.guards_passed || e.equivalence_status.indexOf('EQUIVALENT')<0) throw new Error('source equivalence guards failed');
+          NODE
+
+      - name: Update manifest checksums from actual bytes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+
+          targets = {
+              'Kalkulator_build9.7-pc6.html',
+              'tests/extract_app_source.js',
+              'tests/compile_app.js',
+              'tests/run_preflight.js',
+              'tests/sha_consistency.js',
+              'chromium/run_chromium.js',
+              'chromium/generated/app.compiled.js',
+              'chromium/results/source_equivalence.json',
+          }
+          sums = Path('SHA256SUMS.txt')
+          lines = sums.read_text().splitlines()
+          seen=set()
+          out=[]
+          for line in lines:
+              parts=line.split('  ',1)
+              if len(parts)==2 and parts[1] in targets:
+                  name=parts[1]
+                  digest=hashlib.sha256(Path(name).read_bytes()).hexdigest()
+                  out.append(f'{digest}  {name}')
+                  seen.add(name)
+              else:
+                  out.append(line)
+          for name in sorted(targets-seen):
+              digest=hashlib.sha256(Path(name).read_bytes()).hexdigest()
+              out.append(f'{digest}  {name}')
+          sums.write_text('\n'.join(out)+'\n')
+          PY
+          sha256sum -c SHA256SUMS.txt
+
+      - name: Commit atomic pc6 CI rebinding
+        shell: bash
+        run: |
+          rm -f .github/workflows/rebind-pc6-ci.yml
+          rm -f .ci/step3-retest.txt .ci/step3-retest-boot.txt
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m 'Rebind Step 3 CI and Chromium gate to pc6'
+          git push
