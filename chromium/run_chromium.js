@@ -56,7 +56,7 @@ const HELP="window.__h={"+
  "airReason:function(){var e=[].slice.call(document.querySelectorAll('[data-air-status]')).find(function(x){return x.getAttribute('data-air-status')==='withheld'});return e?e.getAttribute('data-air-reason'):null;},"+
  "withheldCount:function(){return [].slice.call(document.querySelectorAll('[data-air-status]')).filter(function(x){return x.getAttribute('data-air-status')==='withheld'}).length;},"+
  "captured:function(){return window.__captured.map(function(c){return {download:c.download,data:decodeURIComponent(c.href.slice(c.href.indexOf(',')+1))}});}"+
- "};true;";
+ "},true";
 const NO_POS=/✅|Good|Acceptable/, NO_ZERO=/\b0\.00%|\b0%/, NANINF=/NaN|Infinity/;
 let diagnostic=null, srv=null, ORIGIN='';
 
