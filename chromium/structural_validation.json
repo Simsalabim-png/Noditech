@@ -1,0 +1,125 @@
+{
+  "generated": "2026-06-27T16:18:43.686Z",
+  "summary": {
+    "total": 23,
+    "pass": 23,
+    "fails": 0
+  },
+  "checks": [
+    {
+      "name": "checksum_verified_externally",
+      "pass": true,
+      "detail": "sha256sum -c performed by clean_room.sh step 2 / VERIFICATION_OUTPUT.txt"
+    },
+    {
+      "name": "no_absolute_machine_paths",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "no_package_root_escape",
+      "pass": true,
+      "detail": "all generators resolve via __dirname (enforced by tests/path_safety.js)"
+    },
+    {
+      "name": "exactly_one_root",
+      "pass": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "html_parses",
+      "pass": true,
+      "detail": "doctype+balanced html/head/body"
+    },
+    {
+      "name": "referenced_scripts_exist",
+      "pass": true,
+      "detail": "/vendor/react.production.min.js, /vendor/react-dom.production.min.js, /chromium/generated/app.compiled.js"
+    },
+    {
+      "name": "no_external_resource_refs",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "react_parses_js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "reactdom_parses_js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "app_compiled_parses_js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "app_compiled_no_jsx",
+      "pass": true,
+      "detail": "no raw JSX"
+    },
+    {
+      "name": "app_compiled_no_text_babel",
+      "pass": true,
+      "detail": "no text/babel"
+    },
+    {
+      "name": "app_compiled_no_script_tags",
+      "pass": true,
+      "detail": "no embedded <script>"
+    },
+    {
+      "name": "app_compiled_no_cdn",
+      "pass": true,
+      "detail": "no CDN refs"
+    },
+    {
+      "name": "production_artifact_sha",
+      "pass": true,
+      "detail": "8a0e39b68116c87797f380756ec4affd6ed5d79e3aef03521d5e63e58d82813b"
+    },
+    {
+      "name": "source_equivalence_prod_sha",
+      "pass": true,
+      "detail": "8a0e39b68116c87797f380756ec4affd6ed5d79e3aef03521d5e63e58d82813b"
+    },
+    {
+      "name": "source_equivalence_compiled_matches_file",
+      "pass": true,
+      "detail": "compiled sha matches on-disk"
+    },
+    {
+      "name": "obsolete_sha_absent",
+      "pass": true,
+      "detail": "8ce2c498… absent"
+    },
+    {
+      "name": "extracted_source_sha",
+      "pass": true,
+      "detail": "1d841f323b3646af5ac0c0c64d83f3d7bbedf8b9fefe48930748d7394fa38bbd"
+    },
+    {
+      "name": "generated_app_sha",
+      "pass": true,
+      "detail": "generated app SHA stable"
+    },
+    {
+      "name": "browser_assertions_present",
+      "pass": true,
+      "detail": "missing: "
+    },
+    {
+      "name": "governance_data_present",
+      "pass": true,
+      "detail": "Product Owner/IP present + Customer Zero present"
+    },
+    {
+      "name": "result_dirs_writable",
+      "pass": true,
+      "detail": "chromium/results, results, screenshots"
+    }
+  ]
+}
