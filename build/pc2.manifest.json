@@ -1,0 +1,14 @@
+{
+  "output": "Kalkulator_build9.8-pc2.html",
+  "description": "Deterministic Air/Air pc2 candidate. Built from the real rc8 application source with the A/A capacity rewired to the shared computeAirAir() engine. No hand-editing of the output.",
+  "inputs": {
+    "app_source": "corrected/Kalkulator_build9.6-rc8_step3_4.src.html (text/babel block); SHA-256 gated 8a0e39b6…",
+    "react_runtime": "inlined React + ReactDOM 18.2.0 extracted from Kalkulator_build9.7-pc6.html; SHA-256 gated b9f8be84…",
+    "runtime_data": "thermo datasets (__PH_SH__/__PH_LIQ__/__PH_SATDB__) + styles, in-place from rc8",
+    "shared_engine": ["src/engine/psychrometrics.js", "src/engine/airAir.js"],
+    "compiler": "tools/compiler (locked @babel/standalone 7.23.2, integrity-pinned)"
+  },
+  "fixed_inline_order": ["styles", "react_runtime + datasets (runtime deps, must precede app)", "psychrometrics.js", "airAir.js", "compiled app code"],
+  "determinism": "no timestamps, no random ids, no absolute paths, no environment data; two builds are byte-identical",
+  "frozen_never_modified": ["Kalkulator_build9.7-pc6.html", "index.html", "Kalkulator.html", "Kalkulator_build9.8-pc1.html"]
+}
