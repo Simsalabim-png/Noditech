@@ -110,3 +110,10 @@ test('9.8-pc1 candidate includes accessible status and focus behavior', () => {
   assert.ok(html.includes('target.focus()'));
   assert.ok(html.includes('panel.focus()'));
 });
+
+
+test('manifest locks the 9.8-pc1 candidate artifact name', () => {
+  assert.equal(manifest.output, 'Kalkulator_build9.8-pc1.html');
+  const result = assemble({ srcDir: SRC, manifest });
+  assert.equal(result.output, 'Kalkulator_build9.8-pc1.html');
+});
