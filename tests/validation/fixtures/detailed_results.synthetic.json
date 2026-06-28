@@ -1,0 +1,37 @@
+{
+  "_note": "SYNTHETIC PUBLIC FIXTURE — invented harness 'detailed' results to test the error-metrics aggregation deterministically. No real measurements. Safe to commit.",
+  "cases": [
+    {
+      "id": "SYN-FL-1",
+      "operating_region": "full_load",
+      "verdict": "PASS",
+      "metrics": {
+        "cooling_capacity_w": { "verdict": "PASS", "signed_pct": 2, "abs_pct": 2, "tolerance_pct": 5 },
+        "eer": { "verdict": "PASS", "signed_pct": -2, "abs_pct": 2, "tolerance_pct": 5 }
+      }
+    },
+    {
+      "id": "SYN-FL-2",
+      "operating_region": "full_load",
+      "verdict": "FAIL",
+      "metrics": {
+        "cooling_capacity_w": { "verdict": "FAIL", "signed_pct": 10, "abs_pct": 10, "tolerance_pct": 5 }
+      }
+    },
+    {
+      "id": "SYN-PL-1",
+      "operating_region": "part_load",
+      "verdict": "PASS",
+      "metrics": {
+        "cooling_capacity_w": { "verdict": "PASS", "signed_pct": -4, "abs_pct": 4, "tolerance_pct": 5 },
+        "electrical_power_w": { "verdict": "PASS", "signed_pct": 0, "abs_pct": 0, "tolerance_pct": 5 }
+      }
+    },
+    {
+      "id": "SYN-PL-2",
+      "operating_region": "part_load",
+      "verdict": "SKIP",
+      "metrics": {}
+    }
+  ]
+}

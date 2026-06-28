@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "_note": "SYNTHETIC PUBLIC FIXTURE — no real measurements. Numbers are invented to exercise the harness deterministically. Safe to commit.",
+  "cases": [
+    {
+      "id": "SYN-FULL-001",
+      "operating_region": "full_load",
+      "inputs": { "stub_factors": { "cooling_capacity_w": 1.00, "electrical_power_w": 1.00, "eer": 1.00 } },
+      "reference": { "cooling_capacity_w": 10000, "electrical_power_w": 3000, "eer": 3.33 },
+      "tolerance": { "cooling_capacity_w_pct": 5, "electrical_power_w_pct": 5, "eer_pct": 5 }
+    },
+    {
+      "id": "SYN-PART-002",
+      "operating_region": "part_load",
+      "inputs": { "stub_factors": { "cooling_capacity_w": 1.20 } },
+      "reference": { "cooling_capacity_w": 6000 },
+      "tolerance": { "cooling_capacity_w_pct": 5 }
+    },
+    {
+      "id": "SYN-HIGH-003",
+      "operating_region": "high_temperature",
+      "inputs": {},
+      "reference": {}
+    },
+    {
+      "id": "SYN-DERATE-004",
+      "operating_region": "derating",
+      "inputs": { "stub_factors": { "eer": 1.03 } },
+      "reference": { "eer": 2.80 },
+      "tolerance": { "eer_pct": 5 }
+    }
+  ]
+}

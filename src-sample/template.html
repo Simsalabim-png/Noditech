@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Noditech 9.8-pc1 kandidat</title>
+<!-- INLINE:styles -->
+</head>
+<body>
+<main id="app" data-build-content-hash="__ARTIFACT_CONTENT_HASH__">
+  <header class="page-header">
+    <p class="eyebrow">Noditech 9.8-pc1</p>
+    <h1>Kontrollerbart resultat</h1>
+    <p>
+      Kandidatvisning for tydelig resultatstatus, begrensninger og
+      korrigerende handling.
+    </p>
+  </header>
+
+  <form id="calculation-form" novalidate>
+    <div class="field">
+      <label for="cooling-capacity">Kjølekapasitet (W)</label>
+      <input
+        id="cooling-capacity"
+        name="cooling-capacity"
+        type="number"
+        inputmode="decimal"
+        min="0"
+        step="any"
+        aria-describedby="cooling-capacity-help"
+      >
+      <p id="cooling-capacity-help" class="help">
+        Må være et positivt tall.
+      </p>
+    </div>
+
+    <div class="field">
+      <label for="electrical-power">Elektrisk effekt (W)</label>
+      <input
+        id="electrical-power"
+        name="electrical-power"
+        type="number"
+        inputmode="decimal"
+        min="0"
+        step="any"
+        aria-describedby="electrical-power-help"
+      >
+      <p id="electrical-power-help" class="help">
+        Må være et positivt tall.
+      </p>
+    </div>
+
+    <button type="submit">Beregn EER</button>
+  </form>
+
+  <section
+    id="result-panel"
+    class="result-panel"
+    data-status="idle"
+    role="status"
+    aria-live="polite"
+    aria-atomic="true"
+    tabindex="-1"
+  >
+    <p id="status-label" class="status-label">Klar for beregning</p>
+    <output id="result-value" for="cooling-capacity electrical-power">
+      Legg inn verdier for å beregne.
+    </output>
+    <ul id="issue-list" class="issue-list" hidden></ul>
+  </section>
+</main>
+<!-- INLINE:engine -->
+<!-- INLINE:ui -->
+</body>
+</html>

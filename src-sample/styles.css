@@ -1,0 +1,96 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 1rem;
+}
+
+#app {
+  width: min(42rem, 100%);
+  margin: 0 auto;
+}
+
+.page-header,
+form,
+.result-panel {
+  padding: 1rem;
+  border: 1px solid currentColor;
+  border-radius: 0.5rem;
+}
+
+form,
+.result-panel {
+  margin-top: 1rem;
+}
+
+.eyebrow,
+.status-label {
+  font-weight: 700;
+}
+
+.field + .field {
+  margin-top: 1rem;
+}
+
+label,
+input,
+button {
+  display: block;
+  width: 100%;
+}
+
+input,
+button {
+  min-height: 2.75rem;
+  margin-top: 0.25rem;
+  font: inherit;
+}
+
+button {
+  margin-top: 1.25rem;
+  cursor: pointer;
+}
+
+.help {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+}
+
+.result-panel[data-status="valid"] {
+  border-width: 2px;
+}
+
+.result-panel[data-status="warning"] {
+  border-width: 3px;
+  border-style: double;
+}
+
+.result-panel[data-status="blocked"] {
+  border-width: 3px;
+}
+
+.issue-list {
+  margin-bottom: 0;
+  padding-left: 1.25rem;
+}
+
+.issue-list li + li {
+  margin-top: 0.75rem;
+}
+
+input[aria-invalid="true"] {
+  border-width: 3px;
+}
+
+:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 3px;
+}
