@@ -8,3 +8,5 @@ cases.private.json
 .env
 .env.*
 !.env.example
+dist/
+**/dist/

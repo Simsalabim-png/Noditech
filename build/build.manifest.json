@@ -1,0 +1,10 @@
+{
+  "output": "Kalkulator_build9.8-sample.html",
+  "template": "template.html",
+  "content_hash_token": "__ARTIFACT_CONTENT_HASH__",
+  "inline": {
+    "styles": ["styles.css"],
+    "engine": ["engine.sample.js"],
+    "ui": ["ui.sample.js"]
+  }
+}
