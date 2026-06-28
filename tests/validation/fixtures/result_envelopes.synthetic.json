@@ -1,0 +1,42 @@
+{
+  "valid": {
+    "schema_version": "1.0",
+    "status": "valid",
+    "result": {
+      "value": 12.5,
+      "unit": "synthetic-unit"
+    },
+    "issues": []
+  },
+  "warning": {
+    "schema_version": "1.0",
+    "status": "warning",
+    "result": {
+      "value": 8,
+      "unit": "synthetic-unit"
+    },
+    "issues": [
+      {
+        "severity": "warning",
+        "code": "SYNTHETIC_LIMITATION",
+        "field": "synthetic_input",
+        "message": "Result has a synthetic non-blocking limitation.",
+        "corrective_action": "Review the synthetic input before use."
+      }
+    ]
+  },
+  "blocked": {
+    "schema_version": "1.0",
+    "status": "blocked",
+    "result": null,
+    "issues": [
+      {
+        "severity": "blocking",
+        "code": "SYNTHETIC_REQUIRED",
+        "field": "synthetic_required_input",
+        "message": "A required synthetic input is missing.",
+        "corrective_action": "Provide the required synthetic input."
+      }
+    ]
+  }
+}
