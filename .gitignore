@@ -1,0 +1,10 @@
+private/
+**/private/
+*.private.json
+validation-reports/
+**/validation-reports/
+*.validation-report.json
+cases.private.json
+.env
+.env.*
+!.env.example
