@@ -86,3 +86,27 @@ test('missing marker throws (no silent placeholder shipping)', () => {
   assert.throws(() => assemble({ srcDir: tmp, manifest }), /missing marker for "engine"/);
   fs.rmSync(tmp, { recursive: true, force: true });
 });
+
+test('9.8-pc1 candidate contains trustworthy result guidance', () => {
+  const { html } = assemble({ srcDir: SRC, manifest });
+
+  assert.ok(html.includes('id="calculation-form"'));
+  assert.ok(html.includes('id="result-panel"'));
+  assert.ok(html.includes('id="status-label"'));
+  assert.ok(html.includes('id="issue-list"'));
+  assert.ok(html.includes('Beregning blokkert'));
+  assert.ok(html.includes('Resultat med begrensninger'));
+  assert.ok(html.includes('Resultat klart'));
+});
+
+test('9.8-pc1 candidate includes accessible status and focus behavior', () => {
+  const { html } = assemble({ srcDir: SRC, manifest });
+
+  assert.ok(html.includes('role="status"'));
+  assert.ok(html.includes('aria-live="polite"'));
+  assert.ok(html.includes("setAttribute('role', 'alert')"));
+  assert.ok(html.includes("setAttribute('aria-live', 'assertive')"));
+  assert.ok(html.includes("setAttribute('aria-invalid', 'true')"));
+  assert.ok(html.includes('target.focus()'));
+  assert.ok(html.includes('panel.focus()'));
+});
