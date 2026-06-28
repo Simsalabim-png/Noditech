@@ -1,0 +1,40 @@
+name: Verify pc6 release files
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-pc6:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify pc6 release checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum -c SHA256SUMS.pc6.txt
+
+      - name: Verify all live entry files are byte-identical
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected='b9f8be84731b9038a814ecc32b876d8856d8526ccf28cd35cc1bb1d74167dc50'
+          for file in Kalkulator_build9.7-pc6.html index.html Kalkulator.html; do
+            actual="$(sha256sum "$file" | awk '{print $1}')"
+            if [ "$actual" != "$expected" ]; then
+              echo "Checksum mismatch for $file"
+              echo "Expected: $expected"
+              echo "Actual:   $actual"
+              exit 1
+            fi
+          done
+          cmp --silent Kalkulator_build9.7-pc6.html index.html
+          cmp --silent Kalkulator_build9.7-pc6.html Kalkulator.html
+          echo 'All pc6 release files are verified and byte-identical.'
