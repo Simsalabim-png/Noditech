@@ -74,6 +74,8 @@ deviation (no implicit division by zero).
 
 ## Private test-set schema (`schema_version` `1.0`)
 
+The numbers below are synthetic public examples only.
+
 ```jsonc
 {
   "schema_version": "1.0",
@@ -83,9 +85,9 @@ deviation (no implicit division by zero).
       "operating_region": "full_load",          // required enum (see schema.js)
       "inputs": { /* opaque engine inputs */ }, // required object
       "reference": {                            // optional; omit => case SKIP
-        "cooling_capacity_w": 0,
-        "electrical_power_w": 0,
-        "eer": 0
+        "cooling_capacity_w": 10000,
+        "electrical_power_w": 3000,
+        "eer": 3.33
       },
       "tolerance": {                            // optional; defaults to 5% per metric
         "cooling_capacity_w_pct": 5,
