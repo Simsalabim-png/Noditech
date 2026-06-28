@@ -1,0 +1,23 @@
+{
+  "schema_version": "9.9",
+  "_note": "SYNTHETIC PUBLIC FIXTURE — intentionally invalid to exercise the schema validator. Safe to commit.",
+  "cases": [
+    {
+      "operating_region": "nonexistent_region",
+      "inputs": "should-be-an-object",
+      "reference": { "unknown_metric": 1, "eer": "not-a-number" }
+    },
+    {
+      "id": "",
+      "operating_region": "full_load",
+      "inputs": {},
+      "tolerance": { "cooling_capacity_w_pct": -3 }
+    },
+    {
+      "id": "ZERO-REF-1",
+      "operating_region": "full_load",
+      "inputs": {},
+      "reference": { "cooling_capacity_w": 0 }
+    }
+  ]
+}
