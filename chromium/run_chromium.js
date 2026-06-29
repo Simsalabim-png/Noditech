@@ -15,7 +15,7 @@ const ROOT=path.join(__dirname,'..');
 const PROD=path.join(ROOT,'corrected','Kalkulator_build9.6-rc8_step3_4.src.html');
 const RES=path.join(ROOT,'chromium','results');
 const SHOT=path.join(ROOT,'screenshots');
-const EXPECT_SHA='8a0e39b68116c87797f380756ec4affd6ed5d79e3aef03521d5e63e58d82813b';
+const EXPECT_SHA='d3080ff5fcf0dd539130c6849edb66aa3db9faed11e6b045561d048c76c99210';
 const TS=process.env.BUILD_TS||new Date().toISOString();
 fs.mkdirSync(RES,{recursive:true}); fs.mkdirSync(SHOT,{recursive:true});
 let stderrBuf='';
@@ -47,6 +47,10 @@ const HELP="window.__h={"+
  "txt:function(){return document.querySelector('#root').innerText;},"+
  "rootHTML:function(){var r=document.getElementById('root');return r?r.outerHTML.slice(0,4000):null;},"+
  "clickAL:function(){var b=[].slice.call(document.querySelectorAll('button.mbt')).find(function(x){return /A\\/L/.test(x.textContent)});if(b)b.click();return !!b;},"+
+ "glycolOff:function(){var a=[].slice.call(document.querySelectorAll('button'));var off=a.find(function(x){return /^\\s*Glycol OFF\\s*$/.test(x.textContent||'');});if(off)return true;var on=a.find(function(x){return /^\\s*Glycol ON\\s*$/.test(x.textContent||'');});if(on)on.click();return !!on;},"+
+ "glycolState:function(){var a=[].slice.call(document.querySelectorAll('button'));var b=a.find(function(x){return /^\\s*Glycol (ON|OFF)\\s*$/.test(x.textContent||'');});return b?(/OFF/.test(b.textContent||'')?'off':'on'):null;},"+
+ "selectALMode:function(mode){var a=[].slice.call(document.querySelectorAll('[data-al-mode-select] button'));var b=a.find(function(x){return x.getAttribute('data-al-mode')===mode||(x.textContent||'').trim().toLowerCase()===mode;});if(b)b.click();return !!b;},"+
+ "alMode:function(){var b=document.querySelector('[data-al-mode][aria-pressed=true]');return b?b.getAttribute('data-al-mode'):null;},"+
  "setPress:function(v){var i=[].slice.call(document.querySelectorAll('input')).find(function(x){return /enter site pressure/i.test(x.placeholder||'')});if(!i)return false;var set=Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value').set;set.call(i,v);i.dispatchEvent(new Event('input',{bubbles:true}));i.dispatchEvent(new Event('change',{bubbles:true}));return true;},"+
  "pressVal:function(){var i=[].slice.call(document.querySelectorAll('input')).find(function(x){return /enter site pressure/i.test(x.placeholder||'')});return i?i.value:'';},"+
  "clickRef:function(){var b=[].slice.call(document.querySelectorAll('button')).find(function(x){return /Use reference pressure 101\\.325 kPa/.test(x.textContent)});if(b)b.click();return !!b;},"+
@@ -58,6 +62,19 @@ const HELP="window.__h={"+
  "captured:function(){return window.__captured.map(function(c){return {download:c.download,data:decodeURIComponent(c.href.slice(c.href.indexOf(',')+1))}});}"+
  "},true";
 const NO_POS=/✅|Good|Acceptable/, NO_ZERO=/\b0\.00%|\b0%/, NANINF=/NaN|Infinity/;
+
+async function prepareAL(S){
+  await ev(S,'__h.clickAL()');
+  await evalWait(S,'document.querySelector("[data-al-mode-select]")!==null',2000);
+
+  const glycolControl=await ev(S,'__h.glycolOff()');
+  if(!glycolControl) throw new Error('A/L glycol control not found');
+  await evalWait(S,'__h.glycolState()==="off"',2000);
+
+  const modeControl=await ev(S,'__h.selectALMode("heating")');
+  if(!modeControl) throw new Error('A/L heating mode button not found');
+  await evalWait(S,'__h.alMode()==="heating"',2000);
+}
 let diagnostic=null, srv=null, ORIGIN='';
 
 async function main(){
@@ -140,30 +157,30 @@ async function main(){
   // A
   rec('A.pressure_missing','initial pressure state missing', (await ev(S,'__h.pressState()==="missing"'))===true||/missing/i.test(await ev(S,'__h.stateText()')||''));
   rec('A.no_implicit_1015','no implicit 101.5', (await ev(S,'__h.pressVal()'))==='', await ev(S,'__h.pressVal()'));
-  await ev(S,'__h.clickAL()');
+  await prepareAL(S);
   rec('A.withheld','A/L withheld + reason pressure_missing', (await ev(S,'__h.airReason()'))==='pressure_missing', await ev(S,'__h.airReason()'));
   { const t=await ev(S,'__h.txt()'); rec('A.text','WITHHELD+reason+Q Liquid; no NaN/0%/green', /WITHHELD/.test(t)&&/Atmospheric pressure is missing/.test(t)&&/Q Liquid/.test(t)&&!NANINF.test(t)&&!NO_POS.test(t)&&!NO_ZERO.test(t)); await shot(S,'01_initial_missing_withheld'); }
   // B
   for(const [label,value,reason] of [['cleared','','pressure_missing'],['whitespace','   ','pressure_missing'],['text','abc','pressure_non_finite'],['zero','0','pressure_non_positive'],['negative','-5','pressure_non_positive'],['below','40','pressure_below_range'],['above','120','pressure_above_range']]){
-    await reload(browser,S,sessionId); await ev(S,'__h.clickAL()'); await ev(S,'__h.setPress('+JSON.stringify(value)+')'); await sleep(60);
+    await reload(browser,S,sessionId); await prepareAL(S); await ev(S,'__h.setPress('+JSON.stringify(value)+')'); await sleep(60);
     const r=await ev(S,'__h.airReason()'); const t=await ev(S,'__h.txt()');
     const ok=r===reason&&/WITHHELD/.test(t)&&/Q Liquid/.test(t)&&!NANINF.test(t)&&!NO_POS.test(t)&&!NO_ZERO.test(t);
     rec('B.'+label,'WITHHELD + reason '+reason+'; liquid retained; no NaN/0%/green', ok,'reason='+r);
     if(label==='zero') await shot(S,'02_invalid_withheld'); }
   // C
   for(const [label,value] of [['95_0','95'],['101_5','101.5']]){
-    await reload(browser,S,sessionId); await ev(S,'__h.clickAL()'); await ev(S,'__h.setPress('+JSON.stringify(value)+')'); await sleep(60);
+    await reload(browser,S,sessionId); await prepareAL(S); await ev(S,'__h.setPress('+JSON.stringify(value)+')'); await sleep(60);
     const known=await ev(S,'__h.pressState()==="known"'); const st=await ev(S,'__h.stateText()'); const wc=await ev(S,'__h.withheldCount()'); const t=await ev(S,'__h.txt()');
     rec('C.'+label,'state known/entered; air available; no WITHHELD/NaN', known&&/entered/.test(st||'')&&wc===0&&!/WITHHELD/.test(t)&&!NANINF.test(t),'state='+st);
     if(label==='95_0') await shot(S,'03_valid_95'); }
   // D
-  await reload(browser,S,sessionId); rec('D.button','reference button present', await ev(S,'__h.clickRef()')); await ev(S,'__h.clickAL()'); await sleep(60);
+  await reload(browser,S,sessionId); rec('D.button','reference button present', await ev(S,'__h.clickRef()')); await prepareAL(S); await sleep(60);
   { const st=await ev(S,'__h.stateText()'); const wc=await ev(S,'__h.withheldCount()');
     var isRef=/101\.325/.test(st||'')&&/reference/.test(st||'')&&/reference_selection/.test(st||'')&&!/\bentered\b/.test(st||'')&&!/\bmeasured\b/.test(st||'')&&wc===0;
     rec('D.reference','101.325 + reference + reference_selection; not entered/measured; available', isRef,'state='+st);
     await shot(S,'04_reference_101325'); }
   // E/F/G
-  await reload(browser,S,sessionId); await ev(S,'__h.clickAL()'); await ev(S,'__h.clickByName("Save Measurement")'); await sleep(90);
+  await reload(browser,S,sessionId); await prepareAL(S); await ev(S,'__h.clickByName("Save Measurement")'); await sleep(90);
   await ev(S,'__h.clickByName("Export JSON")'); await sleep(50); await ev(S,'__h.clickByName("Export CSV")'); await sleep(50);
   const caps=await ev(S,'__h.captured()'); const jc=(caps||[]).find(c=>/json/i.test(c.download||'')), cc=(caps||[]).find(c=>/csv/i.test(c.download||''));
   try{ const data=JSON.parse(jc.data); const r=(data.records||[]).find(x=>x.mode==='Air/Liquid');

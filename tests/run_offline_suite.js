@@ -5,9 +5,9 @@
 const { execSync }=require('child_process'); const fs=require('fs'), path=require('path');
 const ROOT=path.join(__dirname,'..'); const TS=process.env.BUILD_TS||new Date().toISOString();
 const steps=[
+  ['compile_app','node tests/compile_app.js'],
   ['sha_consistency','node tests/sha_consistency.js'],
   ['path_safety','node tests/path_safety.js'],
-  ['compile_app','node tests/compile_app.js'],
   ['preflight_structural_validation','node tests/run_preflight.js'],
   ['server_selftest','node tests/server_selftest.js'],
   ['harness_render_check','node tests/harness_render_check.js'],
