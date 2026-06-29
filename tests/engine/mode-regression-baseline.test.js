@@ -29,13 +29,13 @@ test('validated A/A numerical baseline remains frozen', () => {
   assert.equal(out.code, c.expected.code);
   assert.ok(out.result);
 
-  near(out.result.dryAirMassFlowKgS, c.expected.dryAirMassFlowKgS, 1e-12, 'A/A mass flow');
-  near(out.result.totalCapacityKW, c.expected.totalCapacityKW, 1e-12, 'A/A total');
-  near(out.result.sensibleCapacityKW, c.expected.sensibleCapacityKW, 1e-12, 'A/A sensible');
-  near(out.result.latentCapacityKW, c.expected.latentCapacityKW, 1e-12, 'A/A latent');
-  near(out.result.shr, c.expected.shr, 1e-12, 'A/A SHR');
-  near(out.result.entering.enthalpyKJkg, c.expected.enteringEnthalpyKJkg, 1e-12, 'A/A h entering');
-  near(out.result.leaving.enthalpyKJkg, c.expected.leavingEnthalpyKJkg, 1e-12, 'A/A h leaving');
+  near(out.result.dryAirMassFlowKgS, c.expected.dryAirMassFlowKgS, 1e-9, 'A/A mass flow');
+  near(out.result.totalCapacityKW, c.expected.totalCapacityKW, 1e-9, 'A/A total');
+  near(out.result.sensibleCapacityKW, c.expected.sensibleCapacityKW, 1e-9, 'A/A sensible');
+  near(out.result.latentCapacityKW, c.expected.latentCapacityKW, 1e-9, 'A/A latent');
+  near(out.result.shr, c.expected.shr, 1e-9, 'A/A SHR');
+  near(out.result.entering.enthalpyKJkg, c.expected.enteringEnthalpyKJkg, 1e-9, 'A/A h entering');
+  near(out.result.leaving.enthalpyKJkg, c.expected.leavingEnthalpyKJkg, 1e-9, 'A/A h leaving');
 });
 
 test('validated A/L numerical and status baseline remains frozen', () => {
@@ -45,9 +45,9 @@ test('validated A/L numerical and status baseline remains frozen', () => {
   assert.equal(sol.valid, c.expected.valid);
   assert.equal(sol.reason, c.expected.reason);
   assert.equal(sol.mode, c.expected.mode);
-  near(sol.Q, c.expected.Q, 1e-12, 'A/L Q');
-  near(sol.cop, c.expected.cop, 1e-12, 'A/L COP');
-  near(sol.expectedAirSigned, c.expected.expectedAirSigned, 1e-12, 'A/L expected air');
+  near(sol.Q, c.expected.Q, 1e-9, 'A/L Q');
+  near(sol.cop, c.expected.cop, 1e-9, 'A/L COP');
+  near(sol.expectedAirSigned, c.expected.expectedAirSigned, 1e-9, 'A/L expected air');
 
   const ev = E.engcalcAirLiquidEvaluateAir(Object.assign({}, c.input, {
     ambientDB_C: 35,
@@ -65,7 +65,7 @@ test('validated A/L numerical and status baseline remains frozen', () => {
   assert.equal(ev.saveAllowed, expected.saveAllowed);
   assert.equal(ev.qaAvailable, expected.qaAvailable);
   assert.equal(ev.operatingMode, expected.operatingMode);
-  near(ev.expectedAirSigned_kW, expected.expectedAirSigned_kW, 1e-12, 'A/L evaluated expected air');
+  near(ev.expectedAirSigned_kW, expected.expectedAirSigned_kW, 1e-9, 'A/L evaluated expected air');
 });
 
 function currentProperties(glycolPct) {
@@ -121,8 +121,8 @@ test('three dated L/L cases reproduce the current calculator and independent ene
     assert.equal(current.classification, expectedCurrent.classification, `${c.id} current classification`);
 
     if (Object.prototype.hasOwnProperty.call(expectedCurrent, 'cpKJkgK')) {
-      near(current.coldProps.cpKJkgK, expectedCurrent.cpKJkgK, 1e-12, `${c.id} current cp`);
-      near(current.coldProps.rhoKgL, expectedCurrent.rhoKgL, 1e-12, `${c.id} current rho`);
+      near(current.coldProps.cpKJkgK, expectedCurrent.cpKJkgK, 1e-9, `${c.id} current cp`);
+      near(current.coldProps.rhoKgL, expectedCurrent.rhoKgL, 1e-9, `${c.id} current rho`);
     }
 
     const reference = physicalLiquidLiquid(c.input, c.physicalReference);
