@@ -1,0 +1,97 @@
+name: package-ll-cutover-offline
+
+on:
+  push:
+    branches:
+      - review/ll-cutover-offline-package-213b42f
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout package branch with full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build source and diff package from frozen SHAs
+        run: |
+          set -euo pipefail
+          BASE=9247e454ab5f9c7ef8da405e6f6afdeafafafe92
+          HEAD=213b42f63ed022df9efd73b13262a493409b2cc5
+          ROOT=artifacts/noditech-ll-cutover-offline-review
+          mkdir -p "$ROOT/repo/base" "$ROOT/repo/head" "$ROOT/diff" "$ROOT/metadata"
+
+          git cat-file -e "$BASE^{commit}"
+          git cat-file -e "$HEAD^{commit}"
+          git archive "$BASE" | tar -x -C "$ROOT/repo/base"
+          git archive "$HEAD" | tar -x -C "$ROOT/repo/head"
+          git archive --format=tar.gz --output="$ROOT/repo/base-$BASE.tar.gz" "$BASE"
+          git archive --format=tar.gz --output="$ROOT/repo/head-$HEAD.tar.gz" "$HEAD"
+          git diff --binary "$BASE" "$HEAD" > "$ROOT/diff/base-to-cutover.diff"
+          git diff --name-status "$BASE" "$HEAD" > "$ROOT/diff/name-status.txt"
+          git diff --stat "$BASE" "$HEAD" > "$ROOT/diff/stat.txt"
+          git log --format='%H %s' --reverse "$BASE..$HEAD" > "$ROOT/diff/commits.txt"
+
+          cat > "$ROOT/metadata/REVIEW_SCOPE.md" <<EOF
+          # Noditech L/L offline cut-over review scope
+
+          - Repository: Simsalabim-png/Noditech
+          - Authoritative PR: #25
+          - Base SHA: $BASE
+          - Head SHA: $HEAD
+          - Base branch: feature/liquid-liquid-mode-aware-correctness
+          - Head branch: feature/liquid-liquid-live-cutover
+          - A/A and A/L: absolute no-touch
+          - No merge, release or deploy is authorized
+
+          `repo/base/` and `repo/head/` are exact `git archive` exports of the SHAs above.
+          `diff/base-to-cutover.diff` is the complete binary-safe diff between those SHAs.
+          EOF
+
+          python - <<'PY'
+          import hashlib, json, pathlib
+          root=pathlib.Path('artifacts/noditech-ll-cutover-offline-review')
+          metadata={
+            'schema':'noditech.ll-cutover-offline-review/1',
+            'repository':'Simsalabim-png/Noditech',
+            'pr':25,
+            'base':'9247e454ab5f9c7ef8da405e6f6afdeafafafe92',
+            'head':'213b42f63ed022df9efd73b13262a493409b2cc5',
+            'airAirFrozenRequired':True,
+            'airLiquidFrozenRequired':True,
+            'files':{}
+          }
+          for p in sorted(root.rglob('*')):
+            if p.is_file() and p.name not in {'MANIFEST.json','CHECKSUMS.sha256'}:
+              data=p.read_bytes()
+              metadata['files'][p.relative_to(root).as_posix()]={
+                'bytes':len(data),
+                'sha256':hashlib.sha256(data).hexdigest()
+              }
+          (root/'MANIFEST.json').write_text(json.dumps(metadata,indent=2)+'\n')
+          lines=[]
+          for p in sorted(root.rglob('*')):
+            if p.is_file() and p.name!='CHECKSUMS.sha256':
+              lines.append(f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.relative_to(root).as_posix()}")
+          (root/'CHECKSUMS.sha256').write_text('\n'.join(lines)+'\n')
+          PY
+
+          cd artifacts
+          tar -czf noditech-ll-cutover-offline-review.tar.gz noditech-ll-cutover-offline-review
+          sha256sum noditech-ll-cutover-offline-review.tar.gz > noditech-ll-cutover-offline-review.tar.gz.sha256
+
+      - name: Upload offline source review package
+        uses: actions/upload-artifact@v4
+        with:
+          name: noditech-ll-cutover-offline-review-213b42f
+          path: |
+            artifacts/noditech-ll-cutover-offline-review.tar.gz
+            artifacts/noditech-ll-cutover-offline-review.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 14
