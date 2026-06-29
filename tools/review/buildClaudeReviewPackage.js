@@ -13,7 +13,7 @@ const PROD_SHA = 'd3080ff5fcf0dd539130c6849edb66aa3db9faed11e6b045561d048c76c992
 const PC6_SHA = 'b9f8be84731b9038a814ecc32b876d8856d8526ccf28cd35cc1bb1d74167dc50';
 
 const sha = (buf) => crypto.createHash('sha256').update(buf).digest('hex');
-const run = (cmd, args, opts = {}) => cp.execFileSync(cmd, args, { stdio: 'pipe', ...opts });
+const run = (cmd, args, opts = {}) => cp.execFileSync(cmd, args, { stdio: 'pipe', maxBuffer: 256 * 1024 * 1024, ...opts });
 const ensure = (cond, msg) => { if (!cond) throw new Error(msg); };
 const write = (file, data) => { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, data); };
 
@@ -28,7 +28,7 @@ for (const file of ['Kalkulator_build9.7-pc6.html', 'index.html', 'Kalkulator.ht
 for (const [ref, dir] of [[HEAD, 'head'], [BASE, 'base']]) {
   const tar = run('git', ['archive', '--format=tar', ref]);
   fs.mkdirSync(path.join(OUT, 'repo', dir), { recursive: true });
-  cp.execFileSync('tar', ['-xf', '-', '-C', path.join(OUT, 'repo', dir)], { input: tar });
+  cp.execFileSync('tar', ['-xf', '-', '-C', path.join(OUT, 'repo', dir)], { input: tar, maxBuffer: 256 * 1024 * 1024 });
 }
 write(path.join(OUT, 'diff', 'develop-to-head.diff'), run('git', ['diff', '--binary', '--full-index', BASE, HEAD]));
 write(path.join(OUT, 'diff', 'name-status.txt'), run('git', ['diff', '--name-status', BASE, HEAD]));
