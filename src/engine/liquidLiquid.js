@@ -34,6 +34,8 @@ function blocked(code, message, operatingMode) {
     cold: null,
     hot: null,
     electricalPower_kW: null,
+    usefulCapacity_kW: null,
+    cop: null,
     copCooling: null,
     copHeating: null,
     expectedHot_kW: null,
@@ -57,6 +59,7 @@ function reasonMessage(code) {
     case 'hot_properties_invalid': return 'Hot-side liquid properties are invalid.';
     case 'cold_capacity_invalid': return 'Cold-side capacity is not finite and positive.';
     case 'hot_capacity_invalid': return 'Hot-side capacity is not finite and positive.';
+    case 'hot_below_cold_impossible': return 'Qhot must not be lower than Qcold.';
     case 'heating_expected_cold_non_positive': return 'Heating result is impossible because Qhot - Pel is not positive.';
     case 'energy_balance_invalid': return 'Energy balance could not be evaluated.';
     default: return 'Liquid/Liquid result unavailable.';
@@ -124,6 +127,9 @@ function computeLiquidLiquid(input) {
   if (!finitePositive(hot.capacity_kW)) {
     return blocked('hot_capacity_invalid', reasonMessage('hot_capacity_invalid'), mode);
   }
+  if (hot.capacity_kW < cold.capacity_kW) {
+    return blocked('hot_below_cold_impossible', reasonMessage('hot_below_cold_impossible'), mode);
+  }
 
   const power = input.electricalPower_kW;
   const residual = hot.capacity_kW - cold.capacity_kW - power;
@@ -137,11 +143,15 @@ function computeLiquidLiquid(input) {
     return blocked('heating_expected_cold_non_positive', reasonMessage('heating_expected_cold_non_positive'), mode);
   }
 
-  const reference = mode === 'cooling' ? expectedHot : hot.capacity_kW;
-  const balanceDeviation = (residual / reference) * 100;
+  const balanceDeviation = (residual / expectedHot) * 100;
   if (!finiteNumber(balanceDeviation)) {
     return blocked('energy_balance_invalid', reasonMessage('energy_balance_invalid'), mode);
   }
+
+  const copCooling = cold.capacity_kW / power;
+  const copHeating = hot.capacity_kW / power;
+  const usefulCapacity = mode === 'cooling' ? cold.capacity_kW : hot.capacity_kW;
+  const usefulCop = mode === 'cooling' ? copCooling : copHeating;
 
   return {
     valid: true,
@@ -153,8 +163,10 @@ function computeLiquidLiquid(input) {
     cold,
     hot,
     electricalPower_kW: power,
-    copCooling: cold.capacity_kW / power,
-    copHeating: hot.capacity_kW / power,
+    usefulCapacity_kW: usefulCapacity,
+    cop: usefulCop,
+    copCooling,
+    copHeating,
     expectedHot_kW: expectedHot,
     expectedCold_kW: expectedCold,
     energyResidual_kW: residual,
