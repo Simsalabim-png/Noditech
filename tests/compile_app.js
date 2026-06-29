@@ -11,6 +11,9 @@ const LOCK=JSON.parse(fs.readFileSync(path.join(ROOT,'tools','compiler','compile
 const COMPILER=path.join(ROOT,'tools','compiler',path.basename(LOCK.file));
 const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
 const llCandidate=process.env.NODITECH_LL_CANDIDATE==='1';
+const llCutover=process.env.NODITECH_LL_CUTOVER==='1';
+if(llCandidate&&llCutover){ console.error('COMPILE MODE ERROR: candidate and cutover modes are mutually exclusive'); process.exit(2); }
+const compileMode=llCutover?'ll-cutover':llCandidate?'ll-candidate':'production';
 // verify locked compiler integrity
 const compilerSha=sha(fs.readFileSync(COMPILER));
 if(compilerSha!==LOCK.integrity_sha256){ console.error('LOCKED COMPILER INTEGRITY FAIL: '+compilerSha+' != '+LOCK.integrity_sha256); process.exit(2); }
@@ -19,7 +22,8 @@ const extracted=ex.extract();
 const prodSha=extracted.prodSha;
 const productionSourceSha=extracted.sourceSha;
 let source=extracted.source;
-if(llCandidate){ source=require('../src/engine/liquidLiquidUiTransform.js').transformLiqLiqShadow(source); }
+if(llCutover){ source=require('../src/engine/liquidLiquidCutoverTransform.js').transformLiqLiqCutover(source); }
+else if(llCandidate){ source=require('../src/engine/liquidLiquidUiTransform.js').transformLiqLiqShadow(source); }
 const sourceSha=sha(Buffer.from(source,'utf8'));
 let compiled;
 try{ compiled=Babel.transform(source,{presets:LOCK.presets,sourceType:'script',comments:false}).code; }
@@ -38,22 +42,30 @@ if(bad.length){ console.error('COMPILED OUTPUT GUARD FAILED: '+bad.join('; ')); 
 fs.mkdirSync(path.join(ROOT,'chromium','generated'),{recursive:true});
 const OUT=path.join(ROOT,'chromium','generated','app.compiled.js');
 const header='/* GENERATED — do not edit. Build-time compile of the extracted Step 3 application source.\n'
- +'   Compiler: '+LOCK.compiler+'@'+LOCK.version+' (preset react). Source SHA-256: '+sourceSha+'. Mode: '+(llCandidate?'ll-candidate':'production')+'.\n'
+ +'   Compiler: '+LOCK.compiler+'@'+LOCK.version+' (preset react). Source SHA-256: '+sourceSha+'. Mode: '+compileMode+'.\n'
  +'   Produced by tests/compile_app.js from corrected/Kalkulator_build9.6-rc8_step3_4.src.html. No JSX, no Babel-in-browser. */\n';
 fs.writeFileSync(OUT,header+compiled+'\n');
 const compiledSha=sha(fs.readFileSync(OUT));
+const command=llCutover?'NODITECH_LL_CUTOVER=1 node tests/compile_app.js':llCandidate?'NODITECH_LL_CANDIDATE=1 node tests/compile_app.js':'node tests/compile_app.js';
+const candidateMode=llCutover?'liquid-liquid-cutover':llCandidate?'liquid-liquid-shadow':null;
+const equivalenceStatus=llCutover
+  ?'CUTOVER CANDIDATE — compiled from the SHA-locked production source after the deterministic LiqLiq-only contract transform'
+  :llCandidate
+    ?'CANDIDATE — compiled from the SHA-locked production source after the deterministic LiqLiq-only transform'
+    :'EQUIVALENT — app.compiled.js is the build-time compilation of the byte-identical application source extracted from the packaged production artifact';
 const equiv={ generated:process.env.BUILD_TS||new Date().toISOString(),
   production_artifact_sha256:prodSha,
   production_application_source_sha256:productionSourceSha,
   compiled_application_source_sha256:sourceSha,
-  candidate_mode:llCandidate?'liquid-liquid-shadow':null,
+  candidate_mode:candidateMode,
+  compile_mode:compileMode,
   compiled_application_sha256:compiledSha,
   compiled_application_inner_sha256:sha(Buffer.from(compiled,'utf8')),
   extraction_script_sha256:ex.selfSha(),
   compiler:LOCK.compiler, compiler_version:LOCK.version, compiler_integrity_sha256:compilerSha, presets:LOCK.presets,
-  command:llCandidate?'NODITECH_LL_CANDIDATE=1 node tests/compile_app.js':'node tests/compile_app.js',
+  command,
   guards_passed:true,
-  equivalence_status:llCandidate?'CANDIDATE — compiled from the SHA-locked production source after the deterministic LiqLiq-only transform':'EQUIVALENT — app.compiled.js is the build-time compilation of the byte-identical application source extracted from the packaged production artifact' };
+  equivalence_status:equivalenceStatus };
 fs.mkdirSync(path.join(ROOT,'chromium','results'),{recursive:true});
 fs.writeFileSync(path.join(ROOT,'chromium','results','source_equivalence.json'),JSON.stringify(equiv,null,2));
-console.log('compiled ->', path.relative(ROOT,OUT), '| source_sha', sourceSha.slice(0,12), '| compiled_sha', compiledSha.slice(0,12), '| mode', llCandidate?'ll-candidate':'production');
+console.log('compiled ->', path.relative(ROOT,OUT), '| source_sha', sourceSha.slice(0,12), '| compiled_sha', compiledSha.slice(0,12), '| mode', compileMode);
