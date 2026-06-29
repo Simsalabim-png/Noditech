@@ -11,6 +11,7 @@ const root = path.join(__dirname, '../..');
 const sourcePath = path.join(root, 'corrected/Kalkulator_build9.6-rc8_step3_4.src.html');
 const source = fs.readFileSync(sourcePath, 'utf8');
 const sha = (buffer) => crypto.createHash('sha256').update(buffer).digest('hex');
+const bundleMarker = '/* GENERATED AT BUILD TIME FROM REVIEWED L/L MODULES — DO NOT EDIT */';
 
 function between(text, start, end) {
   const a = text.indexOf(start);
@@ -26,6 +27,7 @@ test('cutover transform is deterministic and injects reviewed browser API', () =
   assert.match(first, /global\.NoditechLiquidLiquid=Object\.freeze/);
   assert.match(first, /evaluateLegacyLiquidLiquidState\(_llState,\{glycolLookup:_llGlycolLookup\}\)/);
   assert.match(first, /typeof glyEval==='function'\?glyEval:null/);
+  assert.match(first, /\(_llApi&&_llEval\.engineInput\)\?_llApi\.resolveLiquidProperties/);
   assert.doesNotMatch(between(first, 'function LiqLiq(', 'function GuideAA('), /const Qc=mC\*cpC/);
 });
 
@@ -36,7 +38,7 @@ test('A/A and A/L component bytes remain identical', () => {
     between(source, 'function AirAir(', 'function AirLiquid(')
   );
   assert.equal(
-    between(transformed, 'function AirLiquid(', 'function LiqLiq('),
+    between(transformed, 'function AirLiquid(', bundleMarker),
     between(source, 'function AirLiquid(', 'function LiqLiq(')
   );
 });
