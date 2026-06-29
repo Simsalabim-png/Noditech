@@ -1,48 +1,14 @@
 name: apply-ll-browser-assertion-fix
 
 on:
-  push:
-    branches:
-      - automation/ll-review-fixes-213b42f
-  pull_request:
-    branches:
-      - develop
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  apply:
-    if: github.ref_name == 'automation/ll-review-fixes-213b42f' || github.head_ref == 'automation/ll-review-fixes-213b42f'
+  disabled:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout cutover branch
-        uses: actions/checkout@v4
-        with:
-          ref: feature/liquid-liquid-live-cutover
-          fetch-depth: 0
-
-      - name: Correct two browser assertions
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          p=Path('chromium/run_ll_cutover_contract.js')
-          s=p.read_text()
-          old1="rec('LL.heating_projection','heating useful capacity projected',/Useful Heating Capacity/.test(await ev(S,'__llh.text()')));"
-          new1="rec('LL.heating_projection','heating useful capacity projects the hot-side value',await ev(S,'document.querySelector(\"[data-ll-useful-capacity=\\\"true\\\"]\")!==null&&Math.abs(Number(__llh.attr(\"data-ll-useful-capacity\"))-Number(__llh.attr(\"data-ll-hot-capacity\")))<1e-9'),await ev(S,'JSON.stringify({useful:__llh.attr(\"data-ll-useful-capacity\"),hot:__llh.attr(\"data-ll-hot-capacity\")})'));"
-          old2="rec('AA.mobile','A/A renders at real mobile viewport',/A\\/A/.test(await ev(S,'document.getElementById(\"root\").innerText'))&&await ev(S,'window.innerWidth===390'),await ev(S,'window.innerWidth'));"
-          new2="rec('AA.mobile','A/A renders inside the production mobile breakpoint',/A\\/A/.test(await ev(S,'document.getElementById(\"root\").innerText'))&&await ev(S,'window.matchMedia(\"(max-width:520px)\").matches'),await ev(S,'JSON.stringify({innerWidth:window.innerWidth,screenWidth:screen.width,mobileBreakpoint:window.matchMedia(\"(max-width:520px)\").matches})'));"
-          if s.count(old1)!=1 or s.count(old2)!=1:
-              raise SystemExit('expected assertion anchors not found exactly once')
-          p.write_text(s.replace(old1,new1).replace(old2,new2))
-          PY
-          node --check chromium/run_ll_cutover_contract.js
-          git diff --check
-
-      - name: Commit to cutover branch
-        run: |
-          git config user.name 'Noditech Review Automation'
-          git config user.email 'review-automation@users.noreply.github.com'
-          git add chromium/run_ll_cutover_contract.js
-          git commit -m 'test(browser): assert heating capacity and mobile breakpoint'
-          git push origin HEAD:feature/liquid-liquid-live-cutover
+      - name: Completed
+        run: echo completed
