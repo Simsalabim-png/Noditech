@@ -60,3 +60,80 @@ test('validated A/L numerical and status baseline remains frozen', () => {
   assert.equal(ev.operatingMode, expected.operatingMode);
   near(ev.expectedAirSigned_kW, expected.expectedAirSigned_kW, 1e-9, 'A/L evaluated expected air');
 });
+
+function currentProperties(glycolPct) {
+  return {
+    cpKJkgK: 4.18 - (4.18 - 2.38) * (glycolPct / 100),
+    rhoKgL: 1 + 0.0012 * glycolPct,
+  };
+}
+
+function currentLiquidLiquid(input) {
+  const cold = currentProperties(input.cold.glycolPct);
+  const hot = currentProperties(input.hot.glycolPct);
+  const QcoldKW = cold.cpKJkgK * input.cold.flowLs * cold.rhoKgL *
+    Math.abs(input.cold.ToutC - input.cold.TinC);
+  const QhotKW = hot.cpKJkgK * input.hot.flowLs * hot.rhoKgL *
+    Math.abs(input.hot.TinC - input.hot.ToutC);
+  const copCooling = QcoldKW / input.powerKW;
+  const displayedBalancePct = ((QhotKW - QcoldKW) / QcoldKW) * 100;
+  return {
+    cold,
+    QcoldKW,
+    QhotKW,
+    copCooling,
+    displayedBalancePct,
+    classification: Math.abs(displayedBalancePct) > 10 ? 'check_measurements' : 'ok',
+  };
+}
+
+function physicalLiquidLiquid(input, reference) {
+  const cpKJkgK = reference.cpKJkgK ?? 4.18;
+  const rhoKgL = reference.rhoKgL ?? 1;
+  const coldDeltaT = input.cold.TinC - input.cold.ToutC;
+  const hotDeltaT = input.hot.ToutC - input.hot.TinC;
+  const QcoldKW = cpKJkgK * input.cold.flowLs * rhoKgL * coldDeltaT;
+  const QhotKW = cpKJkgK * input.hot.flowLs * rhoKgL * hotDeltaT;
+  const expectedHotKW = QcoldKW + input.powerKW;
+  const residualKW = QhotKW - QcoldKW - input.powerKW;
+  const deviationPct = (residualKW / expectedHotKW) * 100;
+  return {
+    directionValid: coldDeltaT > 0 && hotDeltaT > 0,
+    QcoldKW,
+    expectedHotKW,
+    residualKW,
+    deviationPct,
+  };
+}
+
+test('three dated L/L cases reproduce current output and independent energy reference', () => {
+  for (const c of baseline.liquidLiquidCases) {
+    const current = currentLiquidLiquid(c.input);
+    near(current.QcoldKW, c.currentCalculator.QcoldKW, 1e-9, `${c.id} current Qcold`);
+    near(current.QhotKW, c.currentCalculator.QhotKW, 1e-9, `${c.id} current Qhot`);
+    near(current.copCooling, c.currentCalculator.copCooling, 1e-9, `${c.id} current COP`);
+    near(current.displayedBalancePct, c.currentCalculator.displayedBalancePct, 1e-9, `${c.id} displayed balance`);
+    assert.equal(current.classification, c.currentCalculator.classification, `${c.id} classification`);
+
+    if (c.currentCalculator.cpKJkgK != null) {
+      near(current.cold.cpKJkgK, c.currentCalculator.cpKJkgK, 1e-9, `${c.id} current cp`);
+      near(current.cold.rhoKgL, c.currentCalculator.rhoKgL, 1e-9, `${c.id} current rho`);
+    }
+
+    const physical = physicalLiquidLiquid(c.input, c.physicalReference);
+    assert.equal(physical.directionValid, c.physicalReference.directionValid, `${c.id} direction`);
+    near(physical.expectedHotKW, c.physicalReference.expectedHotKW, 1e-9, `${c.id} expected hot`);
+    near(physical.residualKW, c.physicalReference.residualKW, 1e-9, `${c.id} residual`);
+    near(physical.deviationPct, c.physicalReference.deviationPct, 1e-9, `${c.id} deviation`);
+    if (c.physicalReference.QcoldKW != null) {
+      near(physical.QcoldKW, c.physicalReference.QcoldKW, 1e-9, `${c.id} reference Qcold`);
+    }
+  }
+
+  assert.equal(baseline.liquidLiquidCases[0].currentCalculator.classification, 'check_measurements');
+  assert.equal(baseline.liquidLiquidCases[0].physicalReference.classification, 'exact');
+  assert.equal(baseline.liquidLiquidCases[1].currentCalculator.classification, 'ok');
+  assert.equal(baseline.liquidLiquidCases[1].physicalReference.classification, 'failed');
+  assert.equal(baseline.liquidLiquidCases[2].currentCalculator.classification, 'check_measurements');
+  assert.equal(baseline.liquidLiquidCases[2].physicalReference.classification, 'exact');
+});
