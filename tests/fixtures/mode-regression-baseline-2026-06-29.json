@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "baselineDate": "2026-06-29",
+  "purpose": "Freeze validated A/A and A/L outputs and document current L/L deviation before any L/L production change.",
+  "refs": {
+    "developBase": "123c35290169443623c3f4a4a56cd191374380a7",
+    "featureBranch": "feature/liquid-liquid-mode-aware-correctness",
+    "productionMain": "4d186c0353c82a0ad46eca7921c6f0a248f68151",
+    "sourceSha256": "d3080ff5fcf0dd539130c6849edb66aa3db9faed11e6b045561d048c76c99210",
+    "publishedPc2Sha256": "1699adf7c5682454092bb639f66ad485c46cc997b6914e87bc506c26b87a581b",
+    "protectedPc6Sha256": "b9f8be84731b9038a814ecc32b876d8856d8526ccf28cd35cc1bb1d74167dc50"
+  },
+  "validatedModes": {
+    "airAir": {
+      "input": {
+        "entering": { "inputMethod": "rh", "dbC": 26.7, "rhPct": 50 },
+        "leaving": { "inputMethod": "rh", "dbC": 12, "rhPct": 90 },
+        "airflowM3h": 2000,
+        "airflowReference": "leaving",
+        "pressurePa": 101325
+      },
+      "expected": {
+        "status": "valid",
+        "code": "ok",
+        "dryAirMassFlowKgS": 0.6791368003647862,
+        "totalCapacityKW": 15.557203707424536,
+        "sensibleCapacityKW": 10.246444002063724,
+        "latentCapacityKW": 5.310759705360812,
+        "shr": 0.6586301879671153,
+        "enteringEnthalpyKJkg": 54.77663532903541,
+        "leavingEnthalpyKJkg": 31.86931577417067
+      }
+    },
+    "airLiquid": {
+      "input": {
+        "operatingMode": "cooling",
+        "Tin": 12,
+        "Tout": 7,
+        "flow_Ls": 0.5,
+        "rho": 1.0419784157,
+        "cp": 3.6869969921,
+        "glyValid": true,
+        "useGly": true,
+        "glyType": "EG",
+        "pw": 1.2
+      },
+      "expected": {
+        "valid": true,
+        "reason": null,
+        "mode": "cooling",
+        "Q": 9.60442821129756,
+        "cop": 8.0036901760813,
+        "expectedAirSigned": 10.804428211297559
+      },
+      "autoAirExpected": {
+        "airStatus": "estimated",
+        "reasonCode": null,
+        "reasonMessage": null,
+        "saveAllowed": true,
+        "qaAvailable": true,
+        "operatingMode": "cooling",
+        "expectedAirSigned_kW": 10.804428211297559
+      }
+    }
+  },
+  "liquidLiquidCases": [
+    {
+      "id": "LL-BASE-001",
+      "name": "Water, physically exact energy balance",
+      "input": {
+        "cold": { "TinC": 12, "ToutC": 7, "flowLs": 0.5, "glycolPct": 0 },
+        "hot": { "TinC": 30, "ToutC": 35, "flowLs": 0.5574162679425837, "glycolPct": 0 },
+        "powerKW": 1.2
+      },
+      "currentCalculator": {
+        "QcoldKW": 10.45,
+        "QhotKW": 11.65,
+        "copCooling": 8.708333333333334,
+        "displayedBalancePct": 11.483253588516746,
+        "classification": "check_measurements"
+      },
+      "physicalReference": {
+        "directionValid": true,
+        "expectedHotKW": 11.65,
+        "residualKW": 0,
+        "deviationPct": 0,
+        "classification": "exact"
+      },
+      "finding": "False warning: the current displayed balance omits electrical power."
+    },
+    {
+      "id": "LL-BASE-002",
+      "name": "Water, calculator-perfect but physically short on hot side",
+      "input": {
+        "cold": { "TinC": 12, "ToutC": 7, "flowLs": 0.5, "glycolPct": 0 },
+        "hot": { "TinC": 30, "ToutC": 35, "flowLs": 0.5, "glycolPct": 0 },
+        "powerKW": 1.2
+      },
+      "currentCalculator": {
+        "QcoldKW": 10.45,
+        "QhotKW": 10.45,
+        "copCooling": 8.708333333333334,
+        "displayedBalancePct": 0,
+        "classification": "ok"
+      },
+      "physicalReference": {
+        "directionValid": true,
+        "expectedHotKW": 11.65,
+        "residualKW": -1.2,
+        "deviationPct": -10.300429184549357,
+        "classification": "failed"
+      },
+      "finding": "False good: current UI can show 0% and OK while 1.2 kW is missing."
+    },
+    {
+      "id": "LL-BASE-003",
+      "name": "EG30 at 9.5 C mean, physically exact with temperature-aware properties",
+      "input": {
+        "cold": { "TinC": 12, "ToutC": 7, "flowLs": 0.5, "glycolPct": 30 },
+        "hot": { "TinC": 7, "ToutC": 12, "flowLs": 0.5624711837914753, "glycolPct": 30 },
+        "powerKW": 1.2
+      },
+      "currentCalculator": {
+        "cpKJkgK": 3.64,
+        "rhoKgL": 1.036,
+        "QcoldKW": 9.4276,
+        "QhotKW": 10.605506664625025,
+        "copCooling": 7.856333333333334,
+        "displayedBalancePct": 12.494236758295058,
+        "classification": "check_measurements"
+      },
+      "physicalReference": {
+        "cpKJkgK": 3.6869969921,
+        "rhoKgL": 1.0419784157,
+        "QcoldKW": 9.60442821129756,
+        "expectedHotKW": 10.804428211297559,
+        "residualKW": 0,
+        "deviationPct": 0,
+        "currentColdCapacityBiasPct": -1.8411112812479342,
+        "classification": "exact"
+      },
+      "finding": "The linear glycol model understates cold capacity by 1.84%, and the balance formula still creates a false warning."
+    }
+  ]
+}
