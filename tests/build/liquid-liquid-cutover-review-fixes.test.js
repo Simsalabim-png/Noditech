@@ -30,4 +30,6 @@ test('browser evidence uses locked production CSS and mode-aware assertions', ()
   assert.ok(runner.includes('LL.print_no_print_hidden'));
   assert.ok(runner.includes('data-ll-hot-capacity'));
   assert.ok(runner.includes('window.matchMedia("(max-width:520px)").matches'));
+  assert.ok(runner.includes('document.querySelector("[data-ll-useful-capacity]")'));
+  assert.ok(runner.includes('process.exit(fails?1:0)'));
 });
