@@ -27,7 +27,8 @@ test('cutover transform is deterministic and injects reviewed browser API', () =
   assert.match(first, /global\.NoditechLiquidLiquid=Object\.freeze/);
   assert.match(first, /evaluateLegacyLiquidLiquidState\(_llState,\{glycolLookup:_llGlycolLookup\}\)/);
   assert.match(first, /typeof glyEval==='function'\?glyEval:null/);
-  assert.match(first, /\(_llApi&&_llEval\.engineInput\)\?_llApi\.resolveLiquidProperties/);
+  assert.doesNotMatch(first, /_llApi\.resolveLiquidProperties\(_llEval\.engineInput/);
+  assert.match(first, /_llRecord=_llContract\.record/);
   assert.doesNotMatch(between(first, 'function LiqLiq(', 'function GuideAA('), /const Qc=mC\*cpC/);
 });
 
@@ -49,6 +50,9 @@ test('cutover UI, Save, JSON, CSV and print all read from contract', () => {
   assert.match(ll, /data-ll-save-allowed=\{_llContract\.saveAllowed\?"true":"false"\}/);
   assert.match(ll, /if\(!_llContract\.saveAllowed\|\|!_llContract\.record\)return/);
   assert.match(ll, /const r=_llContract\.record/);
+  assert.match(ll, /mode:"Liq\/Liq "\+\(r\.operatingMode==="heating"\?"Heating":"Cooling"\)/);
+  assert.match(ll, /Q:fmt\(r\.usefulCapacity_kW,4\)/);
+  assert.match(ll, /Qcold:fmt\(r\.cold\.capacity_kW,4\),Qhot:fmt\(r\.hot\.capacity_kW,4\)/);
   assert.match(ll, /ll_record:r,ll_json:_llContract\.json,ll_csv:_llContract\.csv,ll_print:_llContract\.print/);
   assert.match(ll, /serializeLiquidLiquidJson\(_llContract\)/);
   assert.match(ll, /serializeLiquidLiquidCsv\(_llContract\)/);
