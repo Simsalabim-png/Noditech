@@ -1,6 +1,7 @@
 'use strict';
 
 const { transformLiqLiqCutover } = require('./liquidLiquidCutoverTransform.js');
+const { addLiquidLiquidFieldHooks } = require('./liquidLiquidFieldHooks.js');
 const { extractProductionGlycolDataset } = require('./liquidLiquidProductionDataset.js');
 
 function buildLiquidLiquidCutoverSource(applicationSource) {
@@ -8,7 +9,7 @@ function buildLiquidLiquidCutoverSource(applicationSource) {
     throw new Error('Validated application source is required for L/L cutover build');
   }
   const dataset = extractProductionGlycolDataset();
-  const transformedApplication = transformLiqLiqCutover(applicationSource);
+  const transformedApplication = addLiquidLiquidFieldHooks(transformLiqLiqCutover(applicationSource));
   return {
     source: `${dataset.source}\n${transformedApplication}`,
     dataset,
