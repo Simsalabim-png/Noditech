@@ -16,11 +16,13 @@ permissions:
 jobs:
   regression:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -30,7 +32,7 @@ jobs:
       - name: Run validation, build, and engine tests
         run: |
           set -euo pipefail
-          node --test             tests/validation/*.test.js             tests/build/*.test.js             tests/engine/*.test.js
+          node --test tests/validation/*.test.js tests/build/*.test.js tests/engine/*.test.js
 
       - name: Verify deterministic build
         run: |
@@ -61,3 +63,18 @@ jobs:
               exit 1
             }
           done
+
+      - name: Build complete Claude review package
+        if: startsWith(github.ref, 'refs/heads/feature/liquid-liquid-mode-aware-correctness')
+        run: |
+          set -euo pipefail
+          node tools/review/buildClaudeReviewPackage.js artifacts/noditech-ll-claude-review-full
+
+      - name: Upload Claude review package
+        if: startsWith(github.ref, 'refs/heads/feature/liquid-liquid-mode-aware-correctness')
+        uses: actions/upload-artifact@v4
+        with:
+          name: noditech-ll-claude-review-full-${{ github.sha }}
+          path: artifacts/noditech-ll-claude-review-full
+          if-no-files-found: error
+          retention-days: 14
