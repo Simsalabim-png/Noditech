@@ -18,6 +18,8 @@ test('cutover CI runs compile, existing Chromium, dedicated Chromium and final f
   const freeze = workflow.indexOf('Reverify protected files after browser gates');
   assert.ok(compile >= 0 && existing > compile && dedicated > existing && freeze > dedicated);
   assert.match(workflow, /NODITECH_LL_CUTOVER=1 node tests\/compile_app\.js/);
+  assert.match(workflow, /glycol_dataset_assignment_sha256/);
+  assert.match(workflow, /glycol_dataset_object_sha256/);
   assert.match(workflow, /node chromium\/run_chromium\.js/);
-  assert.match(workflow, /node chromium\/run_ll_cutover_gate\.js/);
+  assert.match(workflow, /node chromium\/run_ll_cutover_contract\.js/);
 });
