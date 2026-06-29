@@ -65,13 +65,13 @@ jobs:
           done
 
       - name: Build complete Claude review package
-        if: startsWith(github.ref, 'refs/heads/feature/liquid-liquid-mode-aware-correctness')
+        if: github.ref_name == 'feature/liquid-liquid-mode-aware-correctness' || github.head_ref == 'feature/liquid-liquid-mode-aware-correctness'
         run: |
           set -euo pipefail
           node tools/review/buildClaudeReviewPackage.js artifacts/noditech-ll-claude-review-full
 
       - name: Upload Claude review package
-        if: startsWith(github.ref, 'refs/heads/feature/liquid-liquid-mode-aware-correctness')
+        if: github.ref_name == 'feature/liquid-liquid-mode-aware-correctness' || github.head_ref == 'feature/liquid-liquid-mode-aware-correctness'
         uses: actions/upload-artifact@v4
         with:
           name: noditech-ll-claude-review-full-${{ github.sha }}
