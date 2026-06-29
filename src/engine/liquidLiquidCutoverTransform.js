@@ -51,10 +51,10 @@ function transformLiqLiqCutover(source) {
     `  const _llApi=(typeof window!=="undefined"&&window.NoditechLiquidLiquid)?window.NoditechLiquidLiquid:null;\n` +
     `  ${productionProviderBrowserSource('_llGlycolLookup')}\n` +
     `  const _llState={unit,operatingMode,cFt,cGp,cGlyKind,cTi,cTo,cF,hFt,hGp,hGlyKind,hTi,hTo,hF,pw,job,uid,ref,measDate};\n` +
-    `  const _llEval=_llApi?_llApi.evaluateLegacyLiquidLiquidState(_llState,{glycolLookup:_llGlycolLookup}):{result:{valid:false,code:"browser_bundle_missing",message:"Liquid/Liquid engine is unavailable.",saveAllowed:false,cold:null,hot:null},contract:{valid:false,status:"blocked",code:"browser_bundle_missing",message:"Liquid/Liquid engine is unavailable.",saveAllowed:false,ui:{resultVisible:false,status:"blocked",statusLabel:"BLOCKED",statusMessage:"Liquid/Liquid engine is unavailable.",usefulCapacity_kW:null,cop:null,balanceDeviation_pct:null,energyResidual_kW:null},record:null,json:null,csv:null,print:null}};\n` +
+    `  const _llEval=_llApi?_llApi.evaluateLegacyLiquidLiquidState(_llState,{glycolLookup:_llGlycolLookup}):{engineInput:null,result:{valid:false,code:"browser_bundle_missing",message:"Liquid/Liquid engine is unavailable.",saveAllowed:false,cold:null,hot:null},contract:{valid:false,status:"blocked",code:"browser_bundle_missing",message:"Liquid/Liquid engine is unavailable.",saveAllowed:false,ui:{resultVisible:false,status:"blocked",statusLabel:"BLOCKED",statusMessage:"Liquid/Liquid engine is unavailable.",usefulCapacity_kW:null,cop:null,balanceDeviation_pct:null,energyResidual_kW:null},record:null,json:null,csv:null,print:null}};\n` +
     `  const _llResult=_llEval.result,_llContract=_llEval.contract,_llUi=_llContract.ui;\n` +
-    `  const _llColdProps=_llApi?_llApi.resolveLiquidProperties(_llEval.engineInput.cold,{glycolLookup:_llGlycolLookup}):{valid:false};\n` +
-    `  const _llHotProps=_llApi?_llApi.resolveLiquidProperties(_llEval.engineInput.hot,{glycolLookup:_llGlycolLookup}):{valid:false};\n` +
+    `  const _llColdProps=(_llApi&&_llEval.engineInput)?_llApi.resolveLiquidProperties(_llEval.engineInput.cold,{glycolLookup:_llGlycolLookup}):{valid:false};\n` +
+    `  const _llHotProps=(_llApi&&_llEval.engineInput)?_llApi.resolveLiquidProperties(_llEval.engineInput.hot,{glycolLookup:_llGlycolLookup}):{valid:false};\n` +
     `  const _cold=_llResult.cold,_hot=_llResult.hot;\n` +
     `  const cpC=_llColdProps.valid?_llColdProps.cpKJkgK:null,rC=_llColdProps.valid?_llColdProps.densityKgL:null;\n` +
     `  const cpH=_llHotProps.valid?_llHotProps.cpKJkgK:null,rH=_llHotProps.valid?_llHotProps.densityKgL:null;\n` +
@@ -126,7 +126,7 @@ function transformLiqLiqCutover(source) {
 
   const transformed = prefix + buildLiquidLiquidBrowserBundle() + '\n' + ll + suffix;
   const aaAfter = section(transformed, 'function AirAir(', 'function AirLiquid(');
-  const alAfter = section(transformed, 'function AirLiquid(', 'function LiqLiq(');
+  const alAfter = section(transformed, 'function AirLiquid(', '/* GENERATED AT BUILD TIME FROM REVIEWED L/L MODULES — DO NOT EDIT */');
   if (aaAfter !== aaBefore) throw new Error('A/A freeze violation in cutover transform');
   if (alAfter !== alBefore) throw new Error('A/L freeze violation in cutover transform');
   return transformed;
