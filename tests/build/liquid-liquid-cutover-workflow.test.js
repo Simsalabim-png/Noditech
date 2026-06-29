@@ -22,4 +22,6 @@ test('cutover CI runs compile, existing Chromium, dedicated Chromium and final f
   assert.match(workflow, /glycol_dataset_object_sha256/);
   assert.match(workflow, /node chromium\/run_chromium\.js/);
   assert.match(workflow, /node chromium\/run_ll_cutover_contract\.js/);
+  assert.match(workflow, /chromium\/generated\/production\.css/);
+  assert.match(workflow, /chromium\/test_harness\.html/);
 });
