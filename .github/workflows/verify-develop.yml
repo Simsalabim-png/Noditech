@@ -70,7 +70,13 @@ jobs:
         run: |
           set -euo pipefail
           NODITECH_LL_CUTOVER=1 node tests/compile_app.js
-          node -e 'const x=require("./chromium/results/source_equivalence.json"); if(x.candidate_mode!=="liquid-liquid-cutover") process.exit(1)'
+          node - <<'NODE'
+          const x=require('./chromium/results/source_equivalence.json');
+          if(x.candidate_mode!=='liquid-liquid-cutover') throw new Error('wrong cutover mode');
+          if(x.glycol_dataset_assignment_sha256!=='8beabb9f3c61dfeef61e1fc487a4972487231cc70426c442cafa286d8f05c30d') throw new Error('wrong glycol assignment');
+          if(x.glycol_dataset_object_sha256!=='aae380d254d1578c64c453a4c6c42799ce20a53bc75f24fc44032b94c494141c') throw new Error('wrong glycol object');
+          if(x.glycol_dataset_property_engine!=='CoolProp 7.2.0 INCOMP') throw new Error('wrong glycol engine');
+          NODE
 
       - name: Run full existing Chromium regression on cutover candidate
         if: github.ref_name == 'feature/liquid-liquid-live-cutover' || github.head_ref == 'feature/liquid-liquid-live-cutover'
@@ -82,7 +88,7 @@ jobs:
         if: github.ref_name == 'feature/liquid-liquid-live-cutover' || github.head_ref == 'feature/liquid-liquid-live-cutover'
         run: |
           set -euo pipefail
-          node chromium/run_ll_cutover_gate.js
+          node chromium/run_ll_cutover_contract.js
 
       - name: Reverify protected files after browser gates
         if: github.ref_name == 'feature/liquid-liquid-live-cutover' || github.head_ref == 'feature/liquid-liquid-live-cutover'
