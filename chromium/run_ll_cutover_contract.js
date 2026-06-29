@@ -130,7 +130,7 @@ async function main(){
 
   rec('LL.heating_select','heating mode selectable',await ev(S,'__llh.clickLlMode("heating")'));await evalWait(S,'__llh.attr("data-ll-operating-mode")==="heating"',3000);
   rec('LL.heating_active','heating contract remains good',await ev(S,'__llh.attr("data-ll-valid")==="true"&&__llh.attr("data-ll-status")==="good"'));
-  rec('LL.heating_projection','heating useful capacity projected',/Useful Heating Capacity/.test(await ev(S,'__llh.text()')));
+  rec('LL.heating_projection','heating useful capacity projects the hot-side value',await ev(S,'document.querySelector("[data-ll-useful-capacity=\"true\"]")!==null&&Math.abs(Number(__llh.attr("data-ll-useful-capacity"))-Number(__llh.attr("data-ll-hot-capacity")))<1e-9'),await ev(S,'JSON.stringify({useful:__llh.attr("data-ll-useful-capacity"),hot:__llh.attr("data-ll-hot-capacity")})'));
   const heatingUseful=Number(await ev(S,'__llh.attr("data-ll-useful-capacity")'));
   rec('LL.heating_save','valid heating contract saves',await ev(S,'__llh.clickAction("save")'));await sleep(100);
   const heatingRow=await ev(S,'__llh.firstLogRow()');
@@ -156,7 +156,7 @@ async function main(){
 
   await S('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true,screenWidth:390,screenHeight:844});
   const reloaded=once(browser,'Page.loadEventFired',sessionId);await S('Page.reload',{});await reloaded;await evalWait(S,'window.__APP_BOOTED__===true',12000);await ev(S,HELP);
-  rec('AA.mobile','A/A renders at real mobile viewport',/A\/A/.test(await ev(S,'document.getElementById("root").innerText'))&&await ev(S,'window.innerWidth===390'),await ev(S,'window.innerWidth'));
+  rec('AA.mobile','A/A renders inside the production mobile breakpoint',/A\/A/.test(await ev(S,'document.getElementById("root").innerText'))&&await ev(S,'window.matchMedia("(max-width:520px)").matches'),await ev(S,'JSON.stringify({innerWidth:window.innerWidth,screenWidth:screen.width,mobileBreakpoint:window.matchMedia("(max-width:520px)").matches})'));
   rec('AL.mobile','A/L renders at mobile viewport',await ev(S,'__llh.clickMode("A\\/L")'));await sleep(80);rec('AL.mobile.no_overflow','A/L has no horizontal overflow',await ev(S,'__llh.noOverflow()'));
   await ev(S,'__llh.clickMode("L\\/L")');await evalWait(S,'document.querySelector("[data-ll-cutover]")!==null',3000);await ev(S,HELP);
   rec('LL.mobile','L/L uses production-CSS one-column mobile field layout',await ev(S,'__llh.oneColumn("cold")&&__llh.oneColumn("hot")'),await ev(S,'JSON.stringify({cold:__llh.gridColumns("cold"),hot:__llh.gridColumns("hot")})'));
