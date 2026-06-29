@@ -1,6 +1,9 @@
 name: apply-ll-browser-assertion-fix
 
 on:
+  push:
+    branches:
+      - automation/ll-review-fixes-213b42f
   pull_request:
     branches:
       - develop
@@ -10,7 +13,7 @@ permissions:
 
 jobs:
   apply:
-    if: github.head_ref == 'automation/ll-review-fixes-213b42f'
+    if: github.ref_name == 'automation/ll-review-fixes-213b42f' || github.head_ref == 'automation/ll-review-fixes-213b42f'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout cutover branch
