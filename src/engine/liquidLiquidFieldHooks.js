@@ -18,7 +18,7 @@ function addLiquidLiquidFieldHooks(source) {
   ll = replaceOnce(
     ll,
     '<div data-ll-cutover="true" data-ll-operating-mode={operatingMode} data-ll-status={_llContract.status} data-ll-code={_llContract.code} data-ll-save-allowed={_llContract.saveAllowed?"true":"false"}>',
-    '<div data-ll-cutover="true" data-ll-operating-mode={operatingMode} data-ll-valid={_llContract.valid?"true":"false"} data-ll-status={_llContract.status} data-ll-code={_llContract.code} data-ll-save-allowed={_llContract.saveAllowed?"true":"false"} data-ll-balance-deviation={Number.isFinite(_llUi.balanceDeviation_pct)?String(_llUi.balanceDeviation_pct):""} data-ll-cold-capacity={Number.isFinite(Qc)?String(Qc):""} data-ll-hot-capacity={Number.isFinite(Qh)?String(Qh):""}>',
+    '<div data-ll-cutover="true" data-ll-operating-mode={operatingMode} data-ll-valid={_llContract.valid?"true":"false"} data-ll-status={_llContract.status} data-ll-code={_llContract.code} data-ll-save-allowed={_llContract.saveAllowed?"true":"false"} data-ll-balance-deviation={Number.isFinite(_llUi.balanceDeviation_pct)?String(_llUi.balanceDeviation_pct):""} data-ll-useful-capacity={Number.isFinite(_llUi.usefulCapacity_kW)?String(_llUi.usefulCapacity_kW):""} data-ll-cold-capacity={Number.isFinite(Qc)?String(Qc):""} data-ll-hot-capacity={Number.isFinite(Qh)?String(Qh):""}>',
     'root status'
   );
 
