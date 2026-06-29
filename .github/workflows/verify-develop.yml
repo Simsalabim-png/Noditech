@@ -66,22 +66,26 @@ jobs:
 
       - name: Build complete Claude review package
         if: github.ref_name == 'feature/liquid-liquid-mode-aware-correctness' || github.head_ref == 'feature/liquid-liquid-mode-aware-correctness'
-        id: review_package
         run: |
           set -euo pipefail
           node tools/review/buildClaudeReviewPackage.js artifacts/noditech-ll-claude-review-full
           test -f artifacts/noditech-ll-claude-review-full/MANIFEST.json
-          cd artifacts
-          zip -qr noditech-ll-claude-review-full.zip noditech-ll-claude-review-full
-          sha256sum noditech-ll-claude-review-full.zip > noditech-ll-claude-review-full.zip.sha256
 
-      - name: Upload compressed Claude review package
+      - name: Archive Claude review package
+        if: github.ref_name == 'feature/liquid-liquid-mode-aware-correctness' || github.head_ref == 'feature/liquid-liquid-mode-aware-correctness'
+        run: |
+          set -euo pipefail
+          cd artifacts
+          tar -czf noditech-ll-claude-review-full.tar.gz noditech-ll-claude-review-full
+          sha256sum noditech-ll-claude-review-full.tar.gz > noditech-ll-claude-review-full.tar.gz.sha256
+
+      - name: Upload Claude review package
         if: github.ref_name == 'feature/liquid-liquid-mode-aware-correctness' || github.head_ref == 'feature/liquid-liquid-mode-aware-correctness'
         uses: actions/upload-artifact@v4
         with:
           name: noditech-ll-claude-review-full-${{ github.sha }}
           path: |
-            artifacts/noditech-ll-claude-review-full.zip
-            artifacts/noditech-ll-claude-review-full.zip.sha256
+            artifacts/noditech-ll-claude-review-full.tar.gz
+            artifacts/noditech-ll-claude-review-full.tar.gz.sha256
           if-no-files-found: error
           retention-days: 14
