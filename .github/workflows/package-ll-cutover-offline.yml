@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - review/ll-cutover-offline-package-213b42f
+  pull_request:
+    branches:
+      - develop
   workflow_dispatch:
 
 permissions:
