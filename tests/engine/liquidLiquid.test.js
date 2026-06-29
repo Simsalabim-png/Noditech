@@ -42,6 +42,8 @@ test('cooling exact balance follows Qhot = Qcold + Pel', () => {
   near(r.balanceDeviation_pct, 0, 1e-9, 'deviation');
   near(r.copCooling, 10.45 / 1.2, 1e-9, 'COP cooling');
   near(r.copHeating, 11.65 / 1.2, 1e-9, 'COP heating');
+  near(r.usefulCapacity_kW, r.cold.capacity_kW, 1e-12, 'useful cooling capacity');
+  near(r.cop, r.copCooling, 1e-12, 'active cooling COP');
 });
 
 test('heating exact balance uses hot side as useful output', () => {
@@ -57,6 +59,8 @@ test('heating exact balance uses hot side as useful output', () => {
   near(r.energyResidual_kW, 0, 1e-9, 'residual');
   near(r.balanceDeviation_pct, 0, 1e-9, 'deviation');
   near(r.copHeating, 11.65 / 1.2, 1e-9, 'COP heating');
+  near(r.usefulCapacity_kW, r.hot.capacity_kW, 1e-12, 'useful heating capacity');
+  near(r.cop, r.copHeating, 1e-12, 'active heating COP');
 });
 
 test('equal hot and cold capacity is not a false good', () => {
@@ -70,6 +74,39 @@ test('equal hot and cold capacity is not a false good', () => {
   near(r.energyResidual_kW, -1.2, 1e-9, 'residual');
   near(r.balanceDeviation_pct, -10.300429184549357, 1e-9, 'deviation');
   assert.notEqual(r.balanceDeviation_pct, 0);
+});
+
+test('hot capacity below cold capacity is blocked as impossible', () => {
+  for (const operatingMode of ['cooling', 'heating']) {
+    const r = computeLiquidLiquid({
+      operatingMode,
+      electricalPower_kW: 1.2,
+      cold: waterSide(12, 7, 0.5),
+      hot: waterSide(30, 33, 0.5),
+    });
+    assert.equal(r.valid, false);
+    assert.equal(r.status, 'blocked');
+    assert.equal(r.code, 'hot_below_cold_impossible');
+    assert.equal(r.saveAllowed, false);
+    assert.equal(r.cold, null);
+    assert.equal(r.hot, null);
+    assert.equal(r.cop, null);
+    assert.equal(r.usefulCapacity_kW, null);
+  }
+});
+
+test('balance deviation is independent of selected operating mode', () => {
+  const input = {
+    electricalPower_kW: 1.2,
+    cold: waterSide(12, 7, 0.5),
+    hot: waterSide(30, 35, 0.54),
+  };
+  const cooling = computeLiquidLiquid({ ...input, operatingMode: 'cooling' });
+  const heating = computeLiquidLiquid({ ...input, operatingMode: 'heating' });
+  assert.equal(cooling.valid, true);
+  assert.equal(heating.valid, true);
+  near(cooling.energyResidual_kW, heating.energyResidual_kW, 1e-12, 'same residual');
+  near(cooling.balanceDeviation_pct, heating.balanceDeviation_pct, 1e-12, 'same deviation');
 });
 
 test('EG30 explicit properties reproduce independent baseline', () => {
@@ -182,7 +219,8 @@ test('valid results contain no NaN or Infinity', () => {
   const values = [
     r.cold.deltaT_K, r.cold.massFlow_kg_s, r.cold.capacity_kW,
     r.hot.deltaT_K, r.hot.massFlow_kg_s, r.hot.capacity_kW,
-    r.electricalPower_kW, r.copCooling, r.copHeating,
+    r.electricalPower_kW, r.usefulCapacity_kW, r.cop,
+    r.copCooling, r.copHeating,
     r.expectedHot_kW, r.expectedCold_kW,
     r.energyResidual_kW, r.balanceDeviation_pct,
   ];
