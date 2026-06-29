@@ -76,6 +76,7 @@ jobs:
           if(x.glycol_dataset_assignment_sha256!=='8beabb9f3c61dfeef61e1fc487a4972487231cc70426c442cafa286d8f05c30d') throw new Error('wrong glycol assignment');
           if(x.glycol_dataset_object_sha256!=='aae380d254d1578c64c453a4c6c42799ce20a53bc75f24fc44032b94c494141c') throw new Error('wrong glycol object');
           if(x.glycol_dataset_property_engine!=='CoolProp 7.2.0 INCOMP') throw new Error('wrong glycol engine');
+          if(x.production_css_sha256!=='d05974bba0660376cc441c670ce40db14cf805bb772bdc48e61e6fb118eb0b98') throw new Error('wrong production CSS');
           NODE
 
       - name: Run full existing Chromium regression on cutover candidate
@@ -107,6 +108,8 @@ jobs:
           name: noditech-ll-cutover-browser-${{ github.sha }}
           path: |
             chromium/results/source_equivalence.json
+            chromium/test_harness.html
+            chromium/generated/production.css
             chromium/results/chromium_result.json
             chromium/results/chromium_junit.xml
             chromium/results/chromium_console.log
