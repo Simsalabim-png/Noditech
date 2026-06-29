@@ -70,6 +70,7 @@ jobs:
         continue-on-error: true
         run: |
           mkdir -p artifacts
+          git checkout --detach origin/feature/liquid-liquid-mode-aware-correctness
           node tools/review/buildClaudeReviewPackage.js artifacts/noditech-ll-claude-review-full > artifacts/package-builder.log 2>&1
 
       - name: Upload review builder diagnostics
