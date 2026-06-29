@@ -3,6 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const E = require('../engine.js');
+const { resolveLiquidProperties } = require('../../src/engine/liquidProperties.js');
 const {
   celsius,
   legacyFluid,
@@ -19,11 +20,20 @@ const near = (actual, expected, tolerance = 1e-9, label = 'value') => {
 
 const glycolLookup = (fluid, percent, temperatureC) => E.glyEval(fluid, percent, temperatureC);
 
+function balancedWaterHotFlow() {
+  const cold = resolveLiquidProperties({ fluid: 'water', inletC: 12, outletC: 7 });
+  const hot = resolveLiquidProperties({ fluid: 'water', inletC: 30, outletC: 35 });
+  assert.equal(cold.valid, true);
+  assert.equal(hot.valid, true);
+  const coldCapacity = 0.5 * cold.densityKgL * cold.cpKJkgK * 5;
+  return (coldCapacity + 1.2) / (hot.densityKgL * hot.cpKJkgK * 5);
+}
+
 function exactLegacyState(overrides) {
   return {
     unit: 'C', operatingMode: 'cooling',
     cFt: 'water', cGlyKind: 'EG', cGp: 30, cTi: 12, cTo: 7, cF: 0.5,
-    hFt: 'water', hGlyKind: 'EG', hGp: 30, hTi: 30, hTo: 35, hF: 0.5574162679425837,
+    hFt: 'water', hGlyKind: 'EG', hGp: 30, hTi: 30, hTo: 35, hF: balancedWaterHotFlow(),
     pw: 1.2, job: 'Adapter baseline', uid: 'LL-01', ref: 'R32', measDate: '2026-06-29 12:00',
     ...overrides,
   };
@@ -50,7 +60,7 @@ test('legacy state maps to new engine input without mutation', () => {
   assert.equal(input.operatingMode, 'cooling');
   assert.equal(input.electricalPower_kW, 1.2);
   assert.deepEqual(input.cold, { fluid: 'WATER', glycolPercent: 0, inletC: 12, outletC: 7, flowLs: 0.5 });
-  assert.deepEqual(input.hot, { fluid: 'WATER', glycolPercent: 0, inletC: 30, outletC: 35, flowLs: 0.5574162679425837 });
+  assert.deepEqual(input.hot, { fluid: 'WATER', glycolPercent: 0, inletC: 30, outletC: 35, flowLs: state.hF });
 });
 
 test('Fahrenheit and Celsius states map to the same physics', () => {
