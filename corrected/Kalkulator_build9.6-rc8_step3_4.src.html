@@ -5474,6 +5474,8 @@ function engcalcAirDisplay(air, ctx){
   }
   if(ctx.isAutoAir) return {available:true,kind:'estimate',statusLabel:'EST',qAirText:'estimated',balanceText:'no check possible',reasonCode:null,reasonMessage:null,showPositive:false,color:'#7dd3fc',borderColor:'rgba(125,211,252,.3)'};
   if(!ctx.isFullyManualAir) return {available:true,kind:'incomplete',statusLabel:'INC',qAirText:'partial',balanceText:'incomplete',reasonCode:null,reasonMessage:null,showPositive:false,color:'#7dd3fc',borderColor:'rgba(125,211,252,.3)'};
+  // A null balance becomes 0 and a non-finite balance falls through; neither may classify as good/measured.
+  if(ctx.balVsReject==null || !isFinite(ctx.balVsReject)) return {available:true,kind:'incomplete',statusLabel:'INC',qAirText:'partial',balanceText:'incomplete',reasonCode:null,reasonMessage:null,showPositive:false,color:'#7dd3fc',borderColor:'rgba(125,211,252,.3)'};
   var a=Math.abs(ctx.balVsReject), kind=a>8?'bad':a>3?'warn':'good';
   return {available:true,kind:kind,statusLabel:a.toFixed(2)+'%',qAirText:'measured',balanceText:a.toFixed(2)+'%',reasonCode:null,reasonMessage:null,showPositive:kind==='good',
     color:a>8?'#f87171':a>3?'#fbbf24':'#22c55e',borderColor:a>8?'rgba(248,113,113,.4)':a>3?'rgba(251,191,36,.4)':'rgba(34,197,94,.3)'};
@@ -5481,16 +5483,140 @@ function engcalcAirDisplay(air, ctx){
 // Step 3.2: canonical A/L save record builder. The component save() AND the tests call THIS function,
 // so the saved/exported record is the same production object. Suppressed air-side => air output null,
 // no fabricated number, with the pressure provenance + reason preserved.
+function engcalcAirLiquidSolve(a){
+  a=a||{};
+  var bad=function(r){return {valid:false,reason:r,mode:(a.operatingMode||null),Q:null,cop:null,expectedAirSigned:null,dir:(r==='cooling_direction_invalid'||r==='heating_direction_invalid'||r==='temperature_invalid')?'invalid':'unknown'};};
+  if(a.operatingMode!=='cooling' && a.operatingMode!=='heating') return bad('operating_mode_missing');
+  if(a.useGly===true && a.glyType!=='EG' && a.glyType!=='PG') return bad('glycol_type_invalid');
+  if(typeof a.Tin!=='number'||!isFinite(a.Tin)||typeof a.Tout!=='number'||!isFinite(a.Tout)) return bad('temperature_invalid');
+  if(a.glyValid===false) return bad('liquid_properties_invalid');
+  if(typeof a.flow_Ls!=='number'||!isFinite(a.flow_Ls)||a.flow_Ls<=0) return bad('flow_invalid');
+  if(typeof a.rho!=='number'||!isFinite(a.rho)||a.rho<=0||typeof a.cp!=='number'||!isFinite(a.cp)||a.cp<=0) return bad('liquid_properties_invalid');
+  if(typeof a.pw!=='number'||!isFinite(a.pw)||a.pw<=0) return bad('power_invalid');
+  var dT=(a.operatingMode==='cooling')?(a.Tin-a.Tout):(a.Tout-a.Tin);
+  if(!(dT>0)) return bad(a.operatingMode==='cooling'?'cooling_direction_invalid':'heating_direction_invalid');
+  var m=a.flow_Ls*a.rho, Q=m*a.cp*dT, cop=Q/a.pw;
+  if(a.operatingMode==='cooling') return {valid:true,reason:null,mode:'cooling',Q:Q,cop:cop,expectedAirSigned:(Q+a.pw),dir:'valid'};
+  var ext=Q-a.pw;
+  if(!(ext>0)) return {valid:false,reason:'heating_air_extraction_non_positive',mode:'heating',Q:null,cop:null,expectedAirSigned:null,dir:'valid'};
+  return {valid:true,reason:null,mode:'heating',Q:Q,cop:cop,expectedAirSigned:-(ext),dir:'valid'};
+}
+function engcalcAirLiquidBalance(QaSigned, expectedSigned){
+  if(typeof QaSigned!=='number'||!isFinite(QaSigned)||typeof expectedSigned!=='number'||!isFinite(expectedSigned)||expectedSigned===0) return null;
+  return ((QaSigned-expectedSigned)/Math.abs(expectedSigned))*100;
+}
+function engcalcAirLiquidReasonMessage(code){
+  switch(code){
+    case 'operating_mode_missing': return 'Select Cooling or Heating to compute the liquid and air results.';
+    case 'temperature_invalid': return 'Inlet/outlet liquid temperatures are not valid numbers.';
+    case 'cooling_direction_invalid': return 'Cooling requires inlet warmer than outlet (T_inlet > T_outlet).';
+    case 'heating_direction_invalid': return 'Heating requires outlet warmer than inlet (T_outlet > T_inlet).';
+    case 'glycol_type_invalid': return 'Glycol type must be EG or PG when glycol is enabled.';
+    case 'liquid_properties_invalid': return 'Glycol type/concentration/temperature is outside the validated range.';
+    case 'flow_invalid': return 'Liquid flow must be a finite value greater than zero.';
+    case 'power_invalid': return 'Electrical power must be a finite value greater than zero.';
+    case 'heating_air_extraction_non_positive': return 'Heating extraction is non-positive (Q_heating - P_el <= 0); no air estimate.';
+    case 'heating_auto_saturation_limit': return 'Automatic heating air estimate crossed the saturation limit. Leaving-air state is withheld.';
+    case 'heating_auto_frost_limit': return 'Automatic heating air estimate entered the frost region. Leaving-air state is withheld because no frost model is active.';
+    case 'manual_air_input_invalid': return 'A manually entered air value is not a valid number / out of range.';
+    case 'manual_air_calculation_invalid': return 'The manual air measurement produced a non-finite psychrometric/balance result.';
+    case 'liquid_result_invalid': return 'Air side is blocked because the liquid result is invalid.';
+    default: return 'Air side unavailable.';
+  }
+}
+// Step 3.6: SINGLE A/L air-state classifier. Component AND tests call this (no fake air objects, no source-scan).
+
+// Step 3.8: SINGLE A/L air orchestrator. The component AND the tests call this. airSideFn defaults to
+// engcalcAirSide so tests can inject a spy and prove the psychro engine is NOT called on invalid input.
+function engcalcAirLiquidEvaluateAir(args, airSideFn){
+  args=args||{}; airSideFn = airSideFn || engcalcAirSide;
+  var M=engcalcAirLiquidReasonMessage, P=engcalcPressureMessage;
+  function fin(x){return (typeof x==='number'&&isFinite(x))?x:null;}
+  function enteringPart(air){ return {enteringDB_C:fin(args.ambientDB_C),enteringRH_pct:fin(args.ambientRH_pct),
+    enteringWB_C:fin(air.wBE),enteringEnthalpy_kJ_kg:fin(air.hE),enteringSpecificVolume_m3_kg:fin(air.vE),enteringHumidityRatio_kg_kg:fin(air.WE)}; }
+  function leavingNull(){ return {leavingDB_C:null,leavingRH_pct:null,leavingWB_C:null,leavingEnthalpy_kJ_kg:null,deltaH_kJ_kg:null,airMassFlow_kg_s:null,airEnergySigned_kW:null,airEnergyMagnitude_kW:null}; }
+  var NULLENTER={enteringDB_C:null,enteringRH_pct:null,enteringWB_C:null,enteringEnthalpy_kJ_kg:null,enteringSpecificVolume_m3_kg:null,enteringHumidityRatio_kg_kg:null};
+  var NULLVIEW=Object.assign({},NULLENTER,leavingNull());
+  function enteringOnly(air){ return Object.assign({},enteringPart(air),leavingNull()); }
+  function fullView(air){ return Object.assign({},enteringPart(air),{leavingDB_C:fin(air.lDBuse),leavingRH_pct:fin(air.lRHuse),
+    leavingWB_C:fin(air.wBL),leavingEnthalpy_kJ_kg:fin(air.hL),deltaH_kJ_kg:fin(air.dh),airMassFlow_kg_s:fin(air.mA),
+    airEnergySigned_kW:fin(air.Qa),airEnergyMagnitude_kW:(fin(air.Qa)===null?null:Math.abs(air.Qa))}); }
+  var _alMode=(args.operatingMode==='cooling'||args.operatingMode==='heating')?args.operatingMode:null;
+  var airEnergyType=_alMode==='cooling'?'rejected':_alMode==='heating'?'extracted':null;
+  function mk(o){ var _st=o.airStatus, _rm=o.reasonMessage||null;
+    var statusMessage=(_st==='blocked'||_st==='withheld'||_st==='limited')?_rm:_st==='estimated'?'Synthetic estimate — not independently measured':_st==='incomplete'?'Partial measurement — no authoritative air capacity':'Independent measurement';
+    return {airStatus:_st, reasonKind:o.reasonKind||null, reasonCode:o.reasonCode||null, reasonMessage:_rm, statusMessage:statusMessage,
+    qaAvailable:!!o.qaAvailable, leavingAvailable:!!o.leavingAvailable, balanceAvailable:!!o.balanceAvailable, saveAllowed:!!o.saveAllowed,
+    pressure:o.pressure||null, view:o.view||NULLVIEW,
+    operatingMode:_alMode, airEnergyType:airEnergyType,
+    expectedAirSigned_kW:(o.expectedAirSigned_kW===undefined?null:o.expectedAirSigned_kW),
+    balanceSigned_pct:(o.balanceSigned_pct===undefined?null:o.balanceSigned_pct),
+    balanceAbs_pct:(o.balanceSigned_pct===undefined||o.balanceSigned_pct===null?null:Math.abs(o.balanceSigned_pct))}; }
+  // 1. liquid
+  var sol=engcalcAirLiquidSolve({operatingMode:args.operatingMode,Tin:args.Tin,Tout:args.Tout,flow_Ls:args.flow_Ls,rho:args.rho,cp:args.cp,glyValid:args.glyValid,useGly:args.useGly,glyType:args.glyType,pw:args.pw});
+  if(!sol.valid){ var rc=sol.reason||'liquid_result_invalid';
+    return mk({airStatus:'blocked',reasonKind:'liquid',reasonCode:rc,reasonMessage:M(rc),saveAllowed:false,pressure:null,expectedAirSigned_kW:null}); }
+  var expSigned=sol.expectedAirSigned;
+  // 2. ambient/manual validity (engcalcAirSide must NOT be called with invalid inputs)
+  var ambOk=(typeof args.ambientDB_C==='number'&&isFinite(args.ambientDB_C)) && (typeof args.ambientRH_pct==='number'&&isFinite(args.ambientRH_pct)&&args.ambientRH_pct>=0&&args.ambientRH_pct<=100);
+  var lDBset=!!args.lDBset, lRHset=!!args.lRHset, afSet=!!args.afSet;
+  var lDBok=!lDBset||(typeof args.leavingDB_C==='number'&&isFinite(args.leavingDB_C));
+  var lRHok=!lRHset||(typeof args.leavingRH_pct==='number'&&isFinite(args.leavingRH_pct)&&args.leavingRH_pct>=0&&args.leavingRH_pct<=100);
+  var afOk=!afSet||(typeof args.airflow_m3h==='number'&&isFinite(args.airflow_m3h)&&args.airflow_m3h>0);
+  if(!ambOk||!lDBok||!lRHok||!afOk){
+    return mk({airStatus:'blocked',reasonKind:'manual',reasonCode:'manual_air_input_invalid',reasonMessage:M('manual_air_input_invalid'),saveAllowed:false,pressure:null,expectedAirSigned_kW:expSigned}); }
+  // inputs valid -> evaluate the air side
+  var _air=airSideFn({oC:args.ambientDB_C,oRH:args.ambientRH_pct,lDB:(lDBset?true:null),lRH:(lRHset?true:null),af:(afSet?true:null),lDBmC:args.leavingDB_C,lRHm:args.leavingRH_pct,afm:args.airflow_m3h,Qw:expSigned,pAtm:args.pAtm,classification:'entered'});
+  var prov=args.pressure||_air.pressure||null;
+  // 3. pressure
+  if(_air.suppressed){ var prc=(prov&&prov.reason)||'pressure_missing';
+    return mk({airStatus:'withheld',reasonKind:'pressure',reasonCode:prc,reasonMessage:P(prc),saveAllowed:true,pressure:prov,expectedAirSigned_kW:expSigned}); }
+  var isAutoAir=!lDBset&&!lRHset&&!afSet, allManual=lDBset&&lRHset&&afSet;
+  // 4/5. frost/saturation (AUTO heating) — raw leaving DB + humidity-ratio comparison (no clamped RH)
+  if(_alMode==='heating' && isAutoAir){
+    var rawLDB=_air.lDBauto, WE=_air.WE, Wsat=humR(rawLDB,100,args.pAtm);
+    var frost=!(typeof rawLDB==='number'&&isFinite(rawLDB)) || rawLDB<=0;
+    var satur=(!frost) && (typeof Wsat==='number'&&isFinite(Wsat)) && (typeof WE==='number'&&isFinite(WE)) && (WE>Wsat+1e-9);
+    if(frost||satur){ var lr=frost?'heating_auto_frost_limit':'heating_auto_saturation_limit';
+      return mk({airStatus:'limited',reasonKind:'air',reasonCode:lr,reasonMessage:M(lr),saveAllowed:true,pressure:prov,view:enteringOnly(_air),expectedAirSigned_kW:expSigned}); } }
+  // 6. auto valid
+  if(isAutoAir){
+    return mk({airStatus:'estimated',
+      qaAvailable:true,leavingAvailable:true,balanceAvailable:false,saveAllowed:true,pressure:prov,view:fullView(_air),expectedAirSigned_kW:expSigned}); }
+  // 7. partial manual
+  if(!allManual){
+    return mk({airStatus:'incomplete',
+      qaAvailable:false,leavingAvailable:false,balanceAvailable:false,saveAllowed:true,pressure:prov,view:enteringOnly(_air),expectedAirSigned_kW:expSigned}); }
+  // 8. full manual
+  var psychroOk=(typeof _air.Qa==='number'&&isFinite(_air.Qa))&&(typeof _air.hL==='number'&&isFinite(_air.hL))&&(typeof _air.lDBuse==='number'&&isFinite(_air.lDBuse))&&(typeof _air.lRHuse==='number'&&isFinite(_air.lRHuse));
+  var bal=engcalcAirLiquidBalance(_air.Qa, expSigned);
+  if(psychroOk && bal!==null){
+    return mk({airStatus:'measured',
+      qaAvailable:true,leavingAvailable:true,balanceAvailable:true,saveAllowed:true,pressure:prov,view:fullView(_air),expectedAirSigned_kW:expSigned,balanceSigned_pct:bal}); }
+  return mk({airStatus:'blocked',reasonKind:'air',reasonCode:'manual_air_calculation_invalid',reasonMessage:M('manual_air_calculation_invalid'),
+    saveAllowed:false,pressure:prov,expectedAirSigned_kW:expSigned});
+}
+
 function engcalcAirRecord(o){
-  var sup=!!(o.air && o.air.suppressed);
+  var avail=(o.air_output_available===undefined)?!(o.air && o.air.suppressed):!!o.air_output_available;
+  var sup=!avail;
+  var pr=o.pressure || (o.air && o.air.pressure) || null;
+  var _alMode=(o.operatingMode==='cooling'||o.operatingMode==='heating')?o.operatingMode:null;
   return {
-    id:o.id, date:o.date, mode:'Air/Liquid', job:o.job, uid:o.uid, ref:o.ref,
+    id:o.id, date:o.date, mode:'Air/Liquid', operatingMode:_alMode, capacityType:_alMode,
+    airEnergyType:(_alMode==='cooling'?'rejected':_alMode==='heating'?'extracted':null),
+    expectedAirSigned_kW:(typeof o.expectedAirSigned_kW==='number'&&isFinite(o.expectedAirSigned_kW))?o.expectedAirSigned_kW:null,
+    airEnergySigned_kW:(typeof o.airEnergySigned_kW==='number'&&isFinite(o.airEnergySigned_kW))?o.airEnergySigned_kW:null,
+    airEnergyMagnitude_kW:(typeof o.airEnergyMagnitude_kW==='number'&&isFinite(o.airEnergyMagnitude_kW))?o.airEnergyMagnitude_kW:null,
+    air_status:(o.air_status||null), air_reason:(o.air_reason||null), air_reason_message:(o.air_reason?(o.air_reason_message||null):null),
+    air_output_available:avail, electricalBoundary:'compressor_power',
+    job:o.job, uid:o.uid, ref:o.ref,
     t1:o.t1, t2:(sup?null:o.t2), wb1:o.wb1, wb2:(sup?null:o.wb2), rh1:o.rh1, rh2:(sup?null:o.rh2),
     wTi:o.wTi, wTo:o.wTo, wF:o.wF, af:o.af, pw:o.pw,
     Q:o.Q, Qw:(sup?null:o.Qair), eer:o.eer,
     air_suppressed:sup,
-    pAtm_state:o.air.pressure.state, pAtm_value:o.air.pressure.value, pAtm_class:o.air.pressure.classification,
-    pAtm_source:o.air.pressure.source, pAtm_reason:o.air.pressure.reason,
+    pAtm_state:pr?pr.state:null, pAtm_value:pr?pr.value:null, pAtm_class:pr?pr.classification:null,
+    pAtm_source:pr?pr.source:null, pAtm_reason:pr?pr.reason:null,
     tE:o.tE, sh:o.sh, tC:o.tC, sP:o.sP, dP:o.dP, unit:o.unit
   };
 }
@@ -5515,7 +5641,7 @@ function engcalcAppPressurePa(pp){ return (pp && pp.state==='known' && pp.value_
 // ── Step 3.3: ONE canonical serialization layer. Production buttons AND tests call these. ──
 function engcalcBuildCsv(log){
   var H=["Date","Mode","Job","Unit","Ref","T1","T2","Q kW","Qw(air) kW","EER","Air suppressed","Pressure state","Pressure value Pa","Pressure class","Pressure source","Pressure reason","T_evap","SH K","T_cond","P_suc","P_dis","Temp unit"];
-  var rows=log.map(function(e){return [e.date,e.mode,e.job,e.uid,e.ref,e.t1,e.t2,e.Q,(e.Qw==null?'--':e.Qw),e.eer,(e.air_suppressed?'WITHHELD':'no'),(e.pAtm_state||'--'),(e.pAtm_value==null?'--':e.pAtm_value),(e.pAtm_class||'--'),(e.pAtm_source||'--'),(e.pAtm_reason||'--'),e.tE,e.sh,e.tC,e.sP,e.dP,e.unit];});
+  var rows=log.map(function(e){var _m=(e.mode==='Air/Liquid'&&(e.operatingMode==='cooling'||e.operatingMode==='heating'))?('Air/Liquid '+e.operatingMode.charAt(0).toUpperCase()+e.operatingMode.slice(1)):e.mode; return [e.date,_m,e.job,e.uid,e.ref,e.t1,e.t2,e.Q,(e.Qw==null?'--':e.Qw),e.eer,((e.mode==='Air/Liquid'&&e.air_status)?(e.air_status==='blocked'?'BLOCKED':e.air_status==='withheld'?'WITHHELD':e.air_status==='limited'?'LIMITED':e.air_status==='incomplete'?'INCOMPLETE':'no'):(e.air_suppressed?'WITHHELD':'no')),(e.pAtm_state||'--'),(e.pAtm_value==null?'--':e.pAtm_value),(e.pAtm_class||'--'),(e.pAtm_source||'--'),(e.pAtm_reason||'--'),e.tE,e.sh,e.tC,e.sP,e.dP,e.unit];});
   return [H].concat(rows).map(function(r){return r.map(function(c){return '"'+(c==null?'--':c)+'"';}).join(",");}).join("\n");
 }
 function engcalcPressureProvenance(pp){ return {state:pp.state, value_kPa:pp.value_kPa, classification:pp.classification, source:pp.source, reason:pp.reason}; }
@@ -5524,7 +5650,7 @@ function engcalcBuildSession(log, pp, measDate){ return {tool:"engcalc-calculato
 function engcalcBuildPrintProjection(log, pp){
   var lastAL=null; for(var i=0;i<log.length;i++){ if(log[i].mode==='Air/Liquid'){ lastAL=log[i]; break; } }
   var air=null;
-  if(lastAL){ var sup=!!lastAL.air_suppressed; air={ suppressed:sup, status:(sup?'WITHHELD':'available'), air_output:(sup?null:(lastAL.Qw==null?null:lastAL.Qw)), reason_code:lastAL.pAtm_reason||null, reason_message:engcalcPressureMessage(lastAL.pAtm_reason), pressure_state:lastAL.pAtm_state||null, pressure_class:lastAL.pAtm_class||null, pressure_source:lastAL.pAtm_source||null, liquid_side:(lastAL.Q==null?null:lastAL.Q) }; }
+  if(lastAL){ var sup=!!lastAL.air_suppressed; air={ suppressed:sup, status:(lastAL.air_status||(sup?'withheld':'available')), air_output:(sup?null:(lastAL.Qw==null?null:lastAL.Qw)), reason_code:(lastAL.air_reason||lastAL.pAtm_reason||null), reason_message:(lastAL.air_reason_message||(lastAL.pAtm_reason?engcalcPressureMessage(lastAL.pAtm_reason):null)), pressure_state:lastAL.pAtm_state||null, pressure_class:lastAL.pAtm_class||null, pressure_source:lastAL.pAtm_source||null, liquid_side:(lastAL.Q==null?null:lastAL.Q) }; }
   return { pressure:engcalcPressureProvenance(pp), air_side:air };
 }
 function eCol(e){if(e>=4)return"#22c55e";if(e>=3)return"#86efac";if(e>=2.5)return"#facc15";return"#f87171"}
@@ -7506,7 +7632,7 @@ function AirAir({unit,job,uid,setLog,setShowLog,pAtm=101500,measDate=""}){
   </>);
 }
 
-function AirLiquid({unit,job,uid,setLog,setShowLog,pAtm,measDate=""}){  // Step 3.1: no hidden 101500 default
+function AirLiquid({unit,job,uid,setLog,setShowLog,pAtm,pressureState,measDate=""}){  // Step 3.1: no hidden 101500 default
   // ── Liquid side state (PRIMARY) ──────────────────────────
   const [useGly,  setUseGly]  = React.useState(true);
   const [printChart,setPrintChart]=React.useState(true);  // include Mollier chart in print
@@ -7516,6 +7642,7 @@ function AirLiquid({unit,job,uid,setLog,setShowLog,pAtm,measDate=""}){  // Step 
   const [wTo,     setWTo]     = React.useState(12.0);
   const [wF,      setWF]      = React.useState(0.5);
   const [pw,      setPw]      = React.useState(1.2);
+  const [opMode,  setOpMode] = React.useState(null); // Step 3.5: explicit Cooling/Heating, no hidden default
 
   // ── Air side state (VERIFICATION) ────────────────────────
   const [oDB,  setODB]  = React.useState(35);
@@ -7560,35 +7687,59 @@ function AirLiquid({unit,job,uid,setLog,setShowLog,pAtm,measDate=""}){  // Step 
 
   const gp   = useGly ? glyProps(glyType, glyPct, (C(wTi)+C(wTo))/2) : {cp:4.18, rho:1.0, freeze:0, valid:true};
   const wTiC = C(wTi), wToC = C(wTo);
-  const dTw  = Math.abs(wToC - wTiC);
+  const _sol = engcalcAirLiquidSolve({operatingMode:opMode, Tin:wTiC, Tout:wToC, flow_Ls:wF, rho:gp.rho, cp:gp.cp, glyValid:gp.valid, useGly, glyType, pw});
+  const _alValid = _sol.valid;                 // Step 3.5: mode-aware liquid result
+  const dTw  = (typeof wToC==='number'&&typeof wTiC==='number')?Math.abs(wToC - wTiC):NaN; // display magnitude only
   const mW   = wF * gp.rho;
-  const Qw   = mW * gp.cp * dTw;  // PRIMARY Q
-  const eer  = pw>0 ? Qw/pw : 0;
+  const Qw   = _alValid ? _sol.Q   : NaN;       // PRIMARY Q (cooling Tin>Tout / heating Tout>Tin; no Math.abs on direction)
+  const eer  = _alValid ? _sol.cop : NaN;       // cooling or heating COP (NaN -> "--", never 0.0000)
+  const _expSigned = _alValid ? _sol.expectedAirSigned : NaN; // cooling +(Q+P_el) / heating -(Q-P_el)
 
-  // ── Auto-estimate air side from Qw ───────────────────────
+  // ── Air side ─────────────────────────────────────────────
   const oC   = C(oDB);
-  // Step 3: ONE explicit atmospheric-pressure source used throughout the A/L air-side path.
-  // Invalid/missing -> NaN suppresses pressure-dependent air-side outputs (liquid-side Qw is unaffected).
-  // Step 3.1: ONE explicit pressure source; controlled suppression + observable provenance.
-  const _air = engcalcAirSide({oC, oRH, lDB, lRH, af, lDBmC:C(lDBm), lRHm, afm, Qw, pAtm, classification:'entered'});
-  const _pProv = _air.pressure;              // {state,value,classification,source,reason} — observable from the result
-  const _airSuppressed = _air.suppressed;    // true => pressure missing/invalid; air-side conclusions withheld
-  const hE=_air.hE, vE=_air.vE, wBE=_air.wBE, WE=_air.WE, mA=_air.mA, hLauto=_air.hLauto,
-        lDBauto=_air.lDBauto, lRHauto=_air.lRHauto, lDBuse=_air.lDBuse, lRHuse=_air.lRHuse,
-        hL=_air.hL, vL=_air.vL, wBL=_air.wBL, dh=_air.dh, Qa=_air.Qa;
-  const afUse = af !== null ? afm : 2000;  // Step 3.2: restore AUTO airflow selection in render scope (pressure-independent)
-
-  // Air side measurement provenance
-  const isFullyManualAir = (lDB !== null && lRH !== null && af !== null);
-  const isAutoAir = (lDB === null && lRH === null && af === null);
-  // Energy balance is only MEANINGFUL when air side is independently measured.
-  // On AUTO, Qa is forced to equal Qw by construction (mathematical identity).
-  const bal = (_airSuppressed||!isFinite(Qa)) ? null : (Qw > 0 ? ((Qa - Qw) / Qw) * 100 : 0);
-  // For condenser heat rejection the physical expectation is Q_reject = Q_cool + P_el,
-  // so the manual-measured comparison target is Qw + pw (not Qw alone).
-  const Qexpected = Qw + pw;
-  const balVsReject = (_airSuppressed||!isFinite(Qa)) ? null : (Qexpected > 0 ? ((Qa - Qexpected) / Qexpected) * 100 : 0);
-  const _disp = engcalcAirDisplay(_air, {isAutoAir, isFullyManualAir, bal, balVsReject});
+  // Step 3.5 (1): an invalid liquid result BLOCKS the whole air side — engcalcAirSide is NOT called,
+  // no AUTO leaving state, no Q_air, no balance, COP shown as "--" (not 0.0000).
+  // Step 3.6 (1): invalid liquid BLOCKS the whole air side — engcalcAirSide is NOT called.
+  // Step 3.8: ONE A/L evaluation — the single source of every air decision. The result card reads only _eval.view.
+  // Preserve App-level pressure provenance. The numeric Pa transport intentionally remains
+  // fail-closed (NaN when unknown); this structured object retains the exact reason.
+  const _pInput = pressureState ? {
+    state:pressureState.state||null,
+    value:(pressureState.state==='known'&&pressureState.value_kPa!=null)?pressureState.value_kPa*1000:null,
+    classification:pressureState.classification||null,
+    source:pressureState.source||null,
+    reason:pressureState.reason||null
+  } : null;
+  const _eval = engcalcAirLiquidEvaluateAir({
+    operatingMode:opMode, Tin:wTiC, Tout:wToC, flow_Ls:wF, rho:gp.rho, cp:gp.cp, glyValid:gp.valid, useGly, glyType, pw,
+    ambientDB_C:oC, ambientRH_pct:oRH,
+    lDBset:lDB!==null, lRHset:lRH!==null, afSet:af!==null,
+    leavingDB_C:C(lDBm), leavingRH_pct:lRHm, airflow_m3h:afm, pAtm, pressure:_pInput
+  });
+  const _v = _eval.view;
+  const NA = (x)=>(x==null?NaN:x);
+  const _airWithheld = !_eval.qaAvailable;          // blocked/withheld/limited/incomplete -> no authoritative air
+  const _airSuppressed = _airWithheld;              // back-compat alias
+  const _airReason = _eval.reasonCode, _airMsg = _eval.statusMessage, _airKind = _eval.reasonKind;
+  const _withheldLabel = _eval.airStatus==='blocked'?'BLOCKED':_eval.airStatus==='withheld'?'WITHHELD':_eval.airStatus==='limited'?'LIMITED':_eval.airStatus.toUpperCase();
+  const isAutoAir = _eval.airStatus==='estimated';
+  const isFullyManualAir = _eval.airStatus==='measured';
+  // Sanitized view aliases (null -> NaN so fmt() renders "--"); the result card reads only _eval.view.
+  const Qa=NA(_v.airEnergySigned_kW), QaMag=NA(_v.airEnergyMagnitude_kW);
+  const lDBuse=NA(_v.leavingDB_C), lRHuse=NA(_v.leavingRH_pct), wBL=NA(_v.leavingWB_C), hL=NA(_v.leavingEnthalpy_kJ_kg);
+  const mA=NA(_v.airMassFlow_kg_s), dh=NA(_v.deltaH_kJ_kg);
+  const hE=NA(_v.enteringEnthalpy_kJ_kg), vE=NA(_v.enteringSpecificVolume_m3_kg), wBE=NA(_v.enteringWB_C), WE=NA(_v.enteringHumidityRatio_kg_kg);
+  const afUse = af !== null ? afm : 2000;
+  const balVsReject = _eval.balanceAvailable ? _eval.balanceSigned_pct : null;
+  const Qexpected = (_eval.expectedAirSigned_kW==null) ? NaN : Math.abs(_eval.expectedAirSigned_kW);
+  const _airForDisp = {suppressed:!_eval.qaAvailable, pressure:_eval.pressure};   // for save/record
+  const _bad=_eval.balanceAbs_pct!=null&&_eval.balanceAbs_pct>8, _warn=_eval.balanceAbs_pct!=null&&_eval.balanceAbs_pct>3&&!_bad;
+  const _stColor=(_eval.airStatus==='blocked'||_eval.airStatus==='withheld'||_eval.airStatus==='limited')?'#94a3b8':(_eval.airStatus==='estimated'||_eval.airStatus==='incomplete')?'#7dd3fc':(_bad?'#f87171':_warn?'#fbbf24':'#22c55e');
+  const _stBorder=(_eval.airStatus==='blocked'||_eval.airStatus==='withheld'||_eval.airStatus==='limited')?'rgba(148,163,184,.4)':(_eval.airStatus==='estimated'||_eval.airStatus==='incomplete')?'rgba(125,211,252,.3)':(_bad?'rgba(248,113,113,.4)':_warn?'rgba(251,191,36,.4)':'rgba(34,197,94,.3)');
+  const _disp = { color:_stColor, borderColor:_stBorder, statusLabel:(_eval.airStatus==='measured'?(_eval.balanceAbs_pct.toFixed(2)+'%'):_withheldLabel), reasonCode:_eval.reasonCode, reasonMessage:_eval.reasonMessage };
+  const _qAirLabel = '('+(_eval.airStatus==='incomplete'?'partial':_eval.airStatus)+')';
+  const _statusSub = _eval.airStatus==='blocked'?'air-side blocked':_eval.airStatus==='withheld'?'air-side withheld':_eval.airStatus==='limited'?'automatic air estimate limited':_eval.airStatus==='estimated'?'no independent check':_eval.airStatus==='incomplete'?'incomplete measurement':'independent measurement';
+  const _qAirHelp = _eval.statusMessage;
   const ec  = eCol(eer);
 
   function resetAir(){
@@ -7597,6 +7748,7 @@ function AirLiquid({unit,job,uid,setLog,setShowLog,pAtm,measDate=""}){  // Step 
   }
 
   function save(){
+    if(!_eval.saveAllowed) return; // Step 3.8: Save uses the single evaluation contract
     const _rs=refrigState(ref,sP,dP,(unit==='F'?C(sT):sT),(unit==='F'?C(liqT):liqT),pAtm/1000);
     const tE=_rs?_rs.tE:null;
     const sh=_rs?_rs.sh:null;
@@ -7609,7 +7761,12 @@ function AirLiquid({unit,job,uid,setLog,setShowLog,pAtm,measDate=""}){  // Step 
       rh1:fmt(oRH,4),rh2:fmt(lRHuse,4),
       wTi:fmt(F(wTiC),4),wTo:fmt(F(wToC),4),wF:fmt(wF,4),
       af:fmt(afUse,1),pw:fmt(pw,4),
-      Q:fmt(Qw,4),Qair:fmt(Qa,4),eer:fmt(eer,4), air:_air,
+      operatingMode:opMode, expectedAirSigned_kW:_eval.expectedAirSigned_kW,
+      airEnergySigned_kW:_v.airEnergySigned_kW, airEnergyMagnitude_kW:_v.airEnergyMagnitude_kW,
+      air_status:_eval.airStatus, air_reason:_eval.reasonCode, air_reason_message:_eval.reasonMessage,
+      air_output_available:_eval.qaAvailable, pressure:_eval.pressure,
+      Q:fmt(Qw,4),Qair:(_v.airEnergySigned_kW==null?null:fmt(_v.airEnergySigned_kW,4)),eer:fmt(eer,4),
+      air:_airForDisp,
       tE:tE!=null?fmt(tE,4):'--',sh:sh!=null?fmt(sh,4):'--',
       tC:tCond!=null?fmt(tCond,4):'--',
       sP:fmt(sP,4),dP:fmt(dP,4),unit
@@ -7624,7 +7781,12 @@ function AirLiquid({unit,job,uid,setLog,setShowLog,pAtm,measDate=""}){  // Step 
     <ValidationBanner issues={_issues}/>
     {/* ── LIQUID SIDE (PRIMARY) ── */}
     <div className="card" style={{borderColor:'rgba(180,145,60,.3)'}}>
-      <div className="slbl" style={{color:'#0ea5e9'}}>Liquid Side — Primary (Chilled Water)</div>
+      <div className="slbl" style={{color:'#0ea5e9'}}>Liquid Side — Primary{opMode==='heating'?' Heating':opMode==='cooling'?' Cooling':''}</div>
+      <div style={{display:'flex',gap:8,margin:'8px 0 10px'}} data-al-mode-select="1">
+        {['cooling','heating'].map(m=>(<button key={m} data-al-mode={m} aria-pressed={opMode===m} onClick={()=>setOpMode(m)} style={{flex:1,padding:'7px 10px',borderRadius:6,fontSize:11,cursor:'pointer',fontFamily:'DM Mono,monospace',textTransform:'capitalize',border:opMode===m?'1px solid #0ea5e9':'1px solid rgba(148,163,184,.35)',background:opMode===m?'rgba(14,165,233,.15)':'transparent',color:opMode===m?'#0ea5e9':'#94a3b8'}}>{m}</button>))}
+      </div>
+      {opMode===null&&<div data-al-mode-missing="1" style={{fontSize:11,color:'#fbbf24',margin:'0 0 10px'}}>Select Cooling or Heating to compute results — operating_mode_missing. Save is disabled.</div>}
+      {opMode!==null&&!_alValid&&<div data-al-invalid="1" style={{fontSize:11,color:'#f87171',margin:'0 0 10px'}}>Invalid A/L input — {_sol.reason}. Results and Save are disabled.</div>}
 
       {/* Glycol toggle */}
       <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
@@ -7674,7 +7836,7 @@ function AirLiquid({unit,job,uid,setLog,setShowLog,pAtm,measDate=""}){  // Step 
       </div>
 
       <div className="field" style={{marginTop:14}}>
-        <div className="lbl"><span>Compressor Power P_el</span><span className="utag">kW</span></div>
+        <div className="lbl"><span>Compressor electrical power</span><span className="utag">kW</span></div>
         <FloatInput value={pw} onChange={setPw} min={0.01} max={500} step={0.0001}/>
       </div>
     </div>
@@ -7682,7 +7844,7 @@ function AirLiquid({unit,job,uid,setLog,setShowLog,pAtm,measDate=""}){  // Step 
     {/* ── AIR SIDE (VERIFICATION) ── */}
     <div className="card" style={{borderColor:'rgba(249,115,22,.2)'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
-        <div className="slbl" style={{color:'#f97316',marginBottom:0}}>Air Side — Verification (Heat Rejection)</div>
+        <div className="slbl" style={{color:'#f97316',marginBottom:0}}>{opMode===null?'Air Side — Waiting for operating mode':('Air Side — Verification ('+(opMode==='heating'?'Heat Extraction':'Heat Rejection')+')')}</div>
         <button onClick={resetAir} style={{
           padding:'5px 12px',borderRadius:6,fontSize:10,cursor:'pointer',
           fontFamily:'DM Mono,monospace',border:'1px solid rgba(249,115,22,.3)',
@@ -7710,7 +7872,7 @@ function AirLiquid({unit,job,uid,setLog,setShowLog,pAtm,measDate=""}){  // Step 
       </div>
 
       {/* Leaving air */}
-      <div style={{fontSize:9,color:'#f97316',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}}>Leaving Air (warmer — heat rejection)</div>
+      <div style={{fontSize:9,color:'#f97316',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}}>{opMode===null?'Leaving Air — select operating mode':opMode==='heating'?'Leaving Air (colder — heat extraction)':'Leaving Air (warmer — heat rejection)'}</div>
       <div className="three">
         <div className="field">
           <div className="lbl">
@@ -7728,7 +7890,7 @@ function AirLiquid({unit,job,uid,setLog,setShowLog,pAtm,measDate=""}){  // Step 
         </div>
         <div className="field">
           <div className="lbl">
-            <span>Airflow</span>
+            <span>Airflow at entering ambient condition — m³/h</span>
             <span className="badge" style={{background:af===null?'rgba(34,197,94,.15)':'rgba(251,191,36,.15)',color:af===null?'#22c55e':'#fbbf24',marginLeft:4}}>{af===null?'AUTO':'MANUAL'}</span>
           </div>
           <FloatInput value={af===null?fmt(afUse,1):afm} onChange={v=>{setAf(true);setAfm(v);}} min={10} max={50000} step={1} style={{borderColor:'rgba(249,115,22,.4)'}}/>
@@ -7736,27 +7898,28 @@ function AirLiquid({unit,job,uid,setLog,setShowLog,pAtm,measDate=""}){  // Step 
       </div>
       {lRHuse>98&&<div className="warn">⚠ Leaving RH &gt; 98% — condensation on sensor possible.</div>}
       {lRHuse>95&&lRHuse<=98&&<div className="warn" style={{background:'rgba(251,191,36,.08)',border:'1px solid rgba(251,191,36,.2)',color:'#fbbf24'}}>⚠ Leaving RH &gt; 95% — near saturation.</div>}
-      {lDBuse<=oC&&<div className="warn">⚠ Leaving DB should be warmer than ambient in heat rejection mode.</div>}
+      {opMode==='cooling'&&lDBuse<=oC&&<div className="warn">⚠ Leaving DB should be warmer than ambient in heat-rejection (cooling) mode.</div>}
+      {opMode==='heating'&&lDBuse>=oC&&<div className="warn">⚠ Leaving DB should be colder than ambient in heat-extraction (heating) mode.</div>}
 
       <div className="irow" style={{borderColor:'rgba(249,115,22,.2)',background:'rgba(249,115,22,.06)',marginTop:10}}>
         <span><span className="ik">WB_ut</span><span className="iv" style={{color:'#f97316'}}>{d(wBL,4)} deg {unit}</span></span>
         <span><span className="ik">h_ut</span><span className="iv" style={{color:'#f97316'}}>{fmt(hL,4)}</span><span className="iu"> kJ/kg</span></span>
         <span><span className="ik">Δh</span><span className="iv" style={{color:'#f97316'}}>{fmt(dh,4)}</span><span className="iu"> kJ/kg</span></span>
         <span><span className="ik">ṁ_air</span><span className="iv" style={{color:'#f97316'}}>{fmt(mA,4)}</span><span className="iu"> kg/s</span></span>
-        <span><span className="ik">Q_air</span><span className="iv" style={{color:_airSuppressed?'#94a3b8':'#f97316'}}>{_airSuppressed?'unavailable':fmt(Qa,4)}</span><span className="iu"> kW</span></span>
+        <span><span className="ik">Q_air</span><span className="iv" style={{color:_airWithheld?'#94a3b8':'#f97316'}}>{_airWithheld?'unavailable':fmt(QaMag,4)}</span><span className="iu"> kW</span></span>
       </div>
     </div>
 
     {/* ── BALANCE INDICATOR ── */}
-    <div className="card" style={{borderColor:_airSuppressed?_disp.borderColor:(isAutoAir?'rgba(125,211,252,.3)':(Math.abs(bal)>8?'rgba(248,113,113,.4)':Math.abs(bal)>3?'rgba(251,191,36,.4)':'rgba(34,197,94,.3)'))}}>
-      <div className="slbl" style={{color:_airSuppressed?_disp.color:(isAutoAir?'#7dd3fc':(Math.abs(bal)>8?'#f87171':Math.abs(bal)>3?'#fbbf24':'#22c55e'))}}>
-        {_airSuppressed?'Air Side — WITHHELD':(isAutoAir?'Air Side — Estimated from Liquid Capacity':'Energy Balance — Independent Air Measurement')}
+    <div className="card" style={{borderColor:_disp.borderColor}}>
+      <div className="slbl" style={{color:_disp.color}}>
+        {_airWithheld?('Air Side — '+_withheldLabel):(isAutoAir?'Air Side — Estimated from Liquid Capacity':'Energy Balance — Independent Air Measurement')}
       </div>
-      {_airSuppressed&&<div data-air-status="withheld" data-air-reason={_disp.reasonCode} style={{background:'rgba(248,113,113,.10)',border:'1px solid rgba(248,113,113,.35)',borderRadius:8,padding:'10px 12px',marginBottom:12,fontSize:11,color:'#fca5a5',lineHeight:1.5}}>
-        <strong>Status: WITHHELD — Air-side result unavailable.</strong> Reason: {_disp.reasonMessage}. <span style={{opacity:.75}}>Reason code: {_disp.reasonCode}</span>. Liquid-side capacity (Q Liquid) is unaffected.
+      {_airWithheld&&<div data-air-status={_eval.airStatus} data-air-reason={_airReason||''} style={{background:'rgba(248,113,113,.10)',border:'1px solid rgba(248,113,113,.35)',borderRadius:8,padding:'10px 12px',marginBottom:12,fontSize:11,color:'#fca5a5',lineHeight:1.5}}>
+        <strong>Status: {_withheldLabel} — Air-side result unavailable.</strong> Reason: {_airMsg}.{_airReason?<span style={{opacity:.75}}> Reason code: {_airReason}</span>:null} {_eval.reasonKind==='liquid'?'Liquid result is invalid. Air-side calculations are blocked because they depend on a valid liquid result.':'Liquid-side capacity (Q Liquid) is unaffected.'}
       </div>}
 
-      {!_airSuppressed&&isAutoAir&&<div style={{background:'rgba(125,211,252,.08)',border:'1px solid rgba(125,211,252,.25)',borderRadius:8,padding:'10px 12px',marginBottom:12,fontSize:11,color:'#7dd3fc',lineHeight:1.5}}>
+      {!_airWithheld&&isAutoAir&&<div style={{background:'rgba(125,211,252,.08)',border:'1px solid rgba(125,211,252,.25)',borderRadius:8,padding:'10px 12px',marginBottom:12,fontSize:11,color:'#7dd3fc',lineHeight:1.5}}>
         ℹ The air-side values below are <strong>estimated from the liquid capacity</strong>, not independently measured.
         This is a synthetic expected condition — it cannot verify the measurement. To perform a real energy-balance
         check, enter measured leaving air DB, RH and airflow (each field switches to MANUAL).
@@ -7769,26 +7932,26 @@ function AirLiquid({unit,job,uid,setLog,setShowLog,pAtm,measDate=""}){  // Step 
           <div className="ru">{fmt(Qw*3412.14,0)} BTU/h</div>
         </div>
         <div style={{background:'rgba(249,115,22,.08)',borderRadius:10,padding:'12px 14px',border:'1px solid rgba(249,115,22,.2)'}}>
-          <div className="rn">Q Air {_airSuppressed?'(withheld)':isAutoAir?'(estimated)':'(measured)'}</div>
-          <div className="rv" style={{color:_airSuppressed?'#94a3b8':'#f97316'}}>{_airSuppressed?'unavailable':fmt(Qa,4)+' kW'}</div>
-          <div className="ru">{_airSuppressed?'pressure missing/invalid':isAutoAir?'synthetic — not measured':isFullyManualAir?'independent measurement':'partial manual'}</div>
+          <div className="rn">Q Air {_qAirLabel}</div>
+          <div className="rv" style={{color:_airWithheld?'#94a3b8':'#f97316'}}>{_airWithheld?'unavailable':fmt(QaMag,4)+' kW'}</div>
+          <div className="ru">{_qAirHelp}</div>
         </div>
-        <div data-air-balance-cell="1" style={{background:_airSuppressed?'rgba(148,163,184,.10)':(!isFullyManualAir?'rgba(125,211,252,.08)':(Math.abs(balVsReject)>8?'rgba(248,113,113,.08)':Math.abs(balVsReject)>3?'rgba(251,191,36,.08)':'rgba(34,197,94,.08)')),borderRadius:10,padding:'12px 14px',border:`1px solid ${_airSuppressed?'rgba(148,163,184,.4)':(!isFullyManualAir?'rgba(125,211,252,.3)':(Math.abs(balVsReject)>8?'rgba(248,113,113,.3)':Math.abs(balVsReject)>3?'rgba(251,191,36,.3)':'rgba(34,197,94,.3)'))}`}}>
+        <div data-air-balance-cell="1" data-air-status={_eval.airStatus} data-air-reason={_eval.reasonCode||''} style={{background:_airWithheld?'rgba(148,163,184,.10)':(!isFullyManualAir?'rgba(125,211,252,.08)':(Math.abs(balVsReject)>8?'rgba(248,113,113,.08)':Math.abs(balVsReject)>3?'rgba(251,191,36,.08)':'rgba(34,197,94,.08)')),borderRadius:10,padding:'12px 14px',border:`1px solid ${_airWithheld?'rgba(148,163,184,.4)':(!isFullyManualAir?'rgba(125,211,252,.3)':(Math.abs(balVsReject)>8?'rgba(248,113,113,.3)':Math.abs(balVsReject)>3?'rgba(251,191,36,.3)':'rgba(34,197,94,.3)'))}`}}>
           <div className="rn">Status</div>
           <div className="rv" style={{color:_disp.color}}>{_disp.statusLabel}</div>
-          <div className="ru">{_airSuppressed?'air-side withheld':isAutoAir?'no check possible':!isFullyManualAir?'incomplete':Math.abs(balVsReject)>8?'❌ Check measurements':Math.abs(balVsReject)>3?'⚠ Acceptable':'✅ Good'}</div>
+          <div className="ru">{_statusSub}</div>
         </div>
       </div>
 
-      {!_airSuppressed&&!isAutoAir&&!isFullyManualAir&&<div style={{background:'rgba(251,191,36,.08)',border:'1px solid rgba(251,191,36,.25)',borderRadius:8,padding:'10px 12px',fontSize:11,color:'#fbbf24',lineHeight:1.5}}>
+      {!_airWithheld&&!isAutoAir&&!isFullyManualAir&&<div style={{background:'rgba(251,191,36,.08)',border:'1px solid rgba(251,191,36,.25)',borderRadius:8,padding:'10px 12px',fontSize:11,color:'#fbbf24',lineHeight:1.5}}>
         ⚠ Incomplete air-side measurement. Some fields are still AUTO (estimated). A valid energy-balance check
         requires all three air inputs — leaving DB, leaving RH, and airflow — to be independently measured.
         Switch the remaining AUTO fields to manual entry, or treat the air side as estimate-only.
       </div>}
 
-      {!_airSuppressed&&isFullyManualAir&&<>
+      {!_airWithheld&&isFullyManualAir&&<>
         <div className="bar-l">
-          <span style={{color:'#0ea5e9'}}>Heat rejection target</span>
+          <span style={{color:'#0ea5e9'}}>{opMode==='heating'?'Heat extraction target':'Heat rejection target'}</span>
           <span style={{color:Math.abs(balVsReject)>8?'#f87171':Math.abs(balVsReject)>3?'#fbbf24':'#22c55e'}}>{fmt(Math.abs(balVsReject),2)}% deviation</span>
           <span style={{color:'#f97316'}}>Measured Air Q</span>
         </div>
@@ -7796,8 +7959,8 @@ function AirLiquid({unit,job,uid,setLog,setShowLog,pAtm,measDate=""}){  // Step 
           <div className="bar-f" style={{width:Math.min(100,(Math.abs(balVsReject)/15)*100)+'%',background:Math.abs(balVsReject)>8?'#f87171':Math.abs(balVsReject)>3?'#fbbf24':'#22c55e'}}/>
         </div>
         <div style={{fontSize:9,color:'#8a7a65',marginTop:8,lineHeight:1.5}}>
-          Condenser heat rejection: measured air Q ({fmt(Qa,3)} kW) compared against the physical expectation
-          Q_liquid + P_el = {fmt(Qexpected,3)} kW. Deviation {fmt(Math.abs(balVsReject),1)}%
+          {opMode==='heating'?'Evaporator heat extraction':'Condenser heat rejection'}: measured air Q ({fmt(QaMag,3)} kW) compared against the physical expectation
+          {opMode==='heating'?'Q_liquid − P_el':'Q_liquid + P_el'} = {fmt(Qexpected,3)} kW. Deviation {balVsReject==null?'—':fmt(Math.abs(balVsReject),1)+'%'}
           ({Math.abs(balVsReject)>8?'❌ check measurements':Math.abs(balVsReject)>3?'⚠ acceptable':'✅ good agreement'}).
         </div>
       </>}
@@ -7814,30 +7977,29 @@ function AirLiquid({unit,job,uid,setLog,setShowLog,pAtm,measDate=""}){  // Step 
       <div className="rl2">Results</div>
       <div className="rg">
         <div className="ri big">
-          <div className="rn">Q Liquid — Primary Cooling Output</div>
+          <div className="rn">Q Liquid — Primary {opMode==='heating'?'Heating ':opMode==='cooling'?'Cooling ':''}Output</div>
           <div className="rv">{fmt(Qw,4)} kW</div>
           <div className="ru">{fmt(Qw*3412.14,0)} BTU/h — {fmt(Qw/3.517,4)} tons</div>
         </div>
-        <div className="ri"><div className="rn">Cooling COP (W/W)</div><div className="rv" style={{color:ec}}>{fmt(eer,4)}</div><div className="ru">Q_liquid / P_electrical · confirm what P includes</div></div>
+        <div className="ri"><div className="rn">{opMode==='heating'?'Heating COP (W/W)':opMode==='cooling'?'Cooling COP (W/W)':'COP — select mode'}</div><div className="rv" style={{color:ec}}>{fmt(eer,4)}</div><div className="ru">Q_liquid / P_compressor</div></div>
         <div className="ri"><div className="rn">dT liquid</div><div className="rv">{fmt(dTw,4)}</div><div className="ru">K</div></div>
         <div className="ri"><div className="rn">Flow</div><div className="rv">{fmt(wF,4)}</div><div className="ru">L/s</div></div>
-        <div className="ri"><div className="rn">Q Air (verif)</div><div className="rv" style={{color:'#f97316'}}>{fmt(Qa,4)}</div><div className="ru">kW heat rejection</div></div>
-        <div className="ri"><div className="rn">Balance</div><div className="rv" style={{color:Math.abs(bal)>8?'#f87171':Math.abs(bal)>3?'#fbbf24':'#22c55e'}}>{fmt(Math.abs(bal),2)}%</div><div className="ru">deviation</div></div>
+        <div className="ri"><div className="rn">Q Air (verif)</div><div className="rv" style={{color:_airWithheld?'#94a3b8':'#f97316'}}>{_airWithheld?'--':fmt(QaMag,4)}</div><div className="ru">{opMode===null?'kW air-side energy':opMode==='heating'?'kW heat extraction':'kW heat rejection'}</div></div>
       </div>
       <div className="fml">
         {useGly
           ? <><strong>Q</strong> = m × cp × dT = {fmt(wF,4)} × {fmt(gp.rho,3)} × {fmt(gp.cp,3)} × {fmt(dTw,4)} = <strong>{fmt(Qw,4)} kW</strong><br/></>
           : <><strong>Q</strong> = 4.18 × V(L/s) × dT = 4.18 × {fmt(wF,4)} × {fmt(dTw,4)} = <strong>{fmt(Qw,4)} kW</strong><br/></>
         }
-        <strong>Cooling COP</strong> = {fmt(Qw,4)} / {fmt(pw,4)} = <strong>{fmt(eer,4)} W/W</strong><br/>
-        <span style={{fontSize:9,color:'#8a7a65'}}>Boundary: COP uses whatever electrical input you metered into P. Identify it (whole unit / compressor / system) when reporting.</span>
+        <strong>{opMode==='heating'?'Heating COP':opMode==='cooling'?'Cooling COP':'COP — select mode'}</strong> = {fmt(Qw,4)} / {fmt(pw,4)} = <strong>{fmt(eer,4)} W/W</strong><br/>
+        <span style={{fontSize:9,color:'#8a7a65'}}>Boundary: P is the compressor electrical power (electricalBoundary = compressor_power).</span>
       </div>
     </div>
     <SteadyStateChecker/>
     <UncertaintyPanel mode="al" Q={Qw} EER={eer} params={{dT:dTw}}/>
     <GuideAL/>
     <div className="brow no-print">
-      <button className="bt bt-g" onClick={save}>Save Measurement</button>
+      <button className="bt bt-g" onClick={save} disabled={!_eval.saveAllowed} style={!_eval.saveAllowed?{opacity:.5,cursor:'not-allowed'}:undefined}>Save Measurement</button>
       <button className="bt bt-b" onClick={()=>window.print()}>Print / PDF</button>
     </div>
   </>);
@@ -8543,11 +8705,14 @@ function App(){
   const [unit,setUnit]=useState("C");
   const [job,setJob]=useState("");const [uid,setUid]=useState("");
   const [pPress,setPPress]=useState(engcalcAppPressureInit);
-  const _pKpaPa = engcalcAppPressurePa(pPress);  // Pa, NaN when not known
+  const [alPPress,setAlPPress]=useState(engcalcAppPressureInit);
+  const _pressureView = mode==="al" ? alPPress : pPress;
+  const _pKpaPa = engcalcAppPressurePa(_pressureView);  // Pa, NaN when not known
   const [measDate,setMeasDate]=useState(()=>{const n=new Date();return n.toLocaleDateString('sv-SE')+' '+n.toLocaleTimeString('sv-SE',{hour:'2-digit',minute:'2-digit'});});
   const [log,setLog]=useState(()=>{try{return JSON.parse(localStorage.getItem('ndt_log')||'[]')}catch{return[]}});
   const [showLog,setShowLog]=useState(false);
   useEffect(()=>{localStorage.setItem('ndt_log',JSON.stringify(log))},[log]);
+  function setPressureBoth(next){setPPress(next);setAlPPress(next)}
   function delEntry(id){setLog(p=>p.filter(e=>e.id!==id))}
   function exportCSV(){
     if(!log.length)return;
@@ -8556,11 +8721,11 @@ function App(){
   }
   function exportJSON(){
     if(!log.length)return;
-    const data=engcalcBuildJson(log, pPress);
+    const data=engcalcBuildJson(log, _pressureView);
     const a=document.createElement("a");a.href="data:application/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(data,null,2));a.download="noditech_log.json";a.click();
   }
   function saveSession(){
-    const data=engcalcBuildSession(log, pPress, measDate);
+    const data=engcalcBuildSession(log, _pressureView, measDate);
     const a=document.createElement("a");a.href="data:application/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(data));a.download="noditech_session_"+new Date().toLocaleDateString('sv-SE')+".json";a.click();
   }
   function loadSession(e){
@@ -8568,8 +8733,8 @@ function App(){
     const r=new FileReader();
     r.onload=ev=>{try{const d=JSON.parse(ev.target.result);
       if(d.log)setLog(d.log);
-      if(d.pressure){ setPPress(engcalcAppPressureFromSession(d.pressure.value_kPa, d.pressure.classification)); }
-      else { setPPress(engcalcAppPressureFromSession(d.pKpa)); }   // explicit validation; missing/invalid stays missing/invalid (never 101.5)
+      if(d.pressure){ setPressureBoth(engcalcAppPressureFromSession(d.pressure.value_kPa, d.pressure.classification)); }
+      else { setPressureBoth(engcalcAppPressureFromSession(d.pKpa)); }   // explicit validation; missing/invalid stays missing/invalid (never 101.5)
       if(d.measDate)setMeasDate(d.measDate);
       alert("Session loaded: "+(d.log?d.log.length:0)+" measurements");
     }catch(err){alert("Could not read session file");}};
@@ -8596,7 +8761,7 @@ function App(){
               <div><strong>Vapour data:</strong> {PH_DATASET_SHA}</div>
               <div><strong>Liquid data:</strong> {PH_LIQ_DATASET_SHA}</div>
               <div><strong>Mode:</strong> {mode==='aa'?'Air/Air':mode==='al'?'Air/Liquid':'Liquid/Liquid'}</div>
-              <div><strong>Pressure:</strong> {pPress.state==='known'?fmt(pPress.value_kPa,1)+' kPa ('+pPress.classification+')':'NOT SET — '+pPress.reason}</div>
+              <div><strong>Pressure:</strong> {_pressureView.state==='known'?fmt(_pressureView.value_kPa,1)+' kPa ('+_pressureView.classification+')':'NOT SET — '+_pressureView.reason}</div>
             </div>
           </div>
         </div>
@@ -8633,13 +8798,13 @@ function App(){
               <span>Atmospheric Pressure</span>
               <span className="utag">kPa</span>
             </div>
-            <FloatInput value={pPress.value_kPa} onChange={v=>setPPress(engcalcAppPressureFromField(v))} min={50} max={110} step={0.1} placeholder="enter site pressure (kPa)"/>
-            <button type="button" onClick={()=>setPPress(engcalcAppPressureReference())} style={{marginTop:6,padding:'5px 10px',fontSize:11,borderRadius:6,border:'1px solid rgba(125,211,252,.4)',background:'rgba(125,211,252,.08)',color:'#7dd3fc',cursor:'pointer'}}>Use reference pressure 101.325 kPa</button>
-            <div data-pressure-state={pPress.state} data-pressure-reason={pPress.reason||''} style={{marginTop:6,fontSize:11,color:pPress.state==='known'?'#9fb3c8':'#fca5a5'}}>
-              {pPress.state==='known'?('Pressure: '+fmt(pPress.value_kPa,3)+' kPa — '+pPress.classification+(pPress.source?(' ('+pPress.source+')'):'')):('Pressure not set — '+engcalcPressureMessage(pPress.reason)+'. Pressure-dependent air-side results are withheld.')}
+            <FloatInput value={pPress.value_kPa} onChange={v=>setPPress(engcalcAppPressureFromField(v))} onValidity={(valid,m)=>setAlPPress(engcalcAppPressureFromField(m.rawText))} min={50} max={110} step={0.1} placeholder="enter site pressure (kPa)"/>
+            <button type="button" onClick={()=>setPressureBoth(engcalcAppPressureReference())} style={{marginTop:6,padding:'5px 10px',fontSize:11,borderRadius:6,border:'1px solid rgba(125,211,252,.4)',background:'rgba(125,211,252,.08)',color:'#7dd3fc',cursor:'pointer'}}>Use reference pressure 101.325 kPa</button>
+            <div data-pressure-state={_pressureView.state} data-pressure-reason={_pressureView.reason||''} style={{marginTop:6,fontSize:11,color:_pressureView.state==='known'?'#9fb3c8':'#fca5a5'}}>
+              {_pressureView.state==='known'?('Pressure: '+fmt(_pressureView.value_kPa,3)+' kPa — '+_pressureView.classification+(_pressureView.source?(' ('+_pressureView.source+')'):'')):('Pressure not set — '+engcalcPressureMessage(_pressureView.reason)+'. Pressure-dependent air-side results are withheld.')}
             </div>
             <div style={{fontSize:9,color:'#8a7a65',marginTop:4}}>
-              {pPress.state==='known'?'= '+fmt(pPress.value_kPa*1000,0)+' Pa':'(not set)'} · Standard: 101.325 kPa (use the reference button) · Norrköping typical: 101.5–102.3 kPa
+              {_pressureView.state==='known'?'= '+fmt(_pressureView.value_kPa*1000,0)+' Pa':'(not set)'} · Standard: 101.325 kPa (use the reference button) · Norrköping typical: 101.5–102.3 kPa
             </div>
           </div>
         </div>
@@ -8650,7 +8815,7 @@ function App(){
           </div>
         </div>
         {mode==="aa"&&<AirAir unit={unit} job={job} uid={uid} setLog={setLog} setShowLog={setShowLog} pAtm={_pKpaPa} measDate={measDate}/>}
-        {mode==="al"&&<AirLiquid unit={unit} job={job} uid={uid} setLog={setLog} setShowLog={setShowLog} pAtm={_pKpaPa} measDate={measDate}/>}
+        {mode==="al"&&<AirLiquid unit={unit} job={job} uid={uid} setLog={setLog} setShowLog={setShowLog} pAtm={_pKpaPa} pressureState={alPPress} measDate={measDate}/>}
         {mode==="ll"&&<LiqLiq unit={unit} job={job} uid={uid} setLog={setLog} setShowLog={setShowLog} pAtm={_pKpaPa} measDate={measDate}/>}
         <EnergyRating mode={mode}/>
         <div className="brow no-print" style={{marginTop:8,flexWrap:'wrap'}}>

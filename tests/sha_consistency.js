@@ -5,11 +5,11 @@ const fs=require('fs'), path=require('path'), crypto=require('crypto');
 const ROOT=path.join(__dirname,'..');
 const PROD=path.join(ROOT,'corrected','Kalkulator_build9.6-rc8_step3_4.src.html');
 const CURRENT=crypto.createHash('sha256').update(fs.readFileSync(PROD)).digest('hex');
-const EXPECT='8a0e39b68116c87797f380756ec4affd6ed5d79e3aef03521d5e63e58d82813b';
+const EXPECT='d3080ff5fcf0dd539130c6849edb66aa3db9faed11e6b045561d048c76c99210';
 const OBSOLETE='8ce2c498de7a85515e15cf7f17637a6c792960bc15a80f109a4ac119cd0d1f4e';
 let fails=0; const ok=(c,m)=>{ console.log((c?'PASS ':'FAIL ')+m); if(!c)fails++; };
 function walk(d){ let o=[]; for(const e of fs.readdirSync(d,{withFileTypes:true})){ if(e.name==='node_modules')continue; const p=path.join(d,e.name); e.isDirectory()?o=o.concat(walk(p)):o.push(p);} return o; }
-ok(CURRENT===EXPECT,'packaged production SHA = 8a0e39b6… (current)');
+ok(CURRENT===EXPECT,'packaged production SHA = d3080ff5… (current)');
 const all=walk(ROOT).filter(f=>path.basename(f)!=='sha_consistency.js' && path.basename(f)!=='run_preflight.js' && !/tools\/compiler\//.test(f) && !/vendor\//.test(f) && !/\.html$/.test(f));
 let obs=[]; for(const f of all){ try{ if(fs.readFileSync(f,'utf8').includes(OBSOLETE)) obs.push(path.relative(ROOT,f)); }catch(e){} }
 ok(obs.length===0,'obsolete SHA 8ce2c498… absent'+(obs.length?(' ('+obs.join(', ')+')'):''));
