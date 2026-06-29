@@ -22,7 +22,12 @@ const extracted=ex.extract();
 const prodSha=extracted.prodSha;
 const productionSourceSha=extracted.sourceSha;
 let source=extracted.source;
-if(llCutover){ source=require('../src/engine/liquidLiquidCutoverTransform.js').transformLiqLiqCutover(source); }
+let glycolDataset=null;
+if(llCutover){
+  const built=require('../src/engine/liquidLiquidCutoverBuild.js').buildLiquidLiquidCutoverSource(source);
+  source=built.source;
+  glycolDataset=built.dataset;
+}
 else if(llCandidate){ source=require('../src/engine/liquidLiquidUiTransform.js').transformLiqLiqShadow(source); }
 const sourceSha=sha(Buffer.from(source,'utf8'));
 let compiled;
@@ -49,7 +54,7 @@ const compiledSha=sha(fs.readFileSync(OUT));
 const command=llCutover?'NODITECH_LL_CUTOVER=1 node tests/compile_app.js':llCandidate?'NODITECH_LL_CANDIDATE=1 node tests/compile_app.js':'node tests/compile_app.js';
 const candidateMode=llCutover?'liquid-liquid-cutover':llCandidate?'liquid-liquid-shadow':null;
 const equivalenceStatus=llCutover
-  ?'CUTOVER CANDIDATE — compiled from the SHA-locked production source after the deterministic LiqLiq-only contract transform'
+  ?'CUTOVER CANDIDATE — compiled from the SHA-locked production application and exact SHA-locked CoolProp glycol dataset after the deterministic LiqLiq-only contract transform'
   :llCandidate
     ?'CANDIDATE — compiled from the SHA-locked production source after the deterministic LiqLiq-only transform'
     :'EQUIVALENT — app.compiled.js is the build-time compilation of the byte-identical application source extracted from the packaged production artifact';
@@ -59,6 +64,11 @@ const equiv={ generated:process.env.BUILD_TS||new Date().toISOString(),
   compiled_application_source_sha256:sourceSha,
   candidate_mode:candidateMode,
   compile_mode:compileMode,
+  glycol_dataset_assignment_sha256:glycolDataset?glycolDataset.assignmentSha256:null,
+  glycol_dataset_object_sha256:glycolDataset?glycolDataset.objectSha256:null,
+  glycol_dataset_release_date:glycolDataset?glycolDataset.releaseDate:null,
+  glycol_dataset_property_engine:glycolDataset?glycolDataset.propertyEngine:null,
+  glycol_dataset_concentration_basis:glycolDataset?glycolDataset.concentrationBasis:null,
   compiled_application_sha256:compiledSha,
   compiled_application_inner_sha256:sha(Buffer.from(compiled,'utf8')),
   extraction_script_sha256:ex.selfSha(),
