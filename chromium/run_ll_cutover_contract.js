@@ -51,7 +51,14 @@ const HELP=`window.__llh={
   balancedWaterHotFlow:function(){var api=window.NoditechLiquidLiquid;var c=api.resolveLiquidProperties({fluid:'WATER',inletC:12,outletC:7,flowLs:.5});var h=api.resolveLiquidProperties({fluid:'WATER',inletC:30,outletC:35,flowLs:1});return (c.densityKgL*c.cpKJkgK*.5*5+1.2)/(h.densityKgL*h.cpKJkgK*5);},
   balancedGlycolHotFlow:function(){var c=glyEval('EG',30,9.5),h=glyEval('PG',30,32.5);if(!c.valid||!h.valid)return null;return (c.rho*c.cp*.5*5+1.2)/(h.rho*h.cp*5);},
   captured:function(){return (window.__captured||[]).map(function(c){return {download:c.download,data:decodeURIComponent(c.href.slice(c.href.indexOf(',')+1))};});},
-  oneColumn:function(side){var g=document.querySelector('[data-ll-side="'+side+'"] .three');if(!g)return false;return getComputedStyle(g).gridTemplateColumns.trim().split(/\\s+/).length===1;},
+  gridColumns:function(side){var g=document.querySelector('[data-ll-side="'+side+'"] .three');if(!g)return {display:'',count:0};var c=getComputedStyle(g);return {display:c.display,count:c.gridTemplateColumns.trim().split(/\\s+/).filter(Boolean).length};},
+  oneColumn:function(side){var x=this.gridColumns(side);return x.display==='grid'&&x.count===1;},
+  threeColumns:function(side){var x=this.gridColumns(side);return x.display==='grid'&&x.count===3;},
+  printOnlyHidden:function(){var e=document.querySelector('[data-ll-print-contract]');return !!e&&getComputedStyle(e).display==='none';},
+  printProjectionVisible:function(){var e=document.querySelector('[data-ll-print-contract]');return !!e&&getComputedStyle(e).display!=='none';},
+  noPrintHidden:function(){var e=document.querySelector('[data-ll-mode-select]');return !!e&&getComputedStyle(e).display==='none';},
+  firstLogRow:function(){var row=document.querySelector('.lt tbody tr');if(!row)return null;return [].slice.call(row.cells).map(function(c){return (c.textContent||'').trim();});},
+  clickExactButton:function(text){var b=[].slice.call(document.querySelectorAll('button')).find(function(x){return (x.textContent||'').trim()===text;});if(b)b.click();return !!b;},
   noOverflow:function(){return document.documentElement.scrollWidth<=window.innerWidth+2;}
 },true`;
 
@@ -78,6 +85,7 @@ async function main(){
   rec('BUILD.cutover_mode','compiled artifact is explicit L/L cutover candidate',equiv.candidate_mode==='liquid-liquid-cutover',equiv.candidate_mode);
   rec('BUILD.glycol_assignment','exact production glycol assignment is compiled',equiv.glycol_dataset_assignment_sha256==='8beabb9f3c61dfeef61e1fc487a4972487231cc70426c442cafa286d8f05c30d',equiv.glycol_dataset_assignment_sha256);
   rec('BUILD.glycol_engine','CoolProp production metadata is preserved',equiv.glycol_dataset_property_engine==='CoolProp 7.2.0 INCOMP',equiv.glycol_dataset_property_engine);
+  rec('BUILD.production_css','exact SHA-locked production CSS is compiled',equiv.production_css_sha256==='d05974bba0660376cc441c670ce40db14cf805bb772bdc48e61e6fb118eb0b98',equiv.production_css_sha256);
   const bin=findChromium();if(!bin)throw new Error('No Chromium found');
   srv=await server.start();origin='127.0.0.1:'+srv.port;
   const userDir=fs.mkdtempSync(path.join(os.tmpdir(),'noditech-ll-'));
@@ -109,6 +117,8 @@ async function main(){
   await evalWait(S,'__llh.attr("data-ll-code")==="ok"&&__llh.attr("data-ll-status")==="good"',4000);
   const coolingDetail=await ev(S,'JSON.stringify({status:__llh.attr("data-ll-status"),code:__llh.attr("data-ll-code"),dev:__llh.attr("data-ll-balance-deviation"),cold:__llh.attr("data-ll-cold-capacity"),hot:__llh.attr("data-ll-hot-capacity")})');
   rec('LL.cooling_good','balanced cooling contract is good',await ev(S,'__llh.attr("data-ll-valid")==="true"&&__llh.attr("data-ll-status")==="good"'),coolingDetail);
+  rec('CSS.desktop_grid','production CSS provides three-column desktop L/L fields',await ev(S,'__llh.threeColumns("cold")&&__llh.threeColumns("hot")'),await ev(S,'JSON.stringify({cold:__llh.gridColumns("cold"),hot:__llh.gridColumns("hot")})'));
+  rec('CSS.screen_print_hidden','print-only contract is hidden on screen',await ev(S,'__llh.printOnlyHidden()'));
   rec('LL.save_enabled','Save enabled only for valid contract',(await ev(S,'__llh.disabled("save")'))===false);
   rec('LL.json_click','contract JSON export available',await ev(S,'__llh.clickAction("json")'));rec('LL.csv_click','contract CSV export available',await ev(S,'__llh.clickAction("csv")'));await sleep(80);
   const captured=await ev(S,'__llh.captured()');
@@ -121,6 +131,15 @@ async function main(){
   rec('LL.heating_select','heating mode selectable',await ev(S,'__llh.clickLlMode("heating")'));await evalWait(S,'__llh.attr("data-ll-operating-mode")==="heating"',3000);
   rec('LL.heating_active','heating contract remains good',await ev(S,'__llh.attr("data-ll-valid")==="true"&&__llh.attr("data-ll-status")==="good"'));
   rec('LL.heating_projection','heating useful capacity projected',/Useful Heating Capacity/.test(await ev(S,'__llh.text()')));
+  const heatingUseful=Number(await ev(S,'__llh.attr("data-ll-useful-capacity")'));
+  rec('LL.heating_save','valid heating contract saves',await ev(S,'__llh.clickAction("save")'));await sleep(100);
+  const heatingRow=await ev(S,'__llh.firstLogRow()');
+  rec('LL.heating_log_mode','measurement log identifies L/L Heating',!!(heatingRow&&heatingRow[1]==='Liq/Liq Heating'),JSON.stringify(heatingRow));
+  rec('LL.heating_log_capacity','measurement log Q equals heating useful capacity',!!(heatingRow&&Math.abs(Number(heatingRow[7])-heatingUseful)<=0.00011),JSON.stringify({row:heatingRow,useful:heatingUseful}));
+  rec('LL.global_csv_click','global measurement CSV export available',await ev(S,'__llh.clickExactButton("Export CSV")'));await sleep(80);
+  const globalCsv=(await ev(S,'__llh.captured()')||[]).filter(x=>x.download==='noditech_log.csv').pop();
+  const globalCsvLines=globalCsv?globalCsv.data.trim().split(/\r?\n/):[];
+  rec('LL.global_csv_heating','global CSV identifies heating and exports useful capacity',!!(globalCsvLines[1]&&globalCsvLines[1].includes('"Liq/Liq Heating"')&&globalCsvLines[1].includes('"'+heatingRow[7]+'"')),globalCsvLines[1]);
 
   await setField(S,'hot-flow',.1);await evalWait(S,'__llh.attr("data-ll-code")==="hot_below_cold_impossible"',4000);
   rec('LL.impossible_blocked','Qhot below Qcold blocks contract',await ev(S,'__llh.attr("data-ll-code")==="hot_below_cold_impossible"'));
@@ -140,13 +159,14 @@ async function main(){
   rec('AA.mobile','A/A renders at real mobile viewport',/A\/A/.test(await ev(S,'document.getElementById("root").innerText'))&&await ev(S,'window.innerWidth===390'),await ev(S,'window.innerWidth'));
   rec('AL.mobile','A/L renders at mobile viewport',await ev(S,'__llh.clickMode("A\\/L")'));await sleep(80);rec('AL.mobile.no_overflow','A/L has no horizontal overflow',await ev(S,'__llh.noOverflow()'));
   await ev(S,'__llh.clickMode("L\\/L")');await evalWait(S,'document.querySelector("[data-ll-cutover]")!==null',3000);await ev(S,HELP);
-  rec('LL.mobile','L/L uses one-column mobile field layout',await ev(S,'__llh.oneColumn("cold")&&__llh.oneColumn("hot")'));
+  rec('LL.mobile','L/L uses production-CSS one-column mobile field layout',await ev(S,'__llh.oneColumn("cold")&&__llh.oneColumn("hot")'),await ev(S,'JSON.stringify({cold:__llh.gridColumns("cold"),hot:__llh.gridColumns("hot")})'));
   rec('LL.mobile.no_overflow','L/L has no horizontal overflow',await ev(S,'__llh.noOverflow()'));
   await setWaterScenario(S);await evalWait(S,'__llh.attr("data-ll-status")==="good"',4000);
   rec('LL.mobile.good','valid L/L result remains good on mobile',await ev(S,'__llh.attr("data-ll-status")==="good"'));
   await shot(S,'ll_cutover_mobile');
   await S('Emulation.setEmulatedMedia',{media:'print'});
-  rec('LL.print','contract print projection exists',await ev(S,'document.querySelector("[data-ll-print-contract]")!==null'));
+  rec('LL.print','contract print projection is visible in print media',await ev(S,'__llh.printProjectionVisible()'));
+  rec('LL.print_no_print_hidden','no-print controls are hidden in print media',await ev(S,'__llh.noPrintHidden()'));
 
   try{await browser.close();}catch(e){}try{proc.kill();}catch(e){}try{await srv.close();}catch(e){}
   finish(chromeVersion);
