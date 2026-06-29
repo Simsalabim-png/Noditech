@@ -34,7 +34,7 @@ function finish(chromeVersion,error){
   for(const r of results){xml+='  <testcase classname="ll-cutover" name="'+esc(r.id)+'">';if(!r.pass)xml+='<failure>'+esc(r.description+' | '+r.detail)+'</failure>';xml+='</testcase>\n';}
   xml+='</testsuite>\n';fs.writeFileSync(path.join(RES,'ll_cutover_junit.xml'),xml);
   console.log('\nL/L CUTOVER '+out.summary.pass+'/'+out.summary.total+(fails?' FAILS '+fails:' ALL GREEN'));
-  process.exitCode=fails?1:0;
+  process.exit(fails?1:0);
 }
 
 const HELP=`window.__llh={
@@ -130,7 +130,7 @@ async function main(){
 
   rec('LL.heating_select','heating mode selectable',await ev(S,'__llh.clickLlMode("heating")'));await evalWait(S,'__llh.attr("data-ll-operating-mode")==="heating"',3000);
   rec('LL.heating_active','heating contract remains good',await ev(S,'__llh.attr("data-ll-valid")==="true"&&__llh.attr("data-ll-status")==="good"'));
-  rec('LL.heating_projection','heating useful capacity projects the hot-side value',await ev(S,'document.querySelector("[data-ll-useful-capacity=\"true\"]")!==null&&Math.abs(Number(__llh.attr("data-ll-useful-capacity"))-Number(__llh.attr("data-ll-hot-capacity")))<1e-9'),await ev(S,'JSON.stringify({useful:__llh.attr("data-ll-useful-capacity"),hot:__llh.attr("data-ll-hot-capacity")})'));
+  rec('LL.heating_projection','heating useful capacity projects the hot-side value',await ev(S,'document.querySelector("[data-ll-useful-capacity]")!==null&&Math.abs(Number(__llh.attr("data-ll-useful-capacity"))-Number(__llh.attr("data-ll-hot-capacity")))<1e-9'),await ev(S,'JSON.stringify({useful:__llh.attr("data-ll-useful-capacity"),hot:__llh.attr("data-ll-hot-capacity")})'));
   const heatingUseful=Number(await ev(S,'__llh.attr("data-ll-useful-capacity")'));
   rec('LL.heating_save','valid heating contract saves',await ev(S,'__llh.clickAction("save")'));await sleep(100);
   const heatingRow=await ev(S,'__llh.firstLogRow()');
