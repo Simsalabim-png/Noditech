@@ -14,7 +14,7 @@
     "offline": "node tests/run_offline_suite.js",
     "server": "node chromium/server.js",
     "chromium": "node chromium/run_chromium.js",
-    "chromium:ll-cutover": "node chromium/run_ll_cutover_gate.js"
+    "chromium:ll-cutover": "node chromium/run_ll_cutover_contract.js"
   },
   "note": "No npm dependencies. The only build dependency is the locked, packaged compiler tools/compiler/babel.standalone.7.23.2.min.js, pinned by SHA-256 in tools/compiler/compiler.lock.json. The browser runner uses Node built-ins (WebSocket, http) only."
 }
