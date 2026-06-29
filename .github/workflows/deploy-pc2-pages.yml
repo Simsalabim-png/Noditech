@@ -25,7 +25,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  EXPECTED_PC2_SHA256: 0814fb96c351d405029b556f33b984530c59aeb4c12fce2ac01228bec059a424
+  EXPECTED_PC2_SHA256: 1699adf7c5682454092bb639f66ad485c46cc997b6914e87bc506c26b87a581b
 
 jobs:
   verify:

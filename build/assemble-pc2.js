@@ -31,7 +31,7 @@ const LOCK_PATH = path.join(REPO, 'tools', 'compiler', 'compiler.lock.json');
 const BABEL = path.join(REPO, 'tools', 'compiler', 'babel.standalone.7.23.2.min.js');
 
 const EXPECT_PC6 = 'b9f8be84731b9038a814ecc32b876d8856d8526ccf28cd35cc1bb1d74167dc50';
-const EXPECT_RC8 = '8a0e39b68116c87797f380756ec4affd6ed5d79e3aef03521d5e63e58d82813b';
+const EXPECT_RC8 = 'd3080ff5fcf0dd539130c6849edb66aa3db9faed11e6b045561d048c76c99210';
 
 const sha = (b) => crypto.createHash('sha256').update(b).digest('hex');
 
@@ -168,7 +168,7 @@ function applyUiTransforms(appSrc) {
     ['<FloatInput value={eDB} onChange={setEDB} min={mn} max={mx} step={0.0001}/>', 'entering-db'],
     ["<FloatInput value={lDB} onChange={setLDB} min={mn} max={mx} step={0.0001} style={{borderColor:'rgba(201,168,76,.4)'}}/>", 'leaving-db'],
     ['<FloatInput value={af} onChange={setAf} min={10} max={50000} step={10}/>', 'airflow'],
-    ['<FloatInput value={pPress.value_kPa} onChange={v=>setPPress(engcalcAppPressureFromField(v))} min={50} max={110} step={0.1} placeholder="enter site pressure (kPa)"/>', 'pressure'],
+    ['<FloatInput value={pPress.value_kPa} onChange={v=>setPPress(engcalcAppPressureFromField(v))} onValidity={(valid,m)=>setAlPPress(engcalcAppPressureFromField(m.rawText))} min={50} max={110} step={0.1} placeholder="enter site pressure (kPa)"/>', 'pressure'],
   ];
   for (const [tag, id] of TESTID_WRAPS) {
     uniqueIndex(s, tag, 'testid-' + id);

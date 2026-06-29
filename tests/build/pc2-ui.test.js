@@ -133,5 +133,5 @@ test('14. two builds produce an identical SHA-256', { skip }, () => {
 test('15. all available frozen files are untouched', { skip }, () => {
   const h = (f) => crypto.createHash('sha256').update(fs.readFileSync(path.join(REPO, f))).digest('hex');
   assert.equal(h('Kalkulator_build9.7-pc6.html'), 'b9f8be84731b9038a814ecc32b876d8856d8526ccf28cd35cc1bb1d74167dc50');
-  assert.equal(h('corrected/Kalkulator_build9.6-rc8_step3_4.src.html'), '8a0e39b68116c87797f380756ec4affd6ed5d79e3aef03521d5e63e58d82813b');
+  assert.equal(h('corrected/Kalkulator_build9.6-rc8_step3_4.src.html'), 'd3080ff5fcf0dd539130c6849edb66aa3db9faed11e6b045561d048c76c99210');
 });

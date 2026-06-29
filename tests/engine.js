@@ -5417,20 +5417,146 @@ function engcalcAirDisplay(air, ctx){
   }
   if(ctx.isAutoAir) return {available:true,kind:'estimate',statusLabel:'EST',qAirText:'estimated',balanceText:'no check possible',reasonCode:null,reasonMessage:null,showPositive:false,color:'#7dd3fc',borderColor:'rgba(125,211,252,.3)'};
   if(!ctx.isFullyManualAir) return {available:true,kind:'incomplete',statusLabel:'INC',qAirText:'partial',balanceText:'incomplete',reasonCode:null,reasonMessage:null,showPositive:false,color:'#7dd3fc',borderColor:'rgba(125,211,252,.3)'};
+  // A null balance becomes 0 and a non-finite balance falls through; neither may classify as good/measured.
+  if(ctx.balVsReject==null || !isFinite(ctx.balVsReject)) return {available:true,kind:'incomplete',statusLabel:'INC',qAirText:'partial',balanceText:'incomplete',reasonCode:null,reasonMessage:null,showPositive:false,color:'#7dd3fc',borderColor:'rgba(125,211,252,.3)'};
   var a=Math.abs(ctx.balVsReject), kind=a>8?'bad':a>3?'warn':'good';
   return {available:true,kind:kind,statusLabel:a.toFixed(2)+'%',qAirText:'measured',balanceText:a.toFixed(2)+'%',reasonCode:null,reasonMessage:null,showPositive:kind==='good',
     color:a>8?'#f87171':a>3?'#fbbf24':'#22c55e',borderColor:a>8?'rgba(248,113,113,.4)':a>3?'rgba(251,191,36,.4)':'rgba(34,197,94,.3)'};
 }
+function engcalcAirLiquidSolve(a){
+  a=a||{};
+  var bad=function(r){return {valid:false,reason:r,mode:(a.operatingMode||null),Q:null,cop:null,expectedAirSigned:null,dir:(r==='cooling_direction_invalid'||r==='heating_direction_invalid'||r==='temperature_invalid')?'invalid':'unknown'};};
+  if(a.operatingMode!=='cooling' && a.operatingMode!=='heating') return bad('operating_mode_missing');
+  if(a.useGly===true && a.glyType!=='EG' && a.glyType!=='PG') return bad('glycol_type_invalid');
+  if(typeof a.Tin!=='number'||!isFinite(a.Tin)||typeof a.Tout!=='number'||!isFinite(a.Tout)) return bad('temperature_invalid');
+  if(a.glyValid===false) return bad('liquid_properties_invalid');
+  if(typeof a.flow_Ls!=='number'||!isFinite(a.flow_Ls)||a.flow_Ls<=0) return bad('flow_invalid');
+  if(typeof a.rho!=='number'||!isFinite(a.rho)||a.rho<=0||typeof a.cp!=='number'||!isFinite(a.cp)||a.cp<=0) return bad('liquid_properties_invalid');
+  if(typeof a.pw!=='number'||!isFinite(a.pw)||a.pw<=0) return bad('power_invalid');
+  var dT=(a.operatingMode==='cooling')?(a.Tin-a.Tout):(a.Tout-a.Tin);
+  if(!(dT>0)) return bad(a.operatingMode==='cooling'?'cooling_direction_invalid':'heating_direction_invalid');
+  var m=a.flow_Ls*a.rho, Q=m*a.cp*dT, cop=Q/a.pw;
+  if(a.operatingMode==='cooling') return {valid:true,reason:null,mode:'cooling',Q:Q,cop:cop,expectedAirSigned:(Q+a.pw),dir:'valid'};
+  var ext=Q-a.pw;
+  if(!(ext>0)) return {valid:false,reason:'heating_air_extraction_non_positive',mode:'heating',Q:null,cop:null,expectedAirSigned:null,dir:'valid'};
+  return {valid:true,reason:null,mode:'heating',Q:Q,cop:cop,expectedAirSigned:-(ext),dir:'valid'};
+}
+function engcalcAirLiquidBalance(QaSigned, expectedSigned){
+  if(typeof QaSigned!=='number'||!isFinite(QaSigned)||typeof expectedSigned!=='number'||!isFinite(expectedSigned)||expectedSigned===0) return null;
+  return ((QaSigned-expectedSigned)/Math.abs(expectedSigned))*100;
+}
+function engcalcAirLiquidReasonMessage(code){
+  switch(code){
+    case 'operating_mode_missing': return 'Select Cooling or Heating to compute the liquid and air results.';
+    case 'temperature_invalid': return 'Inlet/outlet liquid temperatures are not valid numbers.';
+    case 'cooling_direction_invalid': return 'Cooling requires inlet warmer than outlet (T_inlet > T_outlet).';
+    case 'heating_direction_invalid': return 'Heating requires outlet warmer than inlet (T_outlet > T_inlet).';
+    case 'glycol_type_invalid': return 'Glycol type must be EG or PG when glycol is enabled.';
+    case 'liquid_properties_invalid': return 'Glycol type/concentration/temperature is outside the validated range.';
+    case 'flow_invalid': return 'Liquid flow must be a finite value greater than zero.';
+    case 'power_invalid': return 'Electrical power must be a finite value greater than zero.';
+    case 'heating_air_extraction_non_positive': return 'Heating extraction is non-positive (Q_heating - P_el <= 0); no air estimate.';
+    case 'heating_auto_saturation_limit': return 'Automatic heating air estimate crossed the saturation limit. Leaving-air state is withheld.';
+    case 'heating_auto_frost_limit': return 'Automatic heating air estimate entered the frost region. Leaving-air state is withheld because no frost model is active.';
+    case 'manual_air_input_invalid': return 'A manually entered air value is not a valid number / out of range.';
+    case 'manual_air_calculation_invalid': return 'The manual air measurement produced a non-finite psychrometric/balance result.';
+    case 'liquid_result_invalid': return 'Air side is blocked because the liquid result is invalid.';
+    default: return 'Air side unavailable.';
+  }
+}
+// Step 3.6: SINGLE A/L air-state classifier. Component AND tests call this (no fake air objects, no source-scan).
+
+// Step 3.8: SINGLE A/L air orchestrator. The component AND the tests call this. airSideFn defaults to
+// engcalcAirSide so tests can inject a spy and prove the psychro engine is NOT called on invalid input.
+function engcalcAirLiquidEvaluateAir(args, airSideFn){
+  args=args||{}; airSideFn = airSideFn || engcalcAirSide;
+  var M=engcalcAirLiquidReasonMessage, P=engcalcPressureMessage;
+  function fin(x){return (typeof x==='number'&&isFinite(x))?x:null;}
+  function enteringPart(air){ return {enteringDB_C:fin(args.ambientDB_C),enteringRH_pct:fin(args.ambientRH_pct),
+    enteringWB_C:fin(air.wBE),enteringEnthalpy_kJ_kg:fin(air.hE),enteringSpecificVolume_m3_kg:fin(air.vE),enteringHumidityRatio_kg_kg:fin(air.WE)}; }
+  function leavingNull(){ return {leavingDB_C:null,leavingRH_pct:null,leavingWB_C:null,leavingEnthalpy_kJ_kg:null,deltaH_kJ_kg:null,airMassFlow_kg_s:null,airEnergySigned_kW:null,airEnergyMagnitude_kW:null}; }
+  var NULLENTER={enteringDB_C:null,enteringRH_pct:null,enteringWB_C:null,enteringEnthalpy_kJ_kg:null,enteringSpecificVolume_m3_kg:null,enteringHumidityRatio_kg_kg:null};
+  var NULLVIEW=Object.assign({},NULLENTER,leavingNull());
+  function enteringOnly(air){ return Object.assign({},enteringPart(air),leavingNull()); }
+  function fullView(air){ return Object.assign({},enteringPart(air),{leavingDB_C:fin(air.lDBuse),leavingRH_pct:fin(air.lRHuse),
+    leavingWB_C:fin(air.wBL),leavingEnthalpy_kJ_kg:fin(air.hL),deltaH_kJ_kg:fin(air.dh),airMassFlow_kg_s:fin(air.mA),
+    airEnergySigned_kW:fin(air.Qa),airEnergyMagnitude_kW:(fin(air.Qa)===null?null:Math.abs(air.Qa))}); }
+  var _alMode=(args.operatingMode==='cooling'||args.operatingMode==='heating')?args.operatingMode:null;
+  var airEnergyType=_alMode==='cooling'?'rejected':_alMode==='heating'?'extracted':null;
+  function mk(o){ var _st=o.airStatus, _rm=o.reasonMessage||null;
+    var statusMessage=(_st==='blocked'||_st==='withheld'||_st==='limited')?_rm:_st==='estimated'?'Synthetic estimate — not independently measured':_st==='incomplete'?'Partial measurement — no authoritative air capacity':'Independent measurement';
+    return {airStatus:_st, reasonKind:o.reasonKind||null, reasonCode:o.reasonCode||null, reasonMessage:_rm, statusMessage:statusMessage,
+    qaAvailable:!!o.qaAvailable, leavingAvailable:!!o.leavingAvailable, balanceAvailable:!!o.balanceAvailable, saveAllowed:!!o.saveAllowed,
+    pressure:o.pressure||null, view:o.view||NULLVIEW,
+    operatingMode:_alMode, airEnergyType:airEnergyType,
+    expectedAirSigned_kW:(o.expectedAirSigned_kW===undefined?null:o.expectedAirSigned_kW),
+    balanceSigned_pct:(o.balanceSigned_pct===undefined?null:o.balanceSigned_pct),
+    balanceAbs_pct:(o.balanceSigned_pct===undefined||o.balanceSigned_pct===null?null:Math.abs(o.balanceSigned_pct))}; }
+  // 1. liquid
+  var sol=engcalcAirLiquidSolve({operatingMode:args.operatingMode,Tin:args.Tin,Tout:args.Tout,flow_Ls:args.flow_Ls,rho:args.rho,cp:args.cp,glyValid:args.glyValid,useGly:args.useGly,glyType:args.glyType,pw:args.pw});
+  if(!sol.valid){ var rc=sol.reason||'liquid_result_invalid';
+    return mk({airStatus:'blocked',reasonKind:'liquid',reasonCode:rc,reasonMessage:M(rc),saveAllowed:false,pressure:null,expectedAirSigned_kW:null}); }
+  var expSigned=sol.expectedAirSigned;
+  // 2. ambient/manual validity (engcalcAirSide must NOT be called with invalid inputs)
+  var ambOk=(typeof args.ambientDB_C==='number'&&isFinite(args.ambientDB_C)) && (typeof args.ambientRH_pct==='number'&&isFinite(args.ambientRH_pct)&&args.ambientRH_pct>=0&&args.ambientRH_pct<=100);
+  var lDBset=!!args.lDBset, lRHset=!!args.lRHset, afSet=!!args.afSet;
+  var lDBok=!lDBset||(typeof args.leavingDB_C==='number'&&isFinite(args.leavingDB_C));
+  var lRHok=!lRHset||(typeof args.leavingRH_pct==='number'&&isFinite(args.leavingRH_pct)&&args.leavingRH_pct>=0&&args.leavingRH_pct<=100);
+  var afOk=!afSet||(typeof args.airflow_m3h==='number'&&isFinite(args.airflow_m3h)&&args.airflow_m3h>0);
+  if(!ambOk||!lDBok||!lRHok||!afOk){
+    return mk({airStatus:'blocked',reasonKind:'manual',reasonCode:'manual_air_input_invalid',reasonMessage:M('manual_air_input_invalid'),saveAllowed:false,pressure:null,expectedAirSigned_kW:expSigned}); }
+  // inputs valid -> evaluate the air side
+  var _air=airSideFn({oC:args.ambientDB_C,oRH:args.ambientRH_pct,lDB:(lDBset?true:null),lRH:(lRHset?true:null),af:(afSet?true:null),lDBmC:args.leavingDB_C,lRHm:args.leavingRH_pct,afm:args.airflow_m3h,Qw:expSigned,pAtm:args.pAtm,classification:'entered'});
+  var prov=args.pressure||_air.pressure||null;
+  // 3. pressure
+  if(_air.suppressed){ var prc=(prov&&prov.reason)||'pressure_missing';
+    return mk({airStatus:'withheld',reasonKind:'pressure',reasonCode:prc,reasonMessage:P(prc),saveAllowed:true,pressure:prov,expectedAirSigned_kW:expSigned}); }
+  var isAutoAir=!lDBset&&!lRHset&&!afSet, allManual=lDBset&&lRHset&&afSet;
+  // 4/5. frost/saturation (AUTO heating) — raw leaving DB + humidity-ratio comparison (no clamped RH)
+  if(_alMode==='heating' && isAutoAir){
+    var rawLDB=_air.lDBauto, WE=_air.WE, Wsat=humR(rawLDB,100,args.pAtm);
+    var frost=!(typeof rawLDB==='number'&&isFinite(rawLDB)) || rawLDB<=0;
+    var satur=(!frost) && (typeof Wsat==='number'&&isFinite(Wsat)) && (typeof WE==='number'&&isFinite(WE)) && (WE>Wsat+1e-9);
+    if(frost||satur){ var lr=frost?'heating_auto_frost_limit':'heating_auto_saturation_limit';
+      return mk({airStatus:'limited',reasonKind:'air',reasonCode:lr,reasonMessage:M(lr),saveAllowed:true,pressure:prov,view:enteringOnly(_air),expectedAirSigned_kW:expSigned}); } }
+  // 6. auto valid
+  if(isAutoAir){
+    return mk({airStatus:'estimated',
+      qaAvailable:true,leavingAvailable:true,balanceAvailable:false,saveAllowed:true,pressure:prov,view:fullView(_air),expectedAirSigned_kW:expSigned}); }
+  // 7. partial manual
+  if(!allManual){
+    return mk({airStatus:'incomplete',
+      qaAvailable:false,leavingAvailable:false,balanceAvailable:false,saveAllowed:true,pressure:prov,view:enteringOnly(_air),expectedAirSigned_kW:expSigned}); }
+  // 8. full manual
+  var psychroOk=(typeof _air.Qa==='number'&&isFinite(_air.Qa))&&(typeof _air.hL==='number'&&isFinite(_air.hL))&&(typeof _air.lDBuse==='number'&&isFinite(_air.lDBuse))&&(typeof _air.lRHuse==='number'&&isFinite(_air.lRHuse));
+  var bal=engcalcAirLiquidBalance(_air.Qa, expSigned);
+  if(psychroOk && bal!==null){
+    return mk({airStatus:'measured',
+      qaAvailable:true,leavingAvailable:true,balanceAvailable:true,saveAllowed:true,pressure:prov,view:fullView(_air),expectedAirSigned_kW:expSigned,balanceSigned_pct:bal}); }
+  return mk({airStatus:'blocked',reasonKind:'air',reasonCode:'manual_air_calculation_invalid',reasonMessage:M('manual_air_calculation_invalid'),
+    saveAllowed:false,pressure:prov,expectedAirSigned_kW:expSigned});
+}
+
 function engcalcAirRecord(o){
-  var sup=!!(o.air && o.air.suppressed);
+  var avail=(o.air_output_available===undefined)?!(o.air && o.air.suppressed):!!o.air_output_available;
+  var sup=!avail;
+  var pr=o.pressure || (o.air && o.air.pressure) || null;
+  var _alMode=(o.operatingMode==='cooling'||o.operatingMode==='heating')?o.operatingMode:null;
   return {
-    id:o.id, date:o.date, mode:'Air/Liquid', job:o.job, uid:o.uid, ref:o.ref,
+    id:o.id, date:o.date, mode:'Air/Liquid', operatingMode:_alMode, capacityType:_alMode,
+    airEnergyType:(_alMode==='cooling'?'rejected':_alMode==='heating'?'extracted':null),
+    expectedAirSigned_kW:(typeof o.expectedAirSigned_kW==='number'&&isFinite(o.expectedAirSigned_kW))?o.expectedAirSigned_kW:null,
+    airEnergySigned_kW:(typeof o.airEnergySigned_kW==='number'&&isFinite(o.airEnergySigned_kW))?o.airEnergySigned_kW:null,
+    airEnergyMagnitude_kW:(typeof o.airEnergyMagnitude_kW==='number'&&isFinite(o.airEnergyMagnitude_kW))?o.airEnergyMagnitude_kW:null,
+    air_status:(o.air_status||null), air_reason:(o.air_reason||null), air_reason_message:(o.air_reason?(o.air_reason_message||null):null),
+    air_output_available:avail, electricalBoundary:'compressor_power',
+    job:o.job, uid:o.uid, ref:o.ref,
     t1:o.t1, t2:(sup?null:o.t2), wb1:o.wb1, wb2:(sup?null:o.wb2), rh1:o.rh1, rh2:(sup?null:o.rh2),
     wTi:o.wTi, wTo:o.wTo, wF:o.wF, af:o.af, pw:o.pw,
     Q:o.Q, Qw:(sup?null:o.Qair), eer:o.eer,
     air_suppressed:sup,
-    pAtm_state:o.air.pressure.state, pAtm_value:o.air.pressure.value, pAtm_class:o.air.pressure.classification,
-    pAtm_source:o.air.pressure.source, pAtm_reason:o.air.pressure.reason,
+    pAtm_state:pr?pr.state:null, pAtm_value:pr?pr.value:null, pAtm_class:pr?pr.classification:null,
+    pAtm_source:pr?pr.source:null, pAtm_reason:pr?pr.reason:null,
     tE:o.tE, sh:o.sh, tC:o.tC, sP:o.sP, dP:o.dP, unit:o.unit
   };
 }
@@ -5452,7 +5578,7 @@ function engcalcAppPressureFromSession(raw, cls){ return engcalcAppPressureValid
 function engcalcAppPressurePa(pp){ return (pp && pp.state==='known' && pp.value_kPa!=null) ? pp.value_kPa*1000 : NaN; }
 function engcalcBuildCsv(log){
   var H=["Date","Mode","Job","Unit","Ref","T1","T2","Q kW","Qw(air) kW","EER","Air suppressed","Pressure state","Pressure value Pa","Pressure class","Pressure source","Pressure reason","T_evap","SH K","T_cond","P_suc","P_dis","Temp unit"];
-  var rows=log.map(function(e){return [e.date,e.mode,e.job,e.uid,e.ref,e.t1,e.t2,e.Q,(e.Qw==null?'--':e.Qw),e.eer,(e.air_suppressed?'WITHHELD':'no'),(e.pAtm_state||'--'),(e.pAtm_value==null?'--':e.pAtm_value),(e.pAtm_class||'--'),(e.pAtm_source||'--'),(e.pAtm_reason||'--'),e.tE,e.sh,e.tC,e.sP,e.dP,e.unit];});
+  var rows=log.map(function(e){var _m=(e.mode==='Air/Liquid'&&(e.operatingMode==='cooling'||e.operatingMode==='heating'))?('Air/Liquid '+e.operatingMode.charAt(0).toUpperCase()+e.operatingMode.slice(1)):e.mode; return [e.date,_m,e.job,e.uid,e.ref,e.t1,e.t2,e.Q,(e.Qw==null?'--':e.Qw),e.eer,((e.mode==='Air/Liquid'&&e.air_status)?(e.air_status==='blocked'?'BLOCKED':e.air_status==='withheld'?'WITHHELD':e.air_status==='limited'?'LIMITED':e.air_status==='incomplete'?'INCOMPLETE':'no'):(e.air_suppressed?'WITHHELD':'no')),(e.pAtm_state||'--'),(e.pAtm_value==null?'--':e.pAtm_value),(e.pAtm_class||'--'),(e.pAtm_source||'--'),(e.pAtm_reason||'--'),e.tE,e.sh,e.tC,e.sP,e.dP,e.unit];});
   return [H].concat(rows).map(function(r){return r.map(function(c){return '"'+(c==null?'--':c)+'"';}).join(",");}).join("\n");
 }
 function engcalcPressureProvenance(pp){ return {state:pp.state, value_kPa:pp.value_kPa, classification:pp.classification, source:pp.source, reason:pp.reason}; }
@@ -5461,7 +5587,7 @@ function engcalcBuildSession(log, pp, measDate){ return {tool:"engcalc-calculato
 function engcalcBuildPrintProjection(log, pp){
   var lastAL=null; for(var i=0;i<log.length;i++){ if(log[i].mode==='Air/Liquid'){ lastAL=log[i]; break; } }
   var air=null;
-  if(lastAL){ var sup=!!lastAL.air_suppressed; air={ suppressed:sup, status:(sup?'WITHHELD':'available'), air_output:(sup?null:(lastAL.Qw==null?null:lastAL.Qw)), reason_code:lastAL.pAtm_reason||null, reason_message:engcalcPressureMessage(lastAL.pAtm_reason), pressure_state:lastAL.pAtm_state||null, pressure_class:lastAL.pAtm_class||null, pressure_source:lastAL.pAtm_source||null, liquid_side:(lastAL.Q==null?null:lastAL.Q) }; }
+  if(lastAL){ var sup=!!lastAL.air_suppressed; air={ suppressed:sup, status:(lastAL.air_status||(sup?'withheld':'available')), air_output:(sup?null:(lastAL.Qw==null?null:lastAL.Qw)), reason_code:(lastAL.air_reason||lastAL.pAtm_reason||null), reason_message:(lastAL.air_reason_message||(lastAL.pAtm_reason?engcalcPressureMessage(lastAL.pAtm_reason):null)), pressure_state:lastAL.pAtm_state||null, pressure_class:lastAL.pAtm_class||null, pressure_source:lastAL.pAtm_source||null, liquid_side:(lastAL.Q==null?null:lastAL.Q) }; }
   return { pressure:engcalcPressureProvenance(pp), air_side:air };
 }
 function eCol(e){if(e>=4)return"#22c55e";if(e>=3)return"#86efac";if(e>=2.5)return"#facc15";return"#f87171"}
@@ -6147,4 +6273,4 @@ function toggleGuide(id){
   panel.classList.toggle('open');
   btn.classList.toggle('open');
 }
-module.exports={ engcalcResolveAirPressure, engcalcAirSide, engcalcAirDisplay, engcalcAirRecord, engcalcPressureMessage, engcalcAppPressureInit, engcalcAppPressureValidate, engcalcAppPressureFromField, engcalcAppPressureReference, engcalcAppPressureFromSession, engcalcAppPressurePa, engcalcBuildCsv, engcalcBuildJson, engcalcBuildSession, engcalcBuildPrintProjection, glyEval, enth, humR, sVol, wBulb, cycleResult, runSelfTests };
+module.exports={ engcalcAirLiquidSolve, engcalcAirLiquidBalance, engcalcAirLiquidReasonMessage, engcalcAirLiquidEvaluateAir, engcalcResolveAirPressure, engcalcAirSide, engcalcAirDisplay, engcalcAirRecord, engcalcPressureMessage, engcalcAppPressureInit, engcalcAppPressureValidate, engcalcAppPressureFromField, engcalcAppPressureReference, engcalcAppPressureFromSession, engcalcAppPressurePa, engcalcBuildCsv, engcalcBuildJson, engcalcBuildSession, engcalcBuildPrintProjection, glyEval, enth, humR, sVol, wBulb, cycleResult, runSelfTests };

@@ -4,7 +4,7 @@
 const fs=require('fs'), path=require('path'), crypto=require('crypto');
 const ROOT=path.join(__dirname,'..');
 const PROD=path.join(ROOT,'corrected','Kalkulator_build9.6-rc8_step3_4.src.html');
-const EXPECT_PROD_SHA='8a0e39b68116c87797f380756ec4affd6ed5d79e3aef03521d5e63e58d82813b';
+const EXPECT_PROD_SHA='d3080ff5fcf0dd539130c6849edb66aa3db9faed11e6b045561d048c76c99210';
 function extract(){
   const html=fs.readFileSync(PROD,'utf8');
   const prodSha=crypto.createHash('sha256').update(html).digest('hex');

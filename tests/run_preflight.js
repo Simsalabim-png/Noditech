@@ -4,7 +4,7 @@
  * to __dirname. Run by: node tests/run_preflight.js */
 const fs=require('fs'), path=require('path'), cp=require('child_process'), crypto=require('crypto');
 const ROOT=path.resolve(__dirname,'..');
-const EXPECT_SHA='8a0e39b68116c87797f380756ec4affd6ed5d79e3aef03521d5e63e58d82813b';
+const EXPECT_SHA='d3080ff5fcf0dd539130c6849edb66aa3db9faed11e6b045561d048c76c99210';
 let fails=0; const checks=[]; const ok=(n,c,d)=>{ checks.push({name:n,pass:!!c,detail:d!==undefined?String(d):''}); if(!c)fails++; console.log((c?'PASS ':'FAIL ')+n+(c?'':'  -> '+d)); };
 const sha=f=>crypto.createHash('sha256').update(fs.readFileSync(f)).digest('hex');
 function nodeCheck(rel){ try{ cp.execFileSync(process.execPath,['--check',path.join(ROOT,rel)],{stdio:'ignore'}); return true; }catch(e){ return false; } }
