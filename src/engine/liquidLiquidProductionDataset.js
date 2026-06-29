@@ -81,7 +81,8 @@ function extractProductionGlycolDataset() {
   if (!dataset.fluids || !dataset.fluids.MEG || !dataset.fluids.MPG) {
     throw new Error('Validated glycol dataset must contain MEG and MPG');
   }
-  if (dataset.property_engine !== 'CoolProp 7.2.0 INCOMP') {
+  const engine = dataset.property_engine || {};
+  if (engine.name !== 'CoolProp' || engine.version !== '7.2.0' || engine.backend !== 'INCOMP') {
     throw new Error('Validated glycol dataset property engine changed');
   }
 
@@ -91,7 +92,7 @@ function extractProductionGlycolDataset() {
     objectSha256,
     productionArtifactSha256,
     releaseDate: dataset.dataset_release_date || null,
-    propertyEngine: dataset.property_engine,
+    propertyEngine: `${engine.name} ${engine.version} ${engine.backend}`,
     concentrationBasis: dataset.concentration_basis,
     fluidKeys: Object.keys(dataset.fluids).sort(),
   };
