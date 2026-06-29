@@ -6,7 +6,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const extract = require('../extract_app_source.js');
-const { transformLiqLiqCutover } = require('../../src/engine/liquidLiquidCutoverTransform.js');
+const { buildLiquidLiquidCutoverSource } = require('../../src/engine/liquidLiquidCutoverBuild.js');
+const { extractProductionStyle } = require('../../src/engine/productionStyle.js');
 
 const root = path.join(__dirname, '../..');
 const lock = JSON.parse(fs.readFileSync(path.join(root, 'tools/compiler/compiler.lock.json'), 'utf8'));
@@ -23,7 +24,7 @@ test('L/L cutover transform compiles with the pinned compiler', () => {
   assert.equal(sha(fs.readFileSync(compilerPath)), lock.integrity_sha256);
   const Babel = require(compilerPath);
   const extracted = extract.extract();
-  const transformed = transformLiqLiqCutover(extracted.source);
+  const transformed = buildLiquidLiquidCutoverSource(extracted.source).source;
   const compiled = Babel.transform(transformed, {
     presets: lock.presets,
     sourceType: 'script',
@@ -32,8 +33,11 @@ test('L/L cutover transform compiles with the pinned compiler', () => {
   assert.ok(compiled.length > 1000);
   assert.match(compiled, /NoditechLiquidLiquid/);
   assert.match(compiled, /data-ll-cutover/);
+  assert.match(compiled, /data-ll-useful-capacity/);
   assert.match(compiled, /noditech-liquid-liquid\.json/);
   assert.doesNotMatch(compiled, /return\s*<[A-Za-z]/);
   assert.doesNotMatch(compiled, /\btype\s*=\s*["']text\/babel["']/);
   assert.doesNotMatch(compiled, /https?:\/\/(cdnjs|unpkg|cdn\.jsdelivr|fonts\.googleapis|fonts\.gstatic)/i);
+  const style=extractProductionStyle(fs.readFileSync(extract.PROD,'utf8'));
+  assert.equal(style.cssSha256,'d05974bba0660376cc441c670ce40db14cf805bb772bdc48e61e6fb118eb0b98');
 });
