@@ -66,21 +66,32 @@ jobs:
 
       - name: Build complete Claude review package
         if: github.ref_name == 'feature/liquid-liquid-mode-aware-correctness' || github.head_ref == 'feature/liquid-liquid-mode-aware-correctness'
+        id: review_package
+        continue-on-error: true
         run: |
-          set -euo pipefail
-          node tools/review/buildClaudeReviewPackage.js artifacts/noditech-ll-claude-review-full
-          test -f artifacts/noditech-ll-claude-review-full/MANIFEST.json
+          mkdir -p artifacts
+          node tools/review/buildClaudeReviewPackage.js artifacts/noditech-ll-claude-review-full > artifacts/package-builder.log 2>&1
+
+      - name: Upload review builder diagnostics
+        if: always() && (github.ref_name == 'feature/liquid-liquid-mode-aware-correctness' || github.head_ref == 'feature/liquid-liquid-mode-aware-correctness')
+        uses: actions/upload-artifact@v4
+        with:
+          name: noditech-ll-review-builder-log-${{ github.sha }}
+          path: artifacts/package-builder.log
+          if-no-files-found: error
+          retention-days: 3
 
       - name: Archive Claude review package
-        if: github.ref_name == 'feature/liquid-liquid-mode-aware-correctness' || github.head_ref == 'feature/liquid-liquid-mode-aware-correctness'
+        if: steps.review_package.outcome == 'success'
         run: |
           set -euo pipefail
+          test -f artifacts/noditech-ll-claude-review-full/MANIFEST.json
           cd artifacts
           tar -czf noditech-ll-claude-review-full.tar.gz noditech-ll-claude-review-full
           sha256sum noditech-ll-claude-review-full.tar.gz > noditech-ll-claude-review-full.tar.gz.sha256
 
       - name: Upload Claude review package
-        if: github.ref_name == 'feature/liquid-liquid-mode-aware-correctness' || github.head_ref == 'feature/liquid-liquid-mode-aware-correctness'
+        if: steps.review_package.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: noditech-ll-claude-review-full-${{ github.sha }}
@@ -89,3 +100,7 @@ jobs:
             artifacts/noditech-ll-claude-review-full.tar.gz.sha256
           if-no-files-found: error
           retention-days: 14
+
+      - name: Enforce review package build
+        if: github.ref_name == 'feature/liquid-liquid-mode-aware-correctness' || github.head_ref == 'feature/liquid-liquid-mode-aware-correctness'
+        run: test "${{ steps.review_package.outcome }}" = "success"
