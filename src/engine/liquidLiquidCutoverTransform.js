@@ -52,15 +52,13 @@ function transformLiqLiqCutover(source) {
     `  ${productionProviderBrowserSource('_llGlycolLookup')}\n` +
     `  const _llState={unit,operatingMode,cFt,cGp,cGlyKind,cTi,cTo,cF,hFt,hGp,hGlyKind,hTi,hTo,hF,pw,job,uid,ref,measDate};\n` +
     `  const _llEval=_llApi?_llApi.evaluateLegacyLiquidLiquidState(_llState,{glycolLookup:_llGlycolLookup}):{engineInput:null,result:{valid:false,code:"browser_bundle_missing",message:"Liquid/Liquid engine is unavailable.",saveAllowed:false,cold:null,hot:null},contract:{valid:false,status:"blocked",code:"browser_bundle_missing",message:"Liquid/Liquid engine is unavailable.",saveAllowed:false,ui:{resultVisible:false,status:"blocked",statusLabel:"BLOCKED",statusMessage:"Liquid/Liquid engine is unavailable.",usefulCapacity_kW:null,cop:null,balanceDeviation_pct:null,energyResidual_kW:null},record:null,json:null,csv:null,print:null}};\n` +
-    `  const _llResult=_llEval.result,_llContract=_llEval.contract,_llUi=_llContract.ui;\n` +
-    `  const _llColdProps=(_llApi&&_llEval.engineInput)?_llApi.resolveLiquidProperties(_llEval.engineInput.cold,{glycolLookup:_llGlycolLookup}):{valid:false};\n` +
-    `  const _llHotProps=(_llApi&&_llEval.engineInput)?_llApi.resolveLiquidProperties(_llEval.engineInput.hot,{glycolLookup:_llGlycolLookup}):{valid:false};\n` +
-    `  const _cold=_llResult.cold,_hot=_llResult.hot;\n` +
-    `  const cpC=_llColdProps.valid?_llColdProps.cpKJkgK:null,rC=_llColdProps.valid?_llColdProps.densityKgL:null;\n` +
-    `  const cpH=_llHotProps.valid?_llHotProps.cpKJkgK:null,rH=_llHotProps.valid?_llHotProps.densityKgL:null;\n` +
+    `  const _llResult=_llEval.result,_llContract=_llEval.contract,_llUi=_llContract.ui,_llRecord=_llContract.record;\n` +
+    `  const _cold=_llRecord?_llRecord.cold:null,_hot=_llRecord?_llRecord.hot:null;\n` +
+    `  const cpC=_cold?_cold.cpKJkgK:null,rC=_cold?_cold.densityKgL:null;\n` +
+    `  const cpH=_hot?_hot.cpKJkgK:null,rH=_hot?_hot.densityKgL:null;\n` +
     `  const mC=_cold?_cold.massFlow_kg_s:null,mH=_hot?_hot.massFlow_kg_s:null;\n` +
     `  const Qc=_cold?_cold.capacity_kW:null,Qh=_hot?_hot.capacity_kW:null;\n` +
-    `  const pTot=_llResult.electricalPower_kW,eer=_llUi.cop,copHeat=_llResult.copHeating;\n` +
+    `  const pTot=_llRecord?_llRecord.electricalPower_kW:null,eer=_llUi.cop,copHeat=_llRecord?_llRecord.copHeating:null;\n` +
     `  const residual=_llUi.energyResidual_kW,bal=_llUi.balanceDeviation_pct;\n` +
     `  const ec=eCol(Number.isFinite(eer)?eer:0);\n` +
     `  const _llNum=(value,digits=4)=>Number.isFinite(value)?fmt(value,digits):"--";\n`;
@@ -84,10 +82,10 @@ function transformLiqLiqCutover(source) {
     `    const r=_llContract.record;\n` +
     `    const _rs=refrigState(ref,sP,dP,(unit==="F"?C(sT):sT),(unit==="F"?C(liqT):liqT),pAtm/1000);\n` +
     `    const tE=_rs?_rs.tE:null,sh=_rs?_rs.sh:null,tCond=_rs?_rs.tC:null;\n` +
-    `    const entry={id:Date.now(),date:measDate||new Date().toLocaleString(),mode:"Liq/Liq",operatingMode:r.operatingMode,status:r.status,job:job||"--",uid:uid||"--",ref,` +
+    `    const entry={id:Date.now(),date:measDate||new Date().toLocaleString(),mode:"Liq/Liq "+(r.operatingMode==="heating"?"Heating":"Cooling"),operatingMode:r.operatingMode,capacityType:r.operatingMode,status:r.status,job:job||"--",uid:uid||"--",ref,` +
       `t1:fmt(F(r.cold.inletC),2),t2:fmt(F(r.cold.outletC),2),wb1:"--",wb2:"--",rh1:"--",rh2:"--",` +
       `wTi:fmt(F(r.hot.inletC),2),wTo:fmt(F(r.hot.outletC),2),wF:fmt(r.hot.flowLs,4),af:"--",pw:fmt(r.electricalPower_kW,4),` +
-      `Q:fmt(r.cold.capacity_kW,4),Qw:fmt(r.hot.capacity_kW,4),eer:fmt(r.cop,4),usefulCapacity_kW:r.usefulCapacity_kW,cop:r.cop,` +
+      `Q:fmt(r.usefulCapacity_kW,4),Qw:fmt(r.hot.capacity_kW,4),Qcold:fmt(r.cold.capacity_kW,4),Qhot:fmt(r.hot.capacity_kW,4),eer:fmt(r.cop,4),usefulCapacity_kW:r.usefulCapacity_kW,cop:r.cop,` +
       `energyResidual_kW:r.energyResidual_kW,balanceDeviation_pct:r.balanceDeviation_pct,` +
       `ll_record:r,ll_json:_llContract.json,ll_csv:_llContract.csv,ll_print:_llContract.print,` +
       `tE:tE!=null?fmt(tE,4):"--",sh:sh!=null?fmt(sh,4):"--",tC:tCond!=null?fmt(tCond,4):"--",sP:fmt(sP,4),dP:fmt(dP,4),unit};\n` +
@@ -105,8 +103,8 @@ function transformLiqLiqCutover(source) {
 
   ll = replaceOnce(ll, '<div className="card" style={{borderColor:\'rgba(201,168,76,.25)\'}}>', '<div className="card" data-ll-side="cold" style={{borderColor:\'rgba(201,168,76,.25)\'}}>', 'cold card');
   ll = replaceOnce(ll, '<div className="card" style={{borderColor:\'rgba(251,191,36,.25)\'}}>', '<div className="card" data-ll-side="hot" style={{borderColor:\'rgba(251,191,36,.25)\'}}>', 'hot card');
-  ll = replaceOnce(ll, 'cp = {fmt(cpC,4)} kJ/kg·K · ρ = {fmt(rC,4)} kg/L @ {fmt(_cMeanT,1)}°C mean', 'cp = {_llNum(cpC,4)} kJ/kg·K · ρ = {_llNum(rC,4)} kg/L · {_llColdProps.valid?(_llColdProps.propertySource||"validated provider"):("BLOCKED: "+(_llColdProps.message||_llColdProps.code||"properties unavailable"))}', 'cold property display');
-  ll = replaceOnce(ll, 'cp = {fmt(cpH,4)} kJ/kg·K · ρ = {fmt(rH,4)} kg/L @ {fmt(_hMeanT,1)}°C mean', 'cp = {_llNum(cpH,4)} kJ/kg·K · ρ = {_llNum(rH,4)} kg/L · {_llHotProps.valid?(_llHotProps.propertySource||"validated provider"):("BLOCKED: "+(_llHotProps.message||_llHotProps.code||"properties unavailable"))}', 'hot property display');
+  ll = replaceOnce(ll, 'cp = {fmt(cpC,4)} kJ/kg·K · ρ = {fmt(rC,4)} kg/L @ {fmt(_cMeanT,1)}°C mean', 'cp = {_llNum(cpC,4)} kJ/kg·K · ρ = {_llNum(rC,4)} kg/L · {_cold?(_cold.propertySource||"validated provider"):"BLOCKED: properties unavailable"}', 'cold property display');
+  ll = replaceOnce(ll, 'cp = {fmt(cpH,4)} kJ/kg·K · ρ = {fmt(rH,4)} kg/L @ {fmt(_hMeanT,1)}°C mean', 'cp = {_llNum(cpH,4)} kJ/kg·K · ρ = {_llNum(rH,4)} kg/L · {_hot?(_hot.propertySource||"validated provider"):"BLOCKED: properties unavailable"}', 'hot property display');
 
   ll = ll.replace(/\{fmt\(mC,4\)\}/g, '{_llNum(mC,4)}').replace(/\{fmt\(mH,4\)\}/g, '{_llNum(mH,4)}');
   ll = replaceOnce(ll, '<span><span className="ik">Q cold</span><span className="iv" style={{color:\'#d4a843\'}}>{fmt(Qc,4)}</span><span className="iu"> kW</span></span>', '<span><span className="ik">Q cold</span><span className="iv" style={{color:\'#d4a843\'}}>{_llNum(Qc,4)}</span><span className="iu"> kW</span></span>', 'cold capacity preview');
