@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The safe release manager replaces chat-based monitoring with repository-native, auditable automation.
+The safe release manager replaces chat-based release preparation with repository-native, auditable automation.
 
 It prepares release candidates only. It has no authority to put code into production.
 
@@ -11,10 +11,11 @@ It prepares release candidates only. It has no authority to put code into produc
 The workflow lives in `.github/workflows/prepare-safe-release.yml`.
 
 - Pull requests validate the manager and its guardrails only.
-- A scheduled run occurs hourly at minute 17 after this governance change is merged to `main`.
+- Version 1 has no scheduled trigger.
 - Manual `workflow_dispatch` defaults to dry-run mode.
+- A non-dry manual run must be a separate, deliberate repository action after review.
 
-Merging the governance PR is the activation decision. Until then, no scheduled automation is active.
+Merging the governance PR installs the manual workflow but does not schedule or execute release preparation.
 
 ## Preconditions
 
