@@ -1,0 +1,38 @@
+name: package-m1-working-copy-v2
+
+on:
+  push:
+    branches:
+      - packaging/m1-workingcopy-f14edb4
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout packaging branch
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          ref: packaging/m1-workingcopy-f14edb4
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+
+      - name: Package exact M1 working copy
+        run: bash tools/package-m1-working-copy.sh
+
+      - name: Upload package inputs
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Noditech_M1_WorkingCopy_f14edb4_inputs_v2
+          path: package-out/**
+          if-no-files-found: error
+          retention-days: 7
