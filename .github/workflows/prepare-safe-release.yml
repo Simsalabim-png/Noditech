@@ -8,8 +8,6 @@ on:
       - "tests/build/safe-release-manager.test.js"
       - "docs/SAFE_RELEASE_MANAGER.md"
       - ".github/workflows/prepare-safe-release.yml"
-  schedule:
-    - cron: "17 * * * *"
   workflow_dispatch:
     inputs:
       dry_run:
@@ -46,7 +44,7 @@ jobs:
         run: node --check tools/release/safe-release-manager.mjs
 
   prepare:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -72,7 +70,7 @@ jobs:
         id: prepare
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          SAFE_RELEASE_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+          SAFE_RELEASE_DRY_RUN: ${{ inputs.dry_run }}
         run: node tools/release/safe-release-manager.mjs
 
       - name: Record immutable restrictions
