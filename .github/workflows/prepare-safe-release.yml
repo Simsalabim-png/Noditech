@@ -1,0 +1,94 @@
+name: prepare-safe-release
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/release/safe-release-manager.mjs"
+      - "tests/build/safe-release-manager.test.js"
+      - "docs/SAFE_RELEASE_MANAGER.md"
+      - ".github/workflows/prepare-safe-release.yml"
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Plan only; do not create a release branch or PR"
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: noditech-safe-release-manager
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+
+      - name: Verify safe release manager guardrails
+        run: node --test tests/build/safe-release-manager.test.js
+
+      - name: Syntax-check manager
+        run: node --check tools/release/safe-release-manager.mjs
+
+  prepare:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: write
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout governance source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+
+      - name: Re-verify manager guardrails
+        run: node --test tests/build/safe-release-manager.test.js
+
+      - name: Prepare one safe release draft
+        id: prepare
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          SAFE_RELEASE_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+        run: node tools/release/safe-release-manager.mjs
+
+      - name: Record immutable restrictions
+        if: always()
+        shell: bash
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+
+          ## Non-production authority
+
+          This workflow may create a release branch, merge develop into that release branch, open a draft PR, and dispatch validation workflows.
+
+          It cannot and must not:
+          - mark a PR ready;
+          - merge into main;
+          - create a tag or GitHub Release;
+          - dispatch or perform deployment;
+          - force-push.
+          EOF
