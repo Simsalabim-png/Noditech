@@ -28,3 +28,12 @@ Replace this reference only after a later release has passed exact-SHA and live 
 ## Stop conditions
 
 Stop when the target state is ambiguous, the artifact is not reproducible, protected anchors drift, A/A or A/L changes unexpectedly, required checks are red, or history rewriting would be required.
+
+## Hardening verification baseline
+
+The action-pinning maintenance change was independently executed against the release-head source before merge consideration:
+
+- Node validation/build/engine tests: `195/195 PASS`
+- action-reference regression test: `PASS`
+- rebuilt artifact SHA-256: `1ef3926dfc1257a9812fc591a237da5b79ef538900f96dd39287a249874f6c31`
+- rebuilt artifact matches the current verified production artifact byte-for-byte
