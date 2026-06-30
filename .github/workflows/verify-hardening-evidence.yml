@@ -1,0 +1,90 @@
+name: verify-hardening-evidence
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/verify-hardening-evidence.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      TARGET_SHA: a171af17c4399fb0e12de253e1894ba126ff45f5
+      EXPECTED_ARTIFACT_SHA: 1ef3926dfc1257a9812fc591a237da5b79ef538900f96dd39287a249874f6c31
+      PROTECTED_SHA: b9f8be84731b9038a814ecc32b876d8856d8526ccf28cd35cc1bb1d74167dc50
+      SOURCE_SHA: d3080ff5fcf0dd539130c6849edb66aa3db9faed11e6b045561d048c76c99210
+
+    steps:
+      - name: Checkout exact hardening head
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          ref: a171af17c4399fb0e12de253e1894ba126ff45f5
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+
+      - name: Bind run to exact target
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$TARGET_SHA"
+          git diff --exit-code
+
+      - name: Run full test suite
+        run: node --test tests/validation/*.test.js tests/build/*.test.js tests/engine/*.test.js
+
+      - name: Build and verify exact production artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          node build/assemble-pc2-ll-release.js
+          actual="$(sha256sum dist/Kalkulator_build9.8-pc2.html | awk '{print $1}')"
+          test "$actual" = "$EXPECTED_ARTIFACT_SHA"
+          echo "Verified artifact SHA-256: $actual"
+
+      - name: Compile explicit L/L browser candidate
+        run: ENGCALC_LL_CUTOVER=1 node tests/compile_app.js
+
+      - name: Run existing Chromium regression
+        run: node chromium/run_chromium.js
+
+      - name: Run dedicated L/L browser gate
+        run: node chromium/run_ll_cutover_contract.js
+
+      - name: Verify frozen anchors
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in Kalkulator_build9.7-pc6.html index.html Kalkulator.html; do
+            test "$(sha256sum "$file" | awk '{print $1}')" = "$PROTECTED_SHA"
+          done
+          test "$(sha256sum corrected/Kalkulator_build9.6-rc8_step3_4.src.html | awk '{print $1}')" = "$SOURCE_SHA"
+
+      - name: Upload verification evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: hardening-evidence-a171af17
+          path: |
+            dist/Kalkulator_build9.8-pc2.html
+            dist/SHA256SUMS.pc2.txt
+            chromium/results/source_equivalence.json
+            chromium/results/chromium_result.json
+            chromium/results/chromium_junit.xml
+            chromium/results/ll_cutover_result.json
+            chromium/results/ll_cutover_junit.xml
+            chromium/results/chromium_console.log
+            chromium/results/chromium_page_errors.log
+            chromium/results/chromium_network.log
+            screenshots/ll_cutover_desktop.png
+            screenshots/ll_cutover_mobile.png
+          if-no-files-found: warn
+          retention-days: 14
