@@ -7,6 +7,7 @@ on:
       - "build/**"
       - "src/**"
       - "tests/**"
+      - "tools/release/**"
       - ".github/workflows/deploy-pc2-pages.yml"
   push:
     branches: [main]
@@ -14,6 +15,7 @@ on:
       - "build/**"
       - "src/**"
       - "tests/**"
+      - "tools/release/**"
       - ".github/workflows/deploy-pc2-pages.yml"
   workflow_dispatch:
 
@@ -25,7 +27,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  EXPECTED_PC2_SHA256: 1699adf7c5682454092bb639f66ad485c46cc997b6914e87bc506c26b87a581b
+  EXPECTED_PC2_SHA256: 1ef3926dfc1257a9812fc591a237da5b79ef538900f96dd39287a249874f6c31
 
 jobs:
   verify:
@@ -39,8 +41,8 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Build pc2
-        run: node build/assemble-pc2.js
+      - name: Build pc2 Liquid/Liquid release
+        run: node build/assemble-pc2-ll-release.js
 
       - name: Verify artifact SHA-256
         shell: bash
@@ -61,7 +63,7 @@ jobs:
           npm run offline
 
   deploy:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: verify
     runs-on: ubuntu-latest
     permissions:
@@ -80,11 +82,11 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Build and verify pc2
+      - name: Build and verify pc2 Liquid/Liquid release
         shell: bash
         run: |
           set -euo pipefail
-          node build/assemble-pc2.js
+          node build/assemble-pc2-ll-release.js
           actual="$(sha256sum dist/Kalkulator_build9.8-pc2.html | awk '{print $1}')"
           test "$actual" = "$EXPECTED_PC2_SHA256"
 
@@ -110,3 +112,9 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Verify published Liquid/Liquid release
+        env:
+          SITE_URL: ${{ steps.deployment.outputs.page_url }}
+          EXPECTED_PC2_SHA256: ${{ env.EXPECTED_PC2_SHA256 }}
+        run: node tools/release/verify-published.js

@@ -2,13 +2,23 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EngCalc Step 3 Browser Gate</title>
+  <link rel="stylesheet" href="/chromium/generated/production.css">
 </head>
 <body>
   <div id="root"></div>
   <script src="/vendor/react.production.min.js"></script>
   <script src="/vendor/react-dom.production.min.js"></script>
   <script src="/chromium/generated/app.compiled.js"></script>
-  <script>window.__APP_BOOTED__=!!(document.getElementById('root')&&document.getElementById('root').childElementCount>0);</script>
+  <script>
+    Object.defineProperty(window,'__APP_BOOTED__',{
+      configurable:true,
+      get:function(){
+        var root=document.getElementById('root');
+        return !!(root&&root.childElementCount>0);
+      }
+    });
+  </script>
 </body>
 </html>

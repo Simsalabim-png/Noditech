@@ -8,6 +8,7 @@ on:
   pull_request:
     branches:
       - develop
+      - feature/liquid-liquid-mode-aware-correctness
   workflow_dispatch:
 
 permissions:
@@ -16,11 +17,13 @@ permissions:
 jobs:
   regression:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -30,7 +33,7 @@ jobs:
       - name: Run validation, build, and engine tests
         run: |
           set -euo pipefail
-          node --test             tests/validation/*.test.js             tests/build/*.test.js             tests/engine/*.test.js
+          node --test tests/validation/*.test.js tests/build/*.test.js tests/engine/*.test.js
 
       - name: Verify deterministic build
         run: |
@@ -61,3 +64,102 @@ jobs:
               exit 1
             }
           done
+
+      - name: Compile explicit L/L cutover candidate
+        if: github.ref_name == 'feature/liquid-liquid-live-cutover' || github.head_ref == 'feature/liquid-liquid-live-cutover'
+        run: |
+          set -euo pipefail
+          NODITECH_LL_CUTOVER=1 node tests/compile_app.js
+          node - <<'NODE'
+          const x=require('./chromium/results/source_equivalence.json');
+          if(x.candidate_mode!=='liquid-liquid-cutover') throw new Error('wrong cutover mode');
+          if(x.glycol_dataset_assignment_sha256!=='8beabb9f3c61dfeef61e1fc487a4972487231cc70426c442cafa286d8f05c30d') throw new Error('wrong glycol assignment');
+          if(x.glycol_dataset_object_sha256!=='aae380d254d1578c64c453a4c6c42799ce20a53bc75f24fc44032b94c494141c') throw new Error('wrong glycol object');
+          if(x.glycol_dataset_property_engine!=='CoolProp 7.2.0 INCOMP') throw new Error('wrong glycol engine');
+          if(x.production_css_sha256!=='d05974bba0660376cc441c670ce40db14cf805bb772bdc48e61e6fb118eb0b98') throw new Error('wrong production CSS');
+          NODE
+
+      - name: Run full existing Chromium regression on cutover candidate
+        if: github.ref_name == 'feature/liquid-liquid-live-cutover' || github.head_ref == 'feature/liquid-liquid-live-cutover'
+        run: |
+          set -euo pipefail
+          node chromium/run_chromium.js
+
+      - name: Run L/L desktop mobile Save export print gate
+        if: github.ref_name == 'feature/liquid-liquid-live-cutover' || github.head_ref == 'feature/liquid-liquid-live-cutover'
+        run: |
+          set -euo pipefail
+          node chromium/run_ll_cutover_contract.js
+
+      - name: Reverify protected files after browser gates
+        if: github.ref_name == 'feature/liquid-liquid-live-cutover' || github.head_ref == 'feature/liquid-liquid-live-cutover'
+        run: |
+          set -euo pipefail
+          EXPECTED=b9f8be84731b9038a814ecc32b876d8856d8526ccf28cd35cc1bb1d74167dc50
+          for file in Kalkulator_build9.7-pc6.html index.html Kalkulator.html; do
+            test "$(sha256sum "$file" | awk '{print $1}')" = "$EXPECTED"
+          done
+          git diff --exit-code -- Kalkulator_build9.7-pc6.html index.html Kalkulator.html corrected/Kalkulator_build9.6-rc8_step3_4.src.html
+
+      - name: Upload L/L cutover browser evidence
+        if: always() && (github.ref_name == 'feature/liquid-liquid-live-cutover' || github.head_ref == 'feature/liquid-liquid-live-cutover')
+        uses: actions/upload-artifact@v4
+        with:
+          name: noditech-ll-cutover-browser-${{ github.sha }}
+          path: |
+            chromium/results/source_equivalence.json
+            chromium/test_harness.html
+            chromium/generated/production.css
+            chromium/results/chromium_result.json
+            chromium/results/chromium_junit.xml
+            chromium/results/chromium_console.log
+            chromium/results/chromium_page_errors.log
+            chromium/results/chromium_network.log
+            chromium/results/ll_cutover_result.json
+            chromium/results/ll_cutover_junit.xml
+            screenshots/ll_cutover_desktop.png
+            screenshots/ll_cutover_mobile.png
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Build complete Claude review package
+        if: github.ref_name == 'feature/liquid-liquid-mode-aware-correctness' || github.head_ref == 'feature/liquid-liquid-mode-aware-correctness'
+        id: review_package
+        continue-on-error: true
+        run: |
+          mkdir -p artifacts
+          git checkout --detach origin/feature/liquid-liquid-mode-aware-correctness
+          node tools/review/buildClaudeReviewPackage.js artifacts/noditech-ll-claude-review-full > artifacts/package-builder.log 2>&1
+
+      - name: Upload review builder diagnostics
+        if: always() && (github.ref_name == 'feature/liquid-liquid-mode-aware-correctness' || github.head_ref == 'feature/liquid-liquid-mode-aware-correctness')
+        uses: actions/upload-artifact@v4
+        with:
+          name: noditech-ll-review-builder-log-${{ github.sha }}
+          path: artifacts/package-builder.log
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Archive Claude review package
+        if: steps.review_package.outcome == 'success'
+        run: |
+          set -euo pipefail
+          test -f artifacts/noditech-ll-claude-review-full/MANIFEST.json
+          cd artifacts
+          tar -czf noditech-ll-claude-review-full.tar.gz noditech-ll-claude-review-full
+          sha256sum noditech-ll-claude-review-full.tar.gz > noditech-ll-claude-review-full.tar.gz.sha256
+
+      - name: Upload Claude review package
+        if: steps.review_package.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: noditech-ll-claude-review-full-${{ github.sha }}
+          path: |
+            artifacts/noditech-ll-claude-review-full.tar.gz
+            artifacts/noditech-ll-claude-review-full.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce review package build
+        if: github.ref_name == 'feature/liquid-liquid-mode-aware-correctness' || github.head_ref == 'feature/liquid-liquid-mode-aware-correctness'
+        run: test "${{ steps.review_package.outcome }}" = "success"

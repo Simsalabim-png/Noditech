@@ -3,6 +3,9 @@ name: verify-safe-release
 on:
   pull_request:
     branches: [main]
+  push:
+    branches:
+      - "release/**"
   workflow_dispatch:
 
 permissions:
@@ -10,7 +13,7 @@ permissions:
 
 jobs:
   verify:
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'release/')
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || startsWith(github.head_ref, 'release/')
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -50,14 +53,17 @@ jobs:
             exit 1
           fi
 
-      - name: Run browser gates
-        run: |
-          set -euo pipefail
-          NODITECH_LL_CUTOVER=1 node tests/compile_app.js
-          node chromium/run_chromium.js
-          node chromium/run_ll_cutover_contract.js
+      - name: Compile explicit L/L browser candidate
+        run: NODITECH_LL_CUTOVER=1 node tests/compile_app.js
+
+      - name: Run existing Chromium regression
+        run: node chromium/run_chromium.js
+
+      - name: Run dedicated L/L browser gate
+        run: node chromium/run_ll_cutover_contract.js
 
       - name: Verify freeze anchors
+        if: always()
         shell: bash
         run: |
           set -euo pipefail
@@ -69,6 +75,7 @@ jobs:
           test "$(sha256sum corrected/Kalkulator_build9.6-rc8_step3_4.src.html | awk '{print $1}')" = "$SOURCE"
 
       - name: Upload safe release evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: safe-release-${{ github.event.pull_request.head.sha || github.sha }}
@@ -86,5 +93,5 @@ jobs:
             chromium/results/chromium_network.log
             screenshots/ll_cutover_desktop.png
             screenshots/ll_cutover_mobile.png
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 30
