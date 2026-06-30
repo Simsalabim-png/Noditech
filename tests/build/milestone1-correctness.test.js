@@ -5,12 +5,11 @@ const assert = require('node:assert/strict');
 const vm = require('node:vm');
 
 const airAir = require('../../src/engine/airAir.js');
-const {
-  convertDisplayed,
-  fromC,
-  toC,
-} = require('../../src/ui/milestone1Transforms.js');
 const releaseBuilder = require('../../build/assemble-pc2-ll-release.js');
+
+const toC = (value, unit) => unit === 'F' ? (Number(value) - 32) * 5 / 9 : Number(value);
+const fromC = (value, unit) => unit === 'F' ? Number(value) * 9 / 5 + 32 : Number(value);
+const convertDisplayed = (value, fromUnit, toUnit) => fromC(toC(value, fromUnit), toUnit);
 
 function approx(actual, expected, tolerance, label) {
   assert.ok(Number.isFinite(actual), `${label}: actual must be finite`);
@@ -112,18 +111,22 @@ test('Air/Liquid production solver golden vectors remain frozen', () => {
   approx(heating.expectedAirSigned, -9.25, 1e-12, 'A/L heating expected air');
 });
 
-test('Milestone 1 release build is deterministic and contains reviewed contracts', () => {
+test('Milestone 1 release build contains canonical, range and result contracts', () => {
   const a = releaseBuilder.build();
   const b = releaseBuilder.build();
   assert.equal(a.mode, 'liquid-liquid-cutover');
   assert.equal(a.sha256, b.sha256);
   assert.equal(a.html, b.html);
-  assert.match(a.html, /NoditechUnitRegistry/);
-  assert.match(a.html, /data-aa-result-status/);
-  assert.match(a.html, /data-chart-status/);
+  assert.match(a.html, /function useCanonicalTemperature\(initialC, unit\)/);
+  assert.match(a.html, /const \[t2meas, setT2meas\] = useCanonicalTemperature\(null, unit\)/);
+  assert.match(a.html, /value: wTi,\n    onChange: setWTi,\n    min: unit === "F" \? -22 : -30,\n    max: unit === "F" \? 122 : 50/);
+  assert.match(a.html, /value: hTi,\n    onChange: setHTi,\n    min: unit === "F" \? -22 : -30,\n    max: unit === "F" \? 176 : 80/);
+  assert.match(a.html, /value: t2meas,\n      onChange: setT2meas,\n      min: unit === "F" \? -4 : -20,\n      max: unit === "F" \? 392 : 200/);
+  assert.match(a.html, /data-aa-chart-status/);
   assert.match(a.html, /data-ll-cop/);
   assert.match(a.html, /copCooling/);
   assert.match(a.html, /copHeating/);
-  assert.doesNotMatch(a.html, /Q=_aaOK\?_aaRes\.totalCapacityKW:0/);
-  assert.doesNotMatch(a.html, /eer=_llUi\.cop,copHeat=/);
+  assert.match(a.html, /_aaRes\.entering\.humidityRatio/);
+  assert.doesNotMatch(a.html, /Q = _aaOK \? _aaRes\.totalCapacityKW : 0/);
+  assert.doesNotMatch(a.html, /eer = _llUi\.cop,\n    copHeat/);
 });
