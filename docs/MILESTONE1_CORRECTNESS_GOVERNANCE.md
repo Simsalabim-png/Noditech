@@ -2,10 +2,12 @@
 
 ## Scope and authority
 
-- Baseline commit: `cb888c6a8cd943a2bdb8a252ebe8236d8743cc8e`
-- Baseline production artifact SHA-256: `1ef3926dfc1257a9812fc591a237da5b79ef538900f96dd39287a249874f6c31`
-- Working branch: `fix/milestone1-correctness-20260630`
+- Original production baseline commit: `cb888c6a8cd943a2bdb8a252ebe8236d8743cc8e`
+- Original baseline production artifact SHA-256: `1ef3926dfc1257a9812fc591a237da5b79ef538900f96dd39287a249874f6c31`
+- Recovery integration base: `d6ab3a4f3dc1ce4f3eda6fcabaaeaa28f7862e17`
+- Working branch: `m1-integrated-20260630`
 - Independent pre-implementation verdict: `GO WITH REQUIRED CHANGES`
+- A fresh exact-head review is mandatory after recovery integration and validation.
 - This milestone is limited to correctness defects in unit handling, Liquid/Liquid COP presentation, blocked-result projection, chart finite-value guards, and blocked save actions.
 - No merge, deploy, release or tag is authorized by this document.
 
@@ -25,22 +27,22 @@ Milestone 1 changes are implemented only through deterministic build transforms 
 
 The transition is invalid if either replacement control is absent. Removing the old component fingerprints without numeric golden vectors and new anchors is prohibited.
 
-## Pinned baseline suites
+## Pinned validation suites
 
-The exact baseline release scope is:
+The exact release-scope Node command is:
 
 ```text
 node --test tests/validation/*.test.js tests/build/*.test.js tests/engine/*.test.js
 ```
 
-Expected baseline at the reviewed hardening head: `195/195 PASS`.
+Historical pre-recovery baseline: `195/195 PASS` before the governance hardening tests merged to `main`.
 
 Browser baselines:
 
 - General Chromium regression: `34/34 PASS`
 - Dedicated Liquid/Liquid contract gate: `44/44 PASS`
 
-Milestone 1 adds tests. Therefore the post-change expected totals must be recorded from the exact branch head in the PR evidence; they must be greater than or equal to these baselines, with zero failures and zero skipped required gates.
+Acceptance is based on the named suites at the exact recovery head. The evidence report must state the discovered test count, pass count, fail count and skipped count, with zero failures and zero skipped required gates.
 
 ## Numeric acceptance tolerances
 
