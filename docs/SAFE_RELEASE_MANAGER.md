@@ -29,6 +29,8 @@ A release draft is created only when all of the following are true:
 
 If any precondition is not met, the manager exits without writing repository state.
 
+Known v1 limitation: the develop gate explicitly requires exact-head `verify-pc6` success and blocks workflow runs that are present and pending or bad, but it does not yet require an explicit allowlist of every general repository workflow. The generated release head is revalidated by `verify-safe-release.yml` and `verify-pc6.yml`, remains draft, and still requires independent review and explicit production GO.
+
 ## Allowed writes
 
 The manager may perform only these writes:
