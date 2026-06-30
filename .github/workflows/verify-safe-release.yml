@@ -45,7 +45,10 @@ jobs:
           grep -q 'NoditechLiquidLiquid' "$ARTIFACT"
           grep -q 'data-ll-cutover' "$ARTIFACT"
           grep -q 'CoolProp 7.2.0 INCOMP' "$ARTIFACT"
-          ! grep -Eq 'type=["'"']text/babel|https://cdnjs.cloudflare.com|fonts.googleapis.com' "$ARTIFACT"
+          if grep -Eqi 'text/babel|https://cdnjs.cloudflare.com|fonts.googleapis.com' "$ARTIFACT"; then
+            echo '::error::release artifact contains a forbidden browser dependency'
+            exit 1
+          fi
 
       - name: Run browser gates
         run: |
