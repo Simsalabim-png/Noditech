@@ -1,0 +1,65 @@
+name: verify-milestone1-correctness
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "build/**"
+      - "src/**"
+      - "tests/**"
+      - "chromium/**"
+      - "docs/MILESTONE1_*.md"
+      - ".github/workflows/verify-milestone1-correctness.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODITECH_DIST_DIR: dist-milestone1
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+
+      - name: Build deterministic Milestone 1 artifact
+        id: build
+        shell: bash
+        run: |
+          set +e
+          node build/assemble-pc2-ll-release.js > milestone1-build.log 2>&1
+          status=$?
+          cat milestone1-build.log
+          printf '%s\n' "$status" > milestone1-build.status
+          exit "$status"
+
+      - name: Upload Milestone 1 build evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: milestone1-build-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            milestone1-build.log
+            milestone1-build.status
+            dist-milestone1/**
+          if-no-files-found: warn
+
+      - name: Run named Node suites
+        if: steps.build.outcome == 'success'
+        run: node --test tests/validation/*.test.js tests/build/*.test.js tests/engine/*.test.js
+
+      - name: Run integration gates
+        if: steps.build.outcome == 'success'
+        run: |
+          npm run extract
+          npm run compile
+          npm run preflight
+          npm run offline

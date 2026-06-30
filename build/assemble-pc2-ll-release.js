@@ -45,7 +45,18 @@ function loadReleaseBuilder() {
 
 function build() {
   const builder = loadReleaseBuilder();
-  return builder.build({ liquidLiquidCutover: true });
+  const base = builder.build({ liquidLiquidCutover: true });
+  const milestone1 = require('../src/ui/milestone1ArtifactTransform.js').applyMilestone1ArtifactTransform(base.html);
+  const finalized = require('../src/ui/milestone1ArtifactFinalizer.js').applyMilestone1ArtifactFinalizer(milestone1.html);
+  return {
+    ...base,
+    html: finalized.html,
+    sha256: finalized.sha256,
+    milestone1: {
+      before: milestone1.before,
+      after: finalized.after,
+    },
+  };
 }
 
 module.exports = { build, loadReleaseBuilder, replaceOnce };
@@ -56,5 +67,14 @@ if (require.main === module) {
   fs.mkdirSync(distDir, { recursive: true });
   fs.writeFileSync(path.join(distDir, 'Kalkulator_build9.8-pc2.html'), result.html, 'utf8');
   fs.writeFileSync(path.join(distDir, 'SHA256SUMS.pc2.txt'), `${result.sha256}  Kalkulator_build9.8-pc2.html\n`, 'utf8');
-  process.stdout.write(`built Kalkulator_build9.8-pc2.html\nmode ${result.mode}\nsha256 ${result.sha256}\nbytes ${Buffer.byteLength(result.html)}\n`);
+  process.stdout.write(
+    `built Kalkulator_build9.8-pc2.html\n` +
+    `mode ${result.mode}\n` +
+    `sha256 ${result.sha256}\n` +
+    `bytes ${Buffer.byteLength(result.html)}\n` +
+    `air-air-before ${result.milestone1.before.airAir}\n` +
+    `air-air-after ${result.milestone1.after.airAir}\n` +
+    `air-liquid-before ${result.milestone1.before.airLiquid}\n` +
+    `air-liquid-after ${result.milestone1.after.airLiquid}\n`
+  );
 }
