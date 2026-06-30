@@ -1,0 +1,124 @@
+name: package-m1-working-copy
+
+on:
+  push:
+    branches:
+      - packaging/m1-workingcopy-f14edb4
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact M1 implementation head with full history
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: f14edb4770a1e58147b4b3efb2c4d47d79c44822
+          fetch-depth: 0
+
+      - name: Set up Node.js matching CI
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+
+      - name: Build complete working-copy package inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="f14edb4770a1e58147b4b3efb2c4d47d79c44822"
+          test "$(git rev-parse HEAD)" = "$expected"
+
+          git fetch --no-tags origin \
+            main:refs/remotes/origin/main \
+            m1-integrated-20260630:refs/remotes/origin/m1-integrated-20260630
+          git branch -f main refs/remotes/origin/main
+          git checkout -B m1-integrated-20260630 "$expected"
+
+          rm -rf package-out /tmp/Noditech
+          mkdir -p package-out /tmp/Noditech
+
+          git bundle create package-out/noditech_m1.bundle main m1-integrated-20260630
+          git bundle verify package-out/noditech_m1.bundle > package-out/BUNDLE_VERIFY.txt 2>&1
+
+          git archive --format=zip --output=package-out/noditech_m1_worktree.zip m1-integrated-20260630
+
+          rsync -a \
+            --exclude 'node_modules/' \
+            --exclude 'dist*/' \
+            --exclude 'package-out/' \
+            "$GITHUB_WORKSPACE/" /tmp/Noditech/
+          (
+            cd /tmp
+            zip -qry "$GITHUB_WORKSPACE/package-out/Noditech_repo_with_git.zip" Noditech \
+              -x 'Noditech/node_modules/*' 'Noditech/dist*/*' 'Noditech/package-out/*'
+          )
+
+          test -f package.json
+          test -f package-lock.json
+          test -f build/assemble-pc2-ll-release.js
+          test -f docs/MILESTONE1_FREEZE_TRANSITION.md
+          test -f docs/MILESTONE1_IMPLEMENTATION_STATUS.md
+          test -d .github/workflows
+          test -d chromium
+          test -d tests
+
+          {
+            echo "Repository: Simsalabim-png/Noditech"
+            echo "Checked-out branch: m1-integrated-20260630"
+            echo "Exact implementation head: $(git rev-parse HEAD)"
+            echo "Main ref: $(git rev-parse main)"
+            echo "Node: $(node --version)"
+            echo "npm: $(npm --version)"
+            echo
+            echo "Exact deterministic M1 build command used by CI:"
+            echo "NODITECH_DIST_DIR=dist-milestone1 node build/assemble-pc2-ll-release.js"
+            echo
+            echo "Exact named Node suites used by CI:"
+            echo "node --test tests/validation/*.test.js tests/build/*.test.js tests/engine/*.test.js"
+            echo
+            echo "Exact integration commands used by CI:"
+            echo "npm run extract"
+            echo "npm run compile"
+            echo "npm run preflight"
+            echo "npm run offline"
+            echo
+            echo "Required browser commands for B2 correction:"
+            echo "npm run chromium"
+            echo "npm run chromium:ll-cutover"
+            echo
+            echo "Double-build requirement: run the deterministic command twice with separate NODITECH_DIST_DIR values, then compare both HTML bytes and SHA-256 values."
+          } > package-out/ENV.txt
+
+          {
+            echo "Required file checks: PASS"
+            printf '%s\n' \
+              package.json \
+              package-lock.json \
+              build/assemble-pc2-ll-release.js \
+              docs/MILESTONE1_FREEZE_TRANSITION.md \
+              docs/MILESTONE1_IMPLEMENTATION_STATUS.md \
+              .github/workflows/ \
+              chromium/ \
+              tests/
+          } > package-out/REQUIRED_FILES_CHECK.txt
+
+          grep -RIn --exclude-dir=.git --exclude-dir=node_modules --exclude-dir='dist*' \
+            -F 'Build 9.6-rc8' . > package-out/IDENTITY_SOURCE_LOCATIONS.txt || true
+          grep -RIn --exclude-dir=.git --exclude-dir=node_modules --exclude-dir='dist*' \
+            -E 'EXPECTED_PC2_SHA256|b7a1f4b597383fb877c1aa762f8103041411bd8c6ad2b78f33845a746cd63abe|27bac419f7f92d47070239520b360dbce9d20a5e2619ae02df749aaea8980cd7|ac589bca41ae0260e97779e73e727e2ab999d7a962447a5ddc3c59cdc8d1085a' \
+            . > package-out/HASH_PIN_LOCATIONS.txt || true
+
+          git ls-tree -r --name-only HEAD > package-out/HEAD_FILE_INVENTORY.txt
+          git status --short --branch > package-out/GIT_STATUS.txt
+          sha256sum package-out/noditech_m1.bundle package-out/noditech_m1_worktree.zip package-out/Noditech_repo_with_git.zip > package-out/PACKAGE_INPUT_SHA256SUMS.txt
+
+      - name: Upload complete M1 working-copy package inputs
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: Noditech_M1_WorkingCopy_f14edb4_inputs
+          path: package-out/**
+          if-no-files-found: error
+          retention-days: 7
