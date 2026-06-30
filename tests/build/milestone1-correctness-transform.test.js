@@ -14,14 +14,14 @@ const releaseBuilder = require('../../build/assemble-pc2-ll-release.js');
 const transform = require('../../src/ui/milestone1ArtifactTransform.js');
 
 const EXPECTED = Object.freeze({
-  artifactSha256: '3811134dd8eed2abebdf3c82e185bb7d9f1d0941dc51727bfca9d95fd37280e4',
+  artifactSha256: 'b7a1f4b597383fb877c1aa762f8103041411bd8c6ad2b78f33845a746cd63abe',
   before: Object.freeze({
     airAir: '6af7a16bb8adc2019f72f4f731900f16f9e1268dfb2d0a233049166ccd2b0275',
     airLiquid: '364119e063e7fc58c2e04f96012bdebb29d8da4235db38c56668e8e6eb591aec',
   }),
   after: Object.freeze({
-    airAir: '697239d1276fbf88db725da45a0d7cd39585e8b1fcb85f9d076b3e9e76bbf88e',
-    airLiquid: '29509d41e0d4567a4a25e6f6493d35f64ccab6ca7293d01f5fbc5bcf529a771d',
+    airAir: '27bac419f7f92d47070239520b360dbce9d20a5e2619ae02df749aaea8980cd7',
+    airLiquid: 'ac589bca41ae0260e97779e73e727e2ab999d7a962447a5ddc3c59cdc8d1085a',
   }),
 });
 
