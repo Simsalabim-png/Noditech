@@ -30,12 +30,17 @@ function section(source, startAnchor, endAnchor) {
   return source.slice(start, end);
 }
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function projectRange(body, value, setter, minC, maxC, label) {
-  const anchor = `    value: ${value},\n    onChange: ${setter},\n    min: ${minC},\n    max: ${maxC},`;
+  const re = new RegExp(`(^[ \\t]+)value: ${escapeRegExp(value)},\\n\\1onChange: ${escapeRegExp(setter)},\\n\\1min: ${minC},\\n\\1max: ${maxC},`, 'gm');
+  const matches = [...body.matchAll(re)];
+  if (matches.length !== 1) throw new Error(`${label}: anchor count ${matches.length}`);
   const minF = minC * 9 / 5 + 32;
   const maxF = maxC * 9 / 5 + 32;
-  const replacement = `    value: ${value},\n    onChange: ${setter},\n    min: unit === "F" ? ${minF} : ${minC},\n    max: unit === "F" ? ${maxF} : ${maxC},`;
-  return replaceOnce(body, anchor, replacement, label);
+  return body.replace(re, (match, indent) => `${indent}value: ${value},\n${indent}onChange: ${setter},\n${indent}min: unit === "F" ? ${minF} : ${minC},\n${indent}max: unit === "F" ? ${maxF} : ${maxC},`);
 }
 
 function applyRefrigerantProjection(html) {
