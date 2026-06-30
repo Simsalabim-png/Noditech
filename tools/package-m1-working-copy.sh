@@ -2,11 +2,11 @@
 set -euo pipefail
 
 expected="f14edb4770a1e58147b4b3efb2c4d47d79c44822"
-test "$(git rev-parse HEAD)" = "$expected"
 
 git fetch --no-tags origin main:refs/remotes/origin/main m1-integrated-20260630:refs/remotes/origin/m1-integrated-20260630
 git branch -f main refs/remotes/origin/main
 git checkout -B m1-integrated-20260630 "$expected"
+test "$(git rev-parse HEAD)" = "$expected"
 
 package_lock_state="tracked"
 if ! git ls-files --error-unmatch package-lock.json >/dev/null 2>&1; then
