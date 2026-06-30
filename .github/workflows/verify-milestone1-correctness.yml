@@ -23,10 +23,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout exact candidate
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
       - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: "22"
 
@@ -43,7 +43,7 @@ jobs:
 
       - name: Upload Milestone 1 build evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: milestone1-build-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
@@ -68,20 +68,38 @@ jobs:
         if: steps.build.outcome == 'success'
         run: |
           BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
-          if [ -z "$BIN" ]; then echo "::error::No Chromium/Chrome found on the runner"; exit 1; fi
+          if [ -z "$BIN" ]; then echo "::error::No Chromium/Chrome found"; exit 1; fi
           echo "CHROMIUM_BIN=$BIN" >> "$GITHUB_ENV"
           "$BIN" --version
 
-      - name: Run Chromium gates (A–H, L/L cutover, Milestone 1 candidate)
+      - name: Run existing Chromium gates
         if: steps.build.outcome == 'success'
         run: |
           npm run chromium
           npm run chromium:ll-cutover
-          npm run chromium:milestone1
+
+      - name: Run exact-candidate Milestone 1 self-test
+        if: steps.build.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p chromium/results
+          node chromium/server.js > chromium/results/milestone1_server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" >/dev/null 2>&1 || true' EXIT
+          site=""
+          for i in $(seq 1 100); do
+            site="$(sed -n 's/.* at \(http:\/\/127\.0\.0\.1:[0-9]*\).*/\1/p' chromium/results/milestone1_server.log | tail -1)"
+            [ -n "$site" ] && break
+            sleep 0.1
+          done
+          [ -n "$site" ]
+          "$CHROMIUM_BIN" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --run-all-compositor-stages-before-draw --virtual-time-budget=40000 --dump-dom "$site/chromium/milestone1_selftest.html" > chromium/results/milestone1_selftest_dom.html
+          node chromium/verify_milestone1_selftest.js chromium/results/milestone1_selftest_dom.html
 
       - name: Upload Chromium evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: milestone1-chromium-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
