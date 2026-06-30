@@ -94,6 +94,10 @@ export function buildReleasePlan({ mainSha, developSha, releaseBranch }) {
   });
 }
 
+export function parseDryRun(value) {
+  return String(value ?? 'true').trim().toLowerCase() !== 'false';
+}
+
 function repositoryParts(repository) {
   const [owner, repo, ...rest] = String(repository || '').split('/');
   if (!owner || !repo || rest.length) throw new Error(`invalid GITHUB_REPOSITORY: ${repository || '(missing)'}`);
@@ -190,13 +194,13 @@ async function cleanupBranch(ctx, branch) {
   }
 }
 
-async function main() {
+export async function main() {
   const token = process.env.GITHUB_TOKEN;
   if (!token) throw new Error('GITHUB_TOKEN is required');
   const repository = process.env.GITHUB_REPOSITORY;
   const { owner, repo } = repositoryParts(repository);
   const apiUrl = process.env.GITHUB_API_URL || 'https://api.github.com';
-  const dryRun = String(process.env.SAFE_RELEASE_DRY_RUN || 'false').toLowerCase() === 'true';
+  const dryRun = parseDryRun(process.env.SAFE_RELEASE_DRY_RUN);
   const ctx = { apiUrl, token, owner, repo };
   const outputFile = process.env.GITHUB_OUTPUT;
   const summaryFile = process.env.GITHUB_STEP_SUMMARY;
