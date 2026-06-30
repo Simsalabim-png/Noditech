@@ -15,6 +15,7 @@ Review the exact draft head and confirm all items before any activation decision
 - An existing open `release/safe-*` PR prevents duplicate creation.
 - Exact-head `verify-pc6` success is mandatory.
 - Pending or failed exact-head workflows block creation.
+- Known v1 limitation: the develop gate does not yet require an explicit allowlist of every general repository workflow; release-head validation and independent review remain mandatory.
 - `main` and `develop` are re-read immediately before writes.
 - Created PRs are always draft.
 - Only `verify-safe-release.yml` and `verify-pc6.yml` are dispatched.
@@ -25,7 +26,7 @@ Review the exact draft head and confirm all items before any activation decision
 
 Use manual `workflow_dispatch` with `dry_run: true` first after merge.
 
-A non-dry scheduled or manual run must:
+A non-dry manual run must:
 
 1. no-op when an active release PR exists;
 2. no-op when develop is not ahead;
