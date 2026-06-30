@@ -47,13 +47,14 @@ function build() {
   const builder = loadReleaseBuilder();
   const base = builder.build({ liquidLiquidCutover: true });
   const milestone1 = require('../src/ui/milestone1ArtifactTransform.js').applyMilestone1ArtifactTransform(base.html);
+  const finalized = require('../src/ui/milestone1ArtifactFinalizer.js').applyMilestone1ArtifactFinalizer(milestone1.html);
   return {
     ...base,
-    html: milestone1.html,
-    sha256: milestone1.sha256,
+    html: finalized.html,
+    sha256: finalized.sha256,
     milestone1: {
       before: milestone1.before,
-      after: milestone1.after,
+      after: finalized.after,
     },
   };
 }
