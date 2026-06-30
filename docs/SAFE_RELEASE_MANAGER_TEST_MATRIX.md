@@ -12,3 +12,7 @@
 | all gates green | create one unique release branch and one draft PR |
 | validation not automatically triggered by token write | explicitly dispatch safe-release and pc6 only |
 | dry run | report plan, perform no writes |
+| active release PR appears after first 100 open PRs | no new branch or PR |
+| failed validation exists after first 100 workflow runs | re-dispatch only that failed allowlisted workflow |
+| validation is pending or successful | do not duplicate dispatch |
+| pagination exceeds fail-safe limit | fail closed |
