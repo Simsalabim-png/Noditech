@@ -13,6 +13,9 @@ export const VALIDATION_WORKFLOWS = Object.freeze([
   'verify-pc6.yml',
 ]);
 
+const API_PAGE_SIZE = 100;
+const MAX_API_PAGES = 100;
+
 const BAD_CONCLUSIONS = new Set([
   'failure',
   'cancelled',
@@ -147,17 +150,43 @@ async function getBranch(ctx, branch) {
 }
 
 async function listOpenPulls(ctx) {
-  return githubRequest({
-    ...ctx,
-    path: `/repos/${ctx.owner}/${ctx.repo}/pulls?state=open&base=${encodeURIComponent(MAIN_BRANCH)}&per_page=100`,
-  });
+  const pulls = [];
+  for (let page = 1; page <= MAX_API_PAGES; page += 1) {
+    const pagePulls = await githubRequest({
+      ...ctx,
+      path: `/repos/${ctx.owner}/${ctx.repo}/pulls?state=open&base=${encodeURIComponent(MAIN_BRANCH)}&per_page=${API_PAGE_SIZE}&page=${page}`,
+    });
+    if (!Array.isArray(pagePulls)) throw new Error('open pull request response is not an array');
+    pulls.push(...pagePulls);
+    if (pagePulls.length < API_PAGE_SIZE) return pulls;
+  }
+  throw new Error(`open pull request pagination exceeded ${MAX_API_PAGES} pages; refusing incomplete duplicate check`);
 }
 
 async function listWorkflowRunsForSha(ctx, sha) {
-  return githubRequest({
-    ...ctx,
-    path: `/repos/${ctx.owner}/${ctx.repo}/actions/runs?head_sha=${encodeURIComponent(sha)}&per_page=100`,
-  });
+  const workflowRuns = [];
+  let totalCount = null;
+  for (let page = 1; page <= MAX_API_PAGES; page += 1) {
+    const response = await githubRequest({
+      ...ctx,
+      path: `/repos/${ctx.owner}/${ctx.repo}/actions/runs?head_sha=${encodeURIComponent(sha)}&per_page=${API_PAGE_SIZE}&page=${page}`,
+    });
+    if (!response || !Array.isArray(response.workflow_runs)) {
+      throw new Error('workflow runs response is missing workflow_runs');
+    }
+    if (Number.isFinite(Number(response.total_count))) totalCount = Number(response.total_count);
+    workflowRuns.push(...response.workflow_runs);
+    if (
+      response.workflow_runs.length < API_PAGE_SIZE ||
+      (totalCount !== null && workflowRuns.length >= totalCount)
+    ) {
+      return {
+        total_count: totalCount ?? workflowRuns.length,
+        workflow_runs: workflowRuns,
+      };
+    }
+  }
+  throw new Error(`workflow run pagination exceeded ${MAX_API_PAGES} pages; refusing incomplete CI evaluation`);
 }
 
 async function dispatchWorkflow(ctx, workflow, ref) {
@@ -169,13 +198,19 @@ async function dispatchWorkflow(ctx, workflow, ref) {
   });
 }
 
+export function shouldDispatchValidationRun(run) {
+  if (!run) return true;
+  if (run.status !== 'completed') return false;
+  return BAD_CONCLUSIONS.has(run.conclusion);
+}
+
 async function ensureValidationDispatched(ctx, releaseBranch, releaseSha) {
   const runsResponse = await listWorkflowRunsForSha(ctx, releaseSha);
-  const workflowNames = new Set((runsResponse.workflow_runs || []).map(run => run.name));
+  const latest = new Map(latestRunsByName(runsResponse.workflow_runs || []).map(run => [run.name, run]));
   const dispatched = [];
   for (const workflow of VALIDATION_WORKFLOWS) {
     const expectedName = workflow.replace(/\.yml$/, '');
-    if (workflowNames.has(expectedName)) continue;
+    if (!shouldDispatchValidationRun(latest.get(expectedName))) continue;
     await dispatchWorkflow(ctx, workflow, releaseBranch);
     dispatched.push(workflow);
   }
