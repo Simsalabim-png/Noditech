@@ -195,3 +195,5 @@ test('main performs zero repository writes for safe dry-run values', async () =>
     Object.assign(process.env, originalEnv);
   }
 });
+
+require('./safe-release-manager-followup.test.js');

@@ -67,7 +67,8 @@ The manager fails closed.
 - If a release PR appears during validation, no duplicate is created.
 - If merging `develop` into the new release branch conflicts, the newly created empty branch is removed and the run fails.
 - If draft PR creation fails, the newly created branch is removed and the run fails.
-- If an active release PR already exists, the manager creates nothing new and only dispatches missing validation workflows for its exact head.
+- If an active release PR already exists, the manager creates nothing new. It dispatches validation workflows only when they are missing or when the latest exact-head run has a blocking terminal conclusion; pending and successful runs are left untouched.
+- Open pull requests and exact-head workflow runs are paginated. If pagination exceeds the fail-safe page limit, the manager aborts rather than making a decision from incomplete data.
 
 ## Human and Codex review
 

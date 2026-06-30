@@ -12,7 +12,7 @@
 
 ### Duplicate release candidates
 
-Control: any open `release/safe-*` PR targeting `main` blocks creation of another candidate.
+Control: any open `release/safe-*` PR targeting `main` blocks creation of another candidate. The query is paginated and aborts if a complete result set cannot be established.
 
 ### Stale validation
 
@@ -24,7 +24,7 @@ Control: `main` and `develop` are re-read immediately before the first write. An
 
 ### Invalid or incomplete CI
 
-Control: missing pc6, pending workflows and blocking workflow conclusions produce a no-op.
+Control: missing pc6, pending workflows and blocking workflow conclusions produce a no-op. Exact-head workflow runs are paginated before evaluation.
 
 ### Merge conflict
 
@@ -41,6 +41,10 @@ Control: the manager never calls Ready, merge-PR, tag, release, Pages deployment
 ### Force update
 
 Control: the manager creates a new unique branch and never updates an existing ref.
+
+### Failed validation recovery
+
+Control: for an existing release PR, the latest validation run per allowed workflow is inspected. Missing or blocking terminal runs are dispatched again; pending and successful runs are not duplicated.
 
 ## Residual risk
 
