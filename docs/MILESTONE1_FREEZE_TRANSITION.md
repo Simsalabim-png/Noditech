@@ -49,7 +49,9 @@ Acceptance is based on named suites and successful conclusions, not a permanentl
 
 ## Release governance
 
-- Work occurs only on `fix/milestone1-correctness-20260630`, based on `cb888c6a8cd943a2bdb8a252ebe8236d8743cc8e`.
-- A draft PR may be opened for evidence and review.
-- No ready-for-review transition, merge to `main`, GitHub Pages deployment, tag, or release is authorized without a new explicit production GO from Simen.
+- Work occurs only on the authoritative recovery branch `m1-integrated-20260630`, integrated onto the current production base `main` at `d6ab3a4f3dc1ce4f3eda6fcabaaeaa28f7862e17` (behind 0). The earlier scratch branch `fix/milestone1-correctness-20260630` / `m1-20260630` and the historical baseline `cb888c6a8cd943a2bdb8a252ebe8236d8743cc8e` are superseded and must not be used for PR, review, merge, or release.
+- The corrective work is tracked as **Draft PR #51 — "Milestone 1 correctness recovery"** (base `main`, head `m1-integrated-20260630`). It must remain Draft.
+- **Exact-head invalidation:** every new commit creates a new exact head and invalidates the previous review, candidate artifact SHA-256, section hashes, browser verdict, and CI evidence. All evidence must be regenerated on the new exact head.
+- Required gates on the exact head before any GO: deterministic double-build with exact candidate SHA-256; named Node suites; extract/compile/preflight/offline; `verify-milestone1-correctness`; `verify-pc6` (protected-file); `npm run chromium` and `npm run chromium:ll-cutover` browser gates with explicit M1 assertions; and a fresh independent exact-head review.
+- No ready-for-review transition, merge to `main`, GitHub Pages deployment, tag, release, or `dry_run:false` safe release is authorized without a new explicit production GO from Simen. Issue #48 remains open.
 - Existing deterministic-build, exact-SHA, browser, offline, protected-file, evidence, and post-deploy controls must remain enabled.

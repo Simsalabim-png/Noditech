@@ -119,9 +119,9 @@ test('Milestone 1 release build contains canonical, range and result contracts',
   assert.equal(a.html, b.html);
   assert.match(a.html, /function useCanonicalTemperature\(initialC, unit\)/);
   assert.match(a.html, /const \[t2meas, setT2meas\] = useCanonicalTemperature\(null, unit\)/);
-  assert.match(a.html, /value: wTi,\n    onChange: setWTi,\n    min: unit === "F" \? -22 : -30,\n    max: unit === "F" \? 122 : 50/);
+  assert.match(a.html, /value: wTi,\n    "data-m1-field": "al-liquid-inlet",\n    onChange: setWTi,\n    min: unit === "F" \? -22 : -30,\n    max: unit === "F" \? 122 : 50/);
   assert.match(a.html, /value: hTi,\n    onChange: setHTi,\n    min: unit === "F" \? -22 : -30,\n    max: unit === "F" \? 176 : 80/);
-  assert.match(a.html, /value: t2meas,\n      onChange: setT2meas,\n      min: unit === "F" \? -4 : -20,\n      max: unit === "F" \? 392 : 200/);
+  assert.match(a.html, /value: t2meas,\n      "data-m1-field": "ref-discharge-temperature",\n      onChange: setT2meas,\n      min: unit === "F" \? -4 : -20,\n      max: unit === "F" \? 392 : 200/);
   assert.match(a.html, /data-aa-chart-status/);
   assert.match(a.html, /data-ll-cop/);
   assert.match(a.html, /copCooling/);

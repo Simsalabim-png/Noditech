@@ -14,14 +14,19 @@ const releaseBuilder = require('../../build/assemble-pc2-ll-release.js');
 const transform = require('../../src/ui/milestone1ArtifactTransform.js');
 
 const EXPECTED = Object.freeze({
-  artifactSha256: 'b7a1f4b597383fb877c1aa762f8103041411bd8c6ad2b78f33845a746cd63abe',
+  artifactSha256: 'edaa93726357a3bc5fee63380ecdc61f1bef5a1b0ea7aa8b324087f32079ae30',
+  identity: Object.freeze({
+    version: 'Build 9.8-pc2',
+    date: '2026-06-30',
+    hash: '568ec3bad455',
+  }),
   before: Object.freeze({
     airAir: '6af7a16bb8adc2019f72f4f731900f16f9e1268dfb2d0a233049166ccd2b0275',
     airLiquid: '364119e063e7fc58c2e04f96012bdebb29d8da4235db38c56668e8e6eb591aec',
   }),
   after: Object.freeze({
-    airAir: '27bac419f7f92d47070239520b360dbce9d20a5e2619ae02df749aaea8980cd7',
-    airLiquid: 'ac589bca41ae0260e97779e73e727e2ab999d7a962447a5ddc3c59cdc8d1085a',
+    airAir: '53734e338144b47751185b3a94394f6cb364e1dd6fc2754787212e0d42a34fbf',
+    airLiquid: '9d666dfc903b0be65fb86b3d3ff4c48cb86434c6e1e9aa86d5f42a2d6b5652ba',
   }),
 });
 
@@ -39,6 +44,8 @@ test('Milestone 1 release is deterministic and pins replacement freeze anchors',
   assert.equal(first.sha256, EXPECTED.artifactSha256);
   assert.deepEqual(first.milestone1.before, EXPECTED.before);
   assert.deepEqual(first.milestone1.after, EXPECTED.after);
+  assert.deepEqual(first.identity, second.identity);
+  assert.deepEqual(first.identity, EXPECTED.identity);
 });
 
 test('Milestone 1 artifact contains the reviewed correctness contracts', { skip }, () => {
@@ -55,6 +62,35 @@ test('Milestone 1 artifact contains the reviewed correctness contracts', { skip 
   assert.match(html, /Chart unavailable until the Air\/Air result is valid/);
   assert.match(html, /Number\.isFinite\(p\.W\)/);
   assert.doesNotMatch(html, /agree by construction but are not a single code path/);
+});
+
+test('Milestone 1 artifact carries the unique exact-candidate data-m1-* hooks', { skip }, () => {
+  const { html } = releaseBuilder.build();
+  const hooks = [
+    '"data-m1-field": "al-liquid-inlet"',
+    '"data-m1-field": "al-liquid-outlet"',
+    '"data-m1-field": "ref-suction-temperature"',
+    '"data-m1-field": "ref-liquid-temperature"',
+    '"data-m1-field": "ref-discharge-temperature"',
+    '"data-m1-result": "al-liquid-q"',
+    '"data-m1-result": "aa-total-capacity"',
+    '"data-m1-save": "air-air"',
+    '"data-m1-save": "air-liquid"',
+  ];
+  for (const h of hooks) {
+    const count = html.split(h).length - 1;
+    assert.equal(count, 1, `hook ${h} must appear exactly once (found ${count})`);
+  }
+  assert.match(html, /'data-m1-field': props\['data-m1-field'\]/);
+});
+
+test('Milestone 1 artifact presents the build-generated 9.8-pc2 identity', { skip }, () => {
+  const { html } = releaseBuilder.build();
+  assert.match(html, /const BUILD_VERSION = "Build 9\.8-pc2";/);
+  assert.match(html, /const BUILD_DATE = "2026-06-30";/);
+  assert.match(html, /const BUILD_HASH = "568ec3bad455";/);
+  assert.doesNotMatch(html, /Build 9\.6-rc8/);
+  assert.doesNotMatch(html, /b6ebc906e926/);
 });
 
 test('canonical unit projection tolerances are explicit and physically invariant', () => {

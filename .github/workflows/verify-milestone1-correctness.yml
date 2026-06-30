@@ -63,3 +63,28 @@ jobs:
           npm run compile
           npm run preflight
           npm run offline
+
+      - name: Locate Chromium
+        if: steps.build.outcome == 'success'
+        run: |
+          BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$BIN" ]; then echo "::error::No Chromium/Chrome found on the runner"; exit 1; fi
+          echo "CHROMIUM_BIN=$BIN" >> "$GITHUB_ENV"
+          "$BIN" --version
+
+      - name: Run Chromium gates (A–H, L/L cutover, Milestone 1 candidate)
+        if: steps.build.outcome == 'success'
+        run: |
+          npm run chromium
+          npm run chromium:ll-cutover
+          npm run chromium:milestone1
+
+      - name: Upload Chromium evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: milestone1-chromium-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            chromium/results/**
+            screenshots/**
+          if-no-files-found: warn

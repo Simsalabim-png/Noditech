@@ -52,6 +52,7 @@ function build() {
     ...base,
     html: finalized.html,
     sha256: finalized.sha256,
+    identity: finalized.identity,
     milestone1: {
       before: milestone1.before,
       after: finalized.after,
@@ -70,6 +71,7 @@ if (require.main === module) {
   process.stdout.write(
     `built Kalkulator_build9.8-pc2.html\n` +
     `mode ${result.mode}\n` +
+    `identity ${result.identity.version} | ${result.identity.date} | ${result.identity.hash}\n` +
     `sha256 ${result.sha256}\n` +
     `bytes ${Buffer.byteLength(result.html)}\n` +
     `air-air-before ${result.milestone1.before.airAir}\n` +
