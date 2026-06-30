@@ -1,0 +1,87 @@
+name: verify-safe-release
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'release/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout release candidate
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run complete validation suite
+        run: |
+          set -euo pipefail
+          node --test tests/validation/*.test.js tests/build/*.test.js tests/engine/*.test.js
+          node build/verify-reproducible.js
+
+      - name: Build deterministic L/L release artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-evidence
+          node build/assemble-pc2-ll-release.js | tee release-evidence/build.log
+          ARTIFACT=dist/Kalkulator_build9.8-pc2.html
+          test -s "$ARTIFACT"
+          SHA="$(sha256sum "$ARTIFACT" | awk '{print $1}')"
+          test "$(awk '/^sha256 /{print $2}' release-evidence/build.log)" = "$SHA"
+          printf '%s\n' "$SHA" > release-evidence/ARTIFACT_SHA256.txt
+          grep -q 'NoditechLiquidLiquid' "$ARTIFACT"
+          grep -q 'data-ll-cutover' "$ARTIFACT"
+          grep -q 'CoolProp 7.2.0 INCOMP' "$ARTIFACT"
+          ! grep -Eq 'type=["'"']text/babel|https://cdnjs.cloudflare.com|fonts.googleapis.com' "$ARTIFACT"
+
+      - name: Run browser gates
+        run: |
+          set -euo pipefail
+          NODITECH_LL_CUTOVER=1 node tests/compile_app.js
+          node chromium/run_chromium.js
+          node chromium/run_ll_cutover_contract.js
+
+      - name: Verify freeze anchors
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROTECTED=b9f8be84731b9038a814ecc32b876d8856d8526ccf28cd35cc1bb1d74167dc50
+          SOURCE=d3080ff5fcf0dd539130c6849edb66aa3db9faed11e6b045561d048c76c99210
+          for file in Kalkulator_build9.7-pc6.html index.html Kalkulator.html; do
+            test "$(sha256sum "$file" | awk '{print $1}')" = "$PROTECTED"
+          done
+          test "$(sha256sum corrected/Kalkulator_build9.6-rc8_step3_4.src.html | awk '{print $1}')" = "$SOURCE"
+
+      - name: Upload safe release evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: safe-release-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            dist/Kalkulator_build9.8-pc2.html
+            dist/SHA256SUMS.pc2.txt
+            release-evidence/
+            chromium/results/source_equivalence.json
+            chromium/results/chromium_result.json
+            chromium/results/chromium_junit.xml
+            chromium/results/ll_cutover_result.json
+            chromium/results/ll_cutover_junit.xml
+            chromium/results/chromium_console.log
+            chromium/results/chromium_page_errors.log
+            chromium/results/chromium_network.log
+            screenshots/ll_cutover_desktop.png
+            screenshots/ll_cutover_mobile.png
+          if-no-files-found: error
+          retention-days: 30
