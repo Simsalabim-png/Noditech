@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - packaging/m1-workingcopy-f14edb4
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
