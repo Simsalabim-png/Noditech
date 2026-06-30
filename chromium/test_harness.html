@@ -11,6 +11,14 @@
   <script src="/vendor/react.production.min.js"></script>
   <script src="/vendor/react-dom.production.min.js"></script>
   <script src="/chromium/generated/app.compiled.js"></script>
-  <script>window.__APP_BOOTED__=!!(document.getElementById('root')&&document.getElementById('root').childElementCount>0);</script>
+  <script>
+    Object.defineProperty(window,'__APP_BOOTED__',{
+      configurable:true,
+      get:function(){
+        var root=document.getElementById('root');
+        return !!(root&&root.childElementCount>0);
+      }
+    });
+  </script>
 </body>
 </html>
