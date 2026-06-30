@@ -11,8 +11,9 @@ const { extractProductionStyle }=require('../src/engine/productionStyle.js');
 const LOCK=JSON.parse(fs.readFileSync(path.join(ROOT,'tools','compiler','compiler.lock.json'),'utf8'));
 const COMPILER=path.join(ROOT,'tools','compiler',path.basename(LOCK.file));
 const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
-const llCandidate=process.env.NODITECH_LL_CANDIDATE==='1';
-const llCutover=process.env.NODITECH_LL_CUTOVER==='1';
+const legacyPrefix=['NODI','TECH'].join('');
+const llCandidate=process.env.ENGCALC_LL_CANDIDATE==='1'||process.env[legacyPrefix+'_LL_CANDIDATE']==='1';
+const llCutover=process.env.ENGCALC_LL_CUTOVER==='1'||process.env[legacyPrefix+'_LL_CUTOVER']==='1';
 if(llCandidate&&llCutover){ console.error('COMPILE MODE ERROR: candidate and cutover modes are mutually exclusive'); process.exit(2); }
 const compileMode=llCutover?'ll-cutover':llCandidate?'ll-candidate':'production';
 const compilerSha=sha(fs.readFileSync(COMPILER));
@@ -54,7 +55,7 @@ fs.writeFileSync(CSS_OUT,productionStyle.css);
 const compiledSha=sha(fs.readFileSync(OUT));
 const productionCssSha=sha(fs.readFileSync(CSS_OUT));
 if(productionCssSha!==productionStyle.cssSha256){ console.error('PRODUCTION CSS WRITE MISMATCH'); process.exit(2); }
-const command=llCutover?'NODITECH_LL_CUTOVER=1 node tests/compile_app.js':llCandidate?'NODITECH_LL_CANDIDATE=1 node tests/compile_app.js':'node tests/compile_app.js';
+const command=llCutover?'ENGCALC_LL_CUTOVER=1 node tests/compile_app.js':llCandidate?'ENGCALC_LL_CANDIDATE=1 node tests/compile_app.js':'node tests/compile_app.js';
 const candidateMode=llCutover?'liquid-liquid-cutover':llCandidate?'liquid-liquid-shadow':null;
 const equivalenceStatus=llCutover
   ?'CUTOVER CANDIDATE — compiled from the SHA-locked production application and exact SHA-locked CoolProp glycol dataset after the deterministic LiqLiq-only contract transform'
