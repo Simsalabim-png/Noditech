@@ -1,0 +1,36 @@
+name: verify-live-release
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/verify-live-release.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SITE_URL: https://simsalabim-png.github.io/Noditech/
+      EXPECTED_SHA256: 1ef3926dfc1257a9812fc591a237da5b79ef538900f96dd39287a249874f6c31
+    steps:
+      - name: Verify published bytes and L/L markers
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 6 --retry-delay 10 --retry-all-errors --output published.html "$SITE_URL"
+          curl --fail --location --retry 6 --retry-delay 10 --retry-all-errors --output SHA256.txt "${SITE_URL}SHA256.txt"
+          actual="$(sha256sum published.html | awk '{print $1}')"
+          test "$actual" = "$EXPECTED_SHA256"
+          grep -q "$EXPECTED_SHA256" SHA256.txt
+          grep -q 'NoditechLiquidLiquid' published.html
+          grep -q 'data-ll-cutover' published.html
+          grep -q 'CoolProp 7.2.0 INCOMP' published.html
+          if grep -Eqi 'text/babel|https://cdnjs.cloudflare.com|fonts.googleapis.com' published.html; then
+            echo '::error::published artifact contains a forbidden browser dependency'
+            exit 1
+          fi
+          echo "Published L/L release verified: $actual"
