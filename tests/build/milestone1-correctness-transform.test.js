@@ -14,11 +14,11 @@ const releaseBuilder = require('../../build/assemble-pc2-ll-release.js');
 const transform = require('../../src/ui/milestone1ArtifactTransform.js');
 
 const EXPECTED = Object.freeze({
-  artifactSha256: 'edaa93726357a3bc5fee63380ecdc61f1bef5a1b0ea7aa8b324087f32079ae30',
+  artifactSha256: 'e41bd3e9c14e6e8588c8de4ba40e3329cf7e4d464d8007f6b8cb75e9ed51c4ba',
   identity: Object.freeze({
     version: 'Build 9.8-pc2',
     date: '2026-06-30',
-    hash: '568ec3bad455',
+    hash: '4798e55eefee',
   }),
   before: Object.freeze({
     airAir: '6af7a16bb8adc2019f72f4f731900f16f9e1268dfb2d0a233049166ccd2b0275',
@@ -64,7 +64,7 @@ test('Milestone 1 artifact contains the reviewed correctness contracts', { skip 
   assert.doesNotMatch(html, /agree by construction but are not a single code path/);
 });
 
-test('Milestone 1 artifact carries the unique exact-candidate data-m1-* hooks', { skip }, () => {
+test('Milestone 1 artifact carries the unique exact-candidate data-m1-* hooks and DOM ranges', { skip }, () => {
   const { html } = releaseBuilder.build();
   const hooks = [
     '"data-m1-field": "al-liquid-inlet"',
@@ -82,13 +82,14 @@ test('Milestone 1 artifact carries the unique exact-candidate data-m1-* hooks', 
     assert.equal(count, 1, `hook ${h} must appear exactly once (found ${count})`);
   }
   assert.match(html, /'data-m1-field': props\['data-m1-field'\]/);
+  assert.match(html, /min: min,\n    max: max,\n    'aria-invalid'/);
 });
 
 test('Milestone 1 artifact presents the build-generated 9.8-pc2 identity', { skip }, () => {
   const { html } = releaseBuilder.build();
   assert.match(html, /const BUILD_VERSION = "Build 9\.8-pc2";/);
   assert.match(html, /const BUILD_DATE = "2026-06-30";/);
-  assert.match(html, /const BUILD_HASH = "568ec3bad455";/);
+  assert.match(html, /const BUILD_HASH = "4798e55eefee";/);
   assert.doesNotMatch(html, /Build 9\.6-rc8/);
   assert.doesNotMatch(html, /b6ebc906e926/);
 });
