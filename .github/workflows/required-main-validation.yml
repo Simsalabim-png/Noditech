@@ -56,10 +56,14 @@ jobs:
           npm run preflight
           npm run offline
 
-      - name: Run Chromium regression gates
-        run: |
-          node chromium/run_chromium.js
-          node chromium/run_ll_cutover_contract.js
+      - name: Compile explicit Liquid/Liquid browser candidate
+        run: NODITECH_LL_CUTOVER=1 node tests/compile_app.js
+
+      - name: Run general Chromium regression
+        run: node chromium/run_chromium.js
+
+      - name: Run Liquid/Liquid Chromium contract gate
+        run: node chromium/run_ll_cutover_contract.js
 
       - name: Verify frozen production anchors
         shell: bash
