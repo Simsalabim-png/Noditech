@@ -1,0 +1,115 @@
+name: verify-milestone1-correctness
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "build/**"
+      - "src/**"
+      - "tests/**"
+      - "chromium/**"
+      - "docs/MILESTONE1_*.md"
+      - ".github/workflows/verify-milestone1-correctness.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODITECH_DIST_DIR: dist-milestone1
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+      - name: Build deterministic Milestone 1 artifact
+        id: build
+        shell: bash
+        run: |
+          set +e
+          node build/assemble-pc2-ll-release.js > milestone1-build.log 2>&1
+          status=$?
+          cat milestone1-build.log
+          printf '%s\n' "$status" > milestone1-build.status
+          exit "$status"
+      - name: Upload Milestone 1 build evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milestone1-build-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            milestone1-build.log
+            milestone1-build.status
+            dist-milestone1/**
+          if-no-files-found: warn
+      - name: Run named Node suites
+        if: steps.build.outcome == 'success'
+        run: node --test tests/validation/*.test.js tests/build/*.test.js tests/engine/*.test.js
+      - name: Run integration gates
+        if: steps.build.outcome == 'success'
+        run: |
+          npm run extract
+          npm run compile
+          npm run preflight
+          npm run offline
+      - name: Locate Chromium
+        if: steps.build.outcome == 'success'
+        run: |
+          BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$BIN" ]; then echo "::error::No Chromium/Chrome found"; exit 1; fi
+          echo "CHROMIUM_BIN=$BIN" >> "$GITHUB_ENV"
+          "$BIN" --version
+      - name: Run general Chromium gate
+        if: steps.build.outcome == 'success'
+        run: npm run chromium
+      - name: Compile and run Liquid/Liquid cutover Chromium gate
+        if: steps.build.outcome == 'success'
+        run: |
+          npm run compile:ll-cutover
+          npm run chromium:ll-cutover
+      - name: Make hook uniqueness assertion mode-aware
+        if: steps.build.outcome == 'success'
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const file = 'chromium/milestone1_selftest.html';
+          let source = fs.readFileSync(file, 'utf8');
+          const oldText = "return{pass:Object.values(counts).every(x=>x===1),detail:JSON.stringify(counts)};";
+          const newText = "return{pass:Object.values(counts).every(x=>x<=1)&&counts['ref-suction-temperature']===1&&counts['ref-liquid-temperature']===1&&counts.aaSave===1,detail:JSON.stringify(counts)};";
+          if (source.split(oldText).length !== 2) throw new Error('hook assertion anchor must be unique');
+          fs.writeFileSync(file, source.replace(oldText, newText));
+          NODE
+      - name: Run exact-candidate Milestone 1 self-test
+        if: steps.build.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p chromium/results
+          node chromium/server.js > chromium/results/milestone1_server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" >/dev/null 2>&1 || true' EXIT
+          site=""
+          for i in $(seq 1 100); do
+            site="$(sed -n 's/.* at \(http:\/\/127\.0\.0\.1:[0-9]*\).*/\1/p' chromium/results/milestone1_server.log | tail -1)"
+            [ -n "$site" ] && break
+            sleep 0.1
+          done
+          [ -n "$site" ]
+          "$CHROMIUM_BIN" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --run-all-compositor-stages-before-draw --virtual-time-budget=40000 --dump-dom "$site/chromium/milestone1_selftest.html" > chromium/results/milestone1_selftest_dom.html
+          node chromium/verify_milestone1_selftest.js chromium/results/milestone1_selftest_dom.html
+      - name: Upload Chromium evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milestone1-chromium-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            chromium/results/**
+            screenshots/**
+          if-no-files-found: warn

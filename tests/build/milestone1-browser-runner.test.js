@@ -1,0 +1,16 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('fs');
+const path=require('path');
+const ROOT=path.join(__dirname,'..','..');
+const HTML=fs.readFileSync(path.join(ROOT,'chromium','milestone1_selftest.html'),'utf8');
+const VERIFY=fs.readFileSync(path.join(ROOT,'chromium','verify_milestone1_selftest.js'),'utf8');
+const WORKFLOW=fs.readFileSync(path.join(ROOT,'.github','workflows','verify-milestone1-correctness.yml'),'utf8');
+const IDS=['identity','HOOKS.unique','AA.initial.blocked','AA.initial.save_disabled','AA.initial.unavailable','AA.initial.no_nonfinite','AA.valid.chart_ready','AA.valid.save_enabled','AA.unit.toF','AA.unit.result_invariant_F','AA.unit.roundtrip','AA.unit.result_invariant_C','AA.reblocked.chart','AA.reblocked.save_disabled','REF.range.suction_F','REF.range.liquid_F','REF.range.discharge_F','REF.suction.roundtrip','REF.liquid.roundtrip','REF.discharge.blank','AL.initial.save_disabled','AL.cooling.valid','AL.cooling.air_withheld_save_allowed','AL.unit.toF','AL.unit.roundtrip','AL.invalid.blocked','LL.scenario.balanced','LL.cards.present','LL.cards.fixed_across_mode','LL.heating.formula','LL.unit.toF','LL.cards.invariant_F','LL.unit.roundtrip','GLOBAL.no_page_errors','GLOBAL.no_console_errors','GLOBAL.offline'];
+test('self-test covers required exact-candidate assertions',()=>{for(const id of IDS)assert.ok(HTML.includes("'"+id+"'"),'missing '+id);});
+test('self-test targets exact candidate and stable hooks',()=>{assert.match(HTML,/dist-milestone1\/Kalkulator_build9\.8-pc2\.html/);for(const hook of ['al-liquid-inlet','al-liquid-outlet','ref-suction-temperature','ref-liquid-temperature','ref-discharge-temperature','al-liquid-q','aa-total-capacity'])assert.ok(HTML.includes(hook));});
+test('A-L checks distinct writes finite Q withheld status and valid-to-invalid dependency',()=>{assert.match(HTML,/setField\('al-liquid-inlet',12\)/);assert.match(HTML,/setField\('al-liquid-outlet',7\)/);assert.match(HTML,/Number\.isFinite\(alQ\)/);assert.match(HTML,/data-air-status/);assert.match(HTML,/if\(!alValid\)/);});
+test('L-L uses production property helper and refrigerant checks are non-vacuous',()=>{assert.match(HTML,/NoditechLiquidLiquid/);assert.match(HTML,/resolveLiquidProperties/);assert.match(HTML,/hook missing/);assert.match(HTML,/c===''&&f===''/);});
+test('parser writes JSON and JUnit and rejects failures or skipped assertions',()=>{assert.match(VERIFY,/milestone1_assertions_result\.json/);assert.match(VERIFY,/milestone1_assertions_junit\.xml/);assert.match(VERIFY,/result\.summary\.skipped!==0/);});
+test('workflow launches exact-candidate self-test in Chromium',()=>{assert.match(WORKFLOW,/milestone1_selftest\.html/);assert.match(WORKFLOW,/virtual-time-budget=40000/);assert.match(WORKFLOW,/verify_milestone1_selftest\.js/);});
