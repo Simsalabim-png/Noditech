@@ -54,21 +54,23 @@ jobs:
           const privateKey = process.env.APP_PRIVATE_KEY;
           const repository = process.env.REPOSITORY;
           const prNumber = Number(process.env.PR_NUMBER);
-          const missing = [
-  ['APP_ID', appId],
-  ['INSTALLATION_ID', installationId],
-  ['APP_PRIVATE_KEY', privateKey],
-  ['REPOSITORY', repository],
-  ['PR_NUMBER', Number.isInteger(prNumber) && prNumber > 0 ? String(prNumber) : '']
-].filter(([, value]) => !value).map(([name]) => name);
+                   const missing = [
+            ['APP_ID', appId],
+            ['INSTALLATION_ID', installationId],
+            ['APP_PRIVATE_KEY', privateKey],
+            ['REPOSITORY', repository],
+            ['PR_NUMBER', Number.isInteger(prNumber) && prNumber > 0 ? String(prNumber) : '']
+          ].filter(([, value]) => !value).map(([name]) => name);
 
-if (missing.length) {
-  throw new Error(`required GitHub App configuration is missing: ${missing.join(', ')}`);
-}
+          if (missing.length) {
+            throw new Error(`required GitHub App configuration is missing: ${missing.join(', ')}`);
+          }
 
           function b64url(value) {
             return Buffer.from(value)
               .toString('base64')
+
+          
               .replace(/=/g, '')
               .replace(/\+/g, '-')
               .replace(/\//g, '_');
