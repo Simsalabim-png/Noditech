@@ -12,7 +12,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # F2 / Required change 1 — approved production PC2 artifact SHA-256 (must match deploy-pc2-pages.yml).
   EXPECTED_PC2_SHA256: e41bd3e9c14e6e8588c8de4ba40e3329cf7e4d464d8007f6b8cb75e9ed51c4ba
 
 jobs:
@@ -20,8 +19,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      # F4 / Required change 3 — this gate intentionally tests the prospective PR merge result, not the
-      # branch head. Default actions/checkout on pull_request checks out refs/pull/<n>/merge.
       - name: Checkout prospective PR merge result
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
@@ -32,7 +29,6 @@ jobs:
         with:
           node-version: "22"
 
-      # F4 — record and assert the tested identity honestly: branch head vs the merge commit under test.
       - name: Record tested merge identity
         shell: bash
         run: |
@@ -47,17 +43,6 @@ jobs:
           else
             echo "note: tested commit is the prospective merge result, not the branch head (expected for a merge gate)"
           fi
-
-      - name: Record trust-critical validation logic SHA-256
-        shell: bash
-        run: |
-          set -euo pipefail
-          sha256sum \
-            chromium/verify_milestone1_selftest.js \
-            chromium/milestone1_selftest.html \
-            chromium/server.js \
-            chromium/run_chromium.js \
-            chromium/run_ll_cutover_contract.js
 
       - name: Run complete named validation suite
         run: node --test tests/validation/*.test.js tests/build/*.test.js tests/engine/*.test.js
@@ -74,9 +59,7 @@ jobs:
           test -s "$artifact"
           actual="$(sha256sum "$artifact" | awk '{print $1}')"
           reported="$(awk '/^sha256 /{print $2}' required-main-build.log)"
-          # internal self-consistency
           test "$reported" = "$actual"
-          # F2 — pin to the approved expected SHA (drift must fail closed)
           test "$actual" = "$EXPECTED_PC2_SHA256"
           grep -q 'Build 9.8-pc2' "$artifact"
           grep -q 'NoditechLiquidLiquid' "$artifact"
@@ -94,8 +77,6 @@ jobs:
           npm run preflight
           npm run offline
 
-      # F1 / Required change 2 — build the exact deterministic M1 candidate into dist-milestone1 without
-      # disturbing the dist artifact checks above, and pin it to the same approved expected SHA.
       - name: Build exact Milestone 1 candidate (dist-milestone1)
         shell: bash
         run: |
@@ -124,8 +105,6 @@ jobs:
       - name: Run Liquid/Liquid Chromium contract gate
         run: node chromium/run_ll_cutover_contract.js
 
-      # F1 — authoritative exact-candidate Milestone 1 self-test, lifted verbatim from
-      # .github/workflows/verify-milestone1-correctness.yml @ d71e16f (blob bb72f0a5).
       - name: Make hook uniqueness assertion mode-aware
         shell: bash
         run: |
@@ -167,3 +146,23 @@ jobs:
             test "$(sha256sum "$file" | awk '{print $1}')" = "$protected"
           done
           test "$(sha256sum corrected/Kalkulator_build9.6-rc8_step3_4.src.html | awk '{print $1}')" = "$source"
+
+  measure-validation-logic-hashes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout prospective PR merge result
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - name: Record trust-critical validation logic SHA-256
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            chromium/verify_milestone1_selftest.js \
+            chromium/milestone1_selftest.html \
+            chromium/server.js \
+            chromium/run_chromium.js \
+            chromium/run_ll_cutover_contract.js
