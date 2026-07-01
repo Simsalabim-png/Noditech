@@ -44,6 +44,19 @@ jobs:
             echo "note: tested commit is the prospective merge result, not the branch head (expected for a merge gate)"
           fi
 
+      - name: Verify trust-critical validation logic anchors
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > validation-logic-sha256.txt <<'EOF'
+          10d5c616ddf5b341ff35496d77cae999ea0bb89d4ef3afe0f58c71af78dd3e19  chromium/verify_milestone1_selftest.js
+          8e8db6954e5171edfb2dbb0c3699d95d7d083fe0b0368ee01b6134d1ca7dbd11  chromium/milestone1_selftest.html
+          743833dad47aa2f3451d79e9f383ee1f48323bf05cdad9307a617736ed2cc83a  chromium/server.js
+          8eec353df2dc0527318793d3064760e2f15e227baf71a073f09c13d56e7e67a1  chromium/run_chromium.js
+          88e87993e7d52c11474bdd428fa00af253050314a6d6e61bc335d1bb985e0ae1  chromium/run_ll_cutover_contract.js
+          EOF
+          sha256sum -c validation-logic-sha256.txt
+
       - name: Run complete named validation suite
         run: node --test tests/validation/*.test.js tests/build/*.test.js tests/engine/*.test.js
 
@@ -146,32 +159,3 @@ jobs:
             test "$(sha256sum "$file" | awk '{print $1}')" = "$protected"
           done
           test "$(sha256sum corrected/Kalkulator_build9.6-rc8_step3_4.src.html | awk '{print $1}')" = "$source"
-
-  measure-validation-logic-hashes:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    env:
-      GH_TOKEN: ${{ github.token }}
-      REPOSITORY: ${{ github.repository }}
-      TESTED_SHA: ${{ github.sha }}
-    steps:
-      - name: Fetch and hash trust-critical validation logic
-        shell: bash
-        run: |
-          set -euo pipefail
-          files=(
-            chromium/verify_milestone1_selftest.js
-            chromium/milestone1_selftest.html
-            chromium/server.js
-            chromium/run_chromium.js
-            chromium/run_ll_cutover_contract.js
-          )
-          for file in "${files[@]}"; do
-            curl --fail --silent --show-error --location \
-              --header "Authorization: Bearer ${GH_TOKEN}" \
-              --header "Accept: application/vnd.github.raw+json" \
-              --header "X-GitHub-Api-Version: 2022-11-28" \
-              --output "$(basename "$file")" \
-              "https://api.github.com/repos/${REPOSITORY}/contents/${file}?ref=${TESTED_SHA}"
-            sha256sum "$(basename "$file")" | sed "s#  #  ${file} #"
-          done
