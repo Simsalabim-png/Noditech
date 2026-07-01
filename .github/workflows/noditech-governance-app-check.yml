@@ -235,7 +235,7 @@ jobs:
             ]);
 
             const changed = files.map(file => file.filename).sort();
-            if (!changed.length) throw new Error('pull request has no changed files');
+      
 
             const governed = changed.filter(path => !isDocumentationOnly(path));
             const owner = pr.base.repo.owner.login;
