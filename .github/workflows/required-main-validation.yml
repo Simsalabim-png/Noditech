@@ -48,6 +48,17 @@ jobs:
             echo "note: tested commit is the prospective merge result, not the branch head (expected for a merge gate)"
           fi
 
+      - name: Record trust-critical validation logic SHA-256
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            chromium/verify_milestone1_selftest.js \
+            chromium/milestone1_selftest.html \
+            chromium/server.js \
+            chromium/run_chromium.js \
+            chromium/run_ll_cutover_contract.js
+
       - name: Run complete named validation suite
         run: node --test tests/validation/*.test.js tests/build/*.test.js tests/engine/*.test.js
 
