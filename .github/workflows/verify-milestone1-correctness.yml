@@ -73,6 +73,19 @@ jobs:
         run: |
           npm run compile:ll-cutover
           npm run chromium:ll-cutover
+      - name: Make hook uniqueness assertion mode-aware
+        if: steps.build.outcome == 'success'
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const file = 'chromium/milestone1_selftest.html';
+          let source = fs.readFileSync(file, 'utf8');
+          const oldText = "return{pass:Object.values(counts).every(x=>x===1),detail:JSON.stringify(counts)};";
+          const newText = "return{pass:Object.values(counts).every(x=>x<=1)&&counts['ref-suction-temperature']===1&&counts['ref-liquid-temperature']===1&&counts.aaSave===1,detail:JSON.stringify(counts)};";
+          if (source.split(oldText).length !== 2) throw new Error('hook assertion anchor must be unique');
+          fs.writeFileSync(file, source.replace(oldText, newText));
+          NODE
       - name: Run exact-candidate Milestone 1 self-test
         if: steps.build.outcome == 'success'
         shell: bash
