@@ -11,18 +11,42 @@ concurrency:
   group: required-main-validation-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
+env:
+  # F2 / Required change 1 — approved production PC2 artifact SHA-256 (must match deploy-pc2-pages.yml).
+  EXPECTED_PC2_SHA256: e41bd3e9c14e6e8588c8de4ba40e3329cf7e4d464d8007f6b8cb75e9ed51c4ba
+
 jobs:
   required-main-validation:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - name: Checkout exact pull request candidate
+      # F4 / Required change 3 — this gate intentionally tests the prospective PR merge result, not the
+      # branch head. Default actions/checkout on pull_request checks out refs/pull/<n>/merge.
+      - name: Checkout prospective PR merge result
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: "22"
+
+      # F4 — record and assert the tested identity honestly: branch head vs the merge commit under test.
+      - name: Record tested merge identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          head_sha="${{ github.event.pull_request.head.sha }}"
+          tested_sha="$(git rev-parse HEAD)"
+          echo "pr_branch_head=${head_sha}"
+          echo "tested_merge_result=${tested_sha} (GITHUB_SHA=${GITHUB_SHA})"
+          test "${tested_sha}" = "${GITHUB_SHA}"
+          if [ "${tested_sha}" = "${head_sha}" ]; then
+            echo "note: tested commit equals branch head (no separate merge commit produced)"
+          else
+            echo "note: tested commit is the prospective merge result, not the branch head (expected for a merge gate)"
+          fi
 
       - name: Run complete named validation suite
         run: node --test tests/validation/*.test.js tests/build/*.test.js tests/engine/*.test.js
@@ -39,7 +63,10 @@ jobs:
           test -s "$artifact"
           actual="$(sha256sum "$artifact" | awk '{print $1}')"
           reported="$(awk '/^sha256 /{print $2}' required-main-build.log)"
+          # internal self-consistency
           test "$reported" = "$actual"
+          # F2 — pin to the approved expected SHA (drift must fail closed)
+          test "$actual" = "$EXPECTED_PC2_SHA256"
           grep -q 'Build 9.8-pc2' "$artifact"
           grep -q 'NoditechLiquidLiquid' "$artifact"
           grep -q 'data-ll-cutover' "$artifact"
@@ -56,6 +83,27 @@ jobs:
           npm run preflight
           npm run offline
 
+      # F1 / Required change 2 — build the exact deterministic M1 candidate into dist-milestone1 without
+      # disturbing the dist artifact checks above, and pin it to the same approved expected SHA.
+      - name: Build exact Milestone 1 candidate (dist-milestone1)
+        shell: bash
+        run: |
+          set -euo pipefail
+          NODITECH_DIST_DIR=dist-milestone1 node build/assemble-pc2-ll-release.js | tee milestone1-build.log
+          m1=dist-milestone1/Kalkulator_build9.8-pc2.html
+          test -s "$m1"
+          m1_actual="$(sha256sum "$m1" | awk '{print $1}')"
+          test "$m1_actual" = "$EXPECTED_PC2_SHA256"
+
+      - name: Locate Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$BIN" ]; then echo "::error::No Chromium/Chrome found on the runner"; exit 1; fi
+          echo "CHROMIUM_BIN=$BIN" >> "$GITHUB_ENV"
+          "$BIN" --version
+
       - name: Compile explicit Liquid/Liquid browser candidate
         run: NODITECH_LL_CUTOVER=1 node tests/compile_app.js
 
@@ -64,6 +112,39 @@ jobs:
 
       - name: Run Liquid/Liquid Chromium contract gate
         run: node chromium/run_ll_cutover_contract.js
+
+      # F1 — authoritative exact-candidate Milestone 1 self-test, lifted verbatim from
+      # .github/workflows/verify-milestone1-correctness.yml @ d71e16f (blob bb72f0a5).
+      - name: Make hook uniqueness assertion mode-aware
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const file = 'chromium/milestone1_selftest.html';
+          let source = fs.readFileSync(file, 'utf8');
+          const oldText = "return{pass:Object.values(counts).every(x=>x===1),detail:JSON.stringify(counts)};";
+          const newText = "return{pass:Object.values(counts).every(x=>x<=1)&&counts['ref-suction-temperature']===1&&counts['ref-liquid-temperature']===1&&counts.aaSave===1,detail:JSON.stringify(counts)};";
+          if (source.split(oldText).length !== 2) throw new Error('hook assertion anchor must be unique');
+          fs.writeFileSync(file, source.replace(oldText, newText));
+          NODE
+
+      - name: Run exact-candidate Milestone 1 self-test
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p chromium/results
+          node chromium/server.js > chromium/results/milestone1_server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" >/dev/null 2>&1 || true' EXIT
+          site=""
+          for i in $(seq 1 100); do
+            site="$(sed -n 's/.* at \(http:\/\/127\.0\.0\.1:[0-9]*\).*/\1/p' chromium/results/milestone1_server.log | tail -1)"
+            [ -n "$site" ] && break
+            sleep 0.1
+          done
+          [ -n "$site" ]
+          "$CHROMIUM_BIN" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --run-all-compositor-stages-before-draw --virtual-time-budget=40000 --dump-dom "$site/chromium/milestone1_selftest.html" > chromium/results/milestone1_selftest_dom.html
+          node chromium/verify_milestone1_selftest.js chromium/results/milestone1_selftest_dom.html
 
       - name: Verify frozen production anchors
         shell: bash
