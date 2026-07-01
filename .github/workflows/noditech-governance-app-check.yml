@@ -39,7 +39,7 @@ jobs:
           INSTALLATION_ID: ${{ secrets.NODITECH_GOV_INSTALLATION_ID }}
           APP_PRIVATE_KEY: ${{ secrets.NODITECH_GOV_PRIVATE_KEY }}
           REPOSITORY: ${{ github.repository }}
-          EVENT_PATH: ${{ github.event_path }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
         run: |
           set -euo pipefail
           node <<'NODE'
@@ -53,21 +53,24 @@ jobs:
           const installationId = process.env.INSTALLATION_ID;
           const privateKey = process.env.APP_PRIVATE_KEY;
           const repository = process.env.REPOSITORY;
-          const eventPath = process.env.EVENT_PATH;
+          const prNumber = Number(process.env.PR_NUMBER);
+                   const missing = [
+            ['APP_ID', appId],
+            ['INSTALLATION_ID', installationId],
+            ['APP_PRIVATE_KEY', privateKey],
+            ['REPOSITORY', repository],
+            ['PR_NUMBER', Number.isInteger(prNumber) && prNumber > 0 ? String(prNumber) : '']
+          ].filter(([, value]) => !value).map(([name]) => name);
 
-          if (!appId || !installationId || !privateKey || !repository || !eventPath) {
-            throw new Error('required GitHub App configuration is missing');
-          }
-
-          const event = JSON.parse(fs.readFileSync(eventPath, 'utf8'));
-          const prNumber = event.pull_request?.number || event.issue?.number;
-          if (!Number.isInteger(prNumber)) {
-            throw new Error('event does not identify a pull request');
+          if (missing.length) {
+            throw new Error(`required GitHub App configuration is missing: ${missing.join(', ')}`);
           }
 
           function b64url(value) {
             return Buffer.from(value)
               .toString('base64')
+
+          
               .replace(/=/g, '')
               .replace(/\+/g, '-')
               .replace(/\//g, '_');
