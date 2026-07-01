@@ -1,0 +1,73 @@
+name: required-main-validation
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: required-main-validation-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  required-main-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact pull request candidate
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+
+      - name: Run complete named validation suite
+        run: node --test tests/validation/*.test.js tests/build/*.test.js tests/engine/*.test.js
+
+      - name: Verify reproducible build
+        run: node build/verify-reproducible.js
+
+      - name: Build and validate deterministic release artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          node build/assemble-pc2-ll-release.js | tee required-main-build.log
+          artifact=dist/Kalkulator_build9.8-pc2.html
+          test -s "$artifact"
+          actual="$(sha256sum "$artifact" | awk '{print $1}')"
+          reported="$(awk '/^sha256 /{print $2}' required-main-build.log)"
+          test "$reported" = "$actual"
+          grep -q 'Build 9.8-pc2' "$artifact"
+          grep -q 'NoditechLiquidLiquid' "$artifact"
+          grep -q 'data-ll-cutover' "$artifact"
+          grep -q 'CoolProp 7.2.0 INCOMP' "$artifact"
+          if grep -Eqi 'text/babel|https://cdnjs.cloudflare.com|fonts.googleapis.com' "$artifact"; then
+            echo '::error::release artifact contains a forbidden browser dependency'
+            exit 1
+          fi
+
+      - name: Run integration gates
+        run: |
+          npm run extract
+          npm run compile
+          npm run preflight
+          npm run offline
+
+      - name: Run Chromium regression gates
+        run: |
+          node chromium/run_chromium.js
+          node chromium/run_ll_cutover_contract.js
+
+      - name: Verify frozen production anchors
+        shell: bash
+        run: |
+          set -euo pipefail
+          protected=b9f8be84731b9038a814ecc32b876d8856d8526ccf28cd35cc1bb1d74167dc50
+          source=d3080ff5fcf0dd539130c6849edb66aa3db9faed11e6b045561d048c76c99210
+          for file in Kalkulator_build9.7-pc6.html index.html Kalkulator.html; do
+            test "$(sha256sum "$file" | awk '{print $1}')" = "$protected"
+          done
+          test "$(sha256sum corrected/Kalkulator_build9.6-rc8_step3_4.src.html | awk '{print $1}')" = "$source"
