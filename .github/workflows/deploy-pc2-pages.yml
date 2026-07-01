@@ -18,6 +18,19 @@ on:
       - "tools/release/**"
       - ".github/workflows/deploy-pc2-pages.yml"
   workflow_dispatch:
+    inputs:
+      expected_ref:
+        description: "Exact branch or tag to deploy"
+        required: true
+        default: "safe-release-20260701-pr60"
+      expected_sha:
+        description: "Exact commit SHA to deploy"
+        required: true
+        default: "fa61f81dc94f934c2cdd421e3267b70cfa243268"
+      deploy:
+        description: "Set to true to deploy"
+        required: true
+        default: "false"
 
 permissions:
   contents: read
@@ -34,7 +47,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
+        if: github.event_name != 'workflow_dispatch'
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Checkout requested ref
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          ref: ${{ github.event.inputs.expected_ref }}
+          fetch-depth: 0
+
+      - name: Verify requested SHA
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          EXPECTED_DEPLOY_SHA: ${{ github.event.inputs.expected_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_DEPLOY_SHA"
+          echo "Verified requested SHA: $EXPECTED_DEPLOY_SHA"
 
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -63,7 +94,9 @@ jobs:
           npm run offline
 
   deploy:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy == 'true')
     needs: verify
     runs-on: ubuntu-latest
     permissions:
@@ -75,7 +108,25 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
+        if: github.event_name != 'workflow_dispatch'
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Checkout requested ref
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          ref: ${{ github.event.inputs.expected_ref }}
+          fetch-depth: 0
+
+      - name: Verify requested SHA
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          EXPECTED_DEPLOY_SHA: ${{ github.event.inputs.expected_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_DEPLOY_SHA"
+          echo "Verified requested SHA: $EXPECTED_DEPLOY_SHA"
 
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
