@@ -150,19 +150,28 @@ jobs:
   measure-validation-logic-hashes:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      TESTED_SHA: ${{ github.sha }}
     steps:
-      - name: Checkout prospective PR merge result
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-        with:
-          persist-credentials: false
-
-      - name: Record trust-critical validation logic SHA-256
+      - name: Fetch and hash trust-critical validation logic
         shell: bash
         run: |
           set -euo pipefail
-          sha256sum \
-            chromium/verify_milestone1_selftest.js \
-            chromium/milestone1_selftest.html \
-            chromium/server.js \
-            chromium/run_chromium.js \
+          files=(
+            chromium/verify_milestone1_selftest.js
+            chromium/milestone1_selftest.html
+            chromium/server.js
+            chromium/run_chromium.js
             chromium/run_ll_cutover_contract.js
+          )
+          for file in "${files[@]}"; do
+            curl --fail --silent --show-error --location \
+              --header "Authorization: Bearer ${GH_TOKEN}" \
+              --header "Accept: application/vnd.github.raw+json" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              --output "$(basename "$file")" \
+              "https://api.github.com/repos/${REPOSITORY}/contents/${file}?ref=${TESTED_SHA}"
+            sha256sum "$(basename "$file")" | sed "s#  #  ${file} #"
+          done
