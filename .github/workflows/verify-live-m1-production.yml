@@ -1,0 +1,40 @@
+name: verify-live-m1-production
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/verify-live-m1-production.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify-live-m1-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SITE_URL: https://simsalabim-png.github.io/Noditech/
+      EXPECTED_SHA256: e41bd3e9c14e6e8588c8de4ba40e3329cf7e4d464d8007f6b8cb75e9ed51c4ba
+    steps:
+      - name: Verify published M1 production
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 6 --retry-delay 10 --retry-all-errors --output published.html "$SITE_URL"
+          curl --fail --location --retry 6 --retry-delay 10 --retry-all-errors --output SHA256.txt "${SITE_URL}SHA256.txt"
+          actual="$(sha256sum published.html | awk '{print $1}')"
+          test "$actual" = "$EXPECTED_SHA256"
+          grep -q "$EXPECTED_SHA256" SHA256.txt
+          grep -q 'Build 9.8-pc2' published.html
+          grep -q '2026-06-30' published.html
+          grep -q '4798e55eefee' published.html
+          grep -q 'data-m1-field' published.html
+          grep -q 'data-m1-result' published.html
+          grep -q 'data-ll-cutover' published.html
+          grep -q 'CoolProp 7.2.0 INCOMP' published.html
+          if grep -Eqi 'text/babel|https://cdnjs.cloudflare.com|fonts.googleapis.com' published.html; then
+            echo '::error::published artifact contains a forbidden browser dependency'
+            exit 1
+          fi
+          echo "Published M1 production verified: $actual"
