@@ -52,7 +52,7 @@ function transformLiqLiqCutover(source) {
     `  const _llApi=(typeof window!=="undefined"&&window.NoditechLiquidLiquid)?window.NoditechLiquidLiquid:null;\n` +
     `  ${productionProviderBrowserSource('_llGlycolLookup')}\n` +
     `  const _llState={unit,operatingMode,cFt,cGp,cGlyKind,cTi,cTo,cF,hFt,hGp,hGlyKind,hTi,hTo,hF,pw,job,uid,ref,measDate};\n` +
-    `  const _llRelevantFields=["operatingMode","cFt","cGp","cGlyKind","cTi","cTo","cF","hFt","hGp","hGlyKind","hTi","hTo","hF","pw"];\n` +
+    `  const _llRelevantFields=["operatingMode","cFt","cGp","cTi","cTo","cF","hFt","hGp","hTi","hTo","hF","pw"];\n` +
     `  const _llFingerprint=JSON.stringify({operatingMode,cFt,cGp,cGlyKind,cTi,cTo,cF,hFt,hGp,hGlyKind,hTi,hTo,hF,pw});\n` +
     `  const _llExample=!llConfirmed&&_llRelevantFields.some(k=>llTouched[k]!==true);\n` +
     `  const _llOverrideActive=llOverride&&llOverride.inputsFingerprint===_llFingerprint;\n` +
@@ -126,13 +126,11 @@ function transformLiqLiqCutover(source) {
   const touchReplacements = [
     ['onChange={setCFt}', 'onChange={_llTouch("cFt",setCFt)}'],
     ['onChange={setCGp}', 'onChange={_llTouch("cGp",setCGp)}'],
-    ['onChange={e=>setCGlyKind(e.target.value)}', 'onChange={e=>_llTouch("cGlyKind",setCGlyKind)(e.target.value)}'],
     ['onChange={setCTi}', 'onChange={_llTouch("cTi",setCTi)}'],
     ['onChange={setCTo}', 'onChange={_llTouch("cTo",setCTo)}'],
     ['onChange={setCF}', 'onChange={_llTouch("cF",setCF)}'],
     ['onChange={setHFt}', 'onChange={_llTouch("hFt",setHFt)}'],
     ['onChange={setHGp}', 'onChange={_llTouch("hGp",setHGp)}'],
-    ['onChange={e=>setHGlyKind(e.target.value)}', 'onChange={e=>_llTouch("hGlyKind",setHGlyKind)(e.target.value)}'],
     ['onChange={setHTi}', 'onChange={_llTouch("hTi",setHTi)}'],
     ['onChange={setHTo}', 'onChange={_llTouch("hTo",setHTo)}'],
     ['onChange={setHF}', 'onChange={_llTouch("hF",setHF)}'],
