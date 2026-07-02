@@ -14,13 +14,6 @@ function replaceOnce(source, anchor, replacement, label) {
   return source.slice(0, first) + replacement + source.slice(first + anchor.length);
 }
 
-function replaceOptional(source, anchor, replacement) {
-  const first = source.indexOf(anchor);
-  if (first < 0) return source;
-  if (source.indexOf(anchor, first + anchor.length) >= 0) return source;
-  return source.slice(0, first) + replacement + source.slice(first + anchor.length);
-}
-
 function mapSection(source, startAnchor, endAnchor, transform, label) {
   const start = source.indexOf(startAnchor);
   const end = source.indexOf(endAnchor, start + startAnchor.length);
@@ -101,16 +94,36 @@ function applyAirAirFinalGuards(html) {
 function applyMilestone1Hooks(html) {
   let out = html;
   out = replaceOnce(out, "'aria-invalid': bad ? 'true' : 'false',", "'data-m1-field': props['data-m1-field'],\n    min: min,\n    max: max,\n    'aria-invalid': bad ? 'true' : 'false',", 'FloatInput data-m1-field forward');
-  out = replaceOptional(out, 'value: wTi,\n    onChange: setWTi,', 'value: wTi,\n    "data-m1-field": "al-liquid-inlet",\n    onChange: setWTi,');
-  out = replaceOptional(out, 'value: wTo,\n    onChange: setWTo,', 'value: wTo,\n    "data-m1-field": "al-liquid-outlet",\n    onChange: setWTo,');
-  out = replaceOptional(out, 'value: sT,\n    onChange: setST,', 'value: sT,\n    "data-m1-field": "ref-suction-temperature",\n    onChange: setST,');
-  out = replaceOptional(out, 'value: liqT,\n    onChange: setLiqT || (v => {}),', 'value: liqT,\n    "data-m1-field": "ref-liquid-temperature",\n    onChange: setLiqT || (v => {}),');
-  out = replaceOptional(out, 'value: t2meas,\n      onChange: setT2meas,', 'value: t2meas,\n      "data-m1-field": "ref-discharge-temperature",\n      onChange: setT2meas,');
-  out = replaceOptional(out, 'React.createElement("div", {\n    className: "rv",\n    style: {\n      color: \'#0ea5e9\'\n    }\n  }, fmt(Qw, 4), " kW")', 'React.createElement("div", {\n    "data-m1-result": "al-liquid-q",\n    className: "rv",\n    style: {\n      color: \'#0ea5e9\'\n    }\n  }, fmt(Qw, 4), " kW")');
-  out = replaceOptional(out, '"data-testid": "total-capacity"', '"data-testid": "total-capacity",\n    "data-m1-result": "aa-total-capacity"');
-  out = replaceOptional(out, 'onClick: save,\n    disabled: !_aaOK,', 'onClick: save,\n    "data-m1-save": "air-air",\n    disabled: !_aaOK,');
-  out = replaceOptional(out, 'onClick: save,\n    disabled: !_eval.saveAllowed,', 'onClick: save,\n    "data-m1-save": "air-liquid",\n    disabled: !_eval.saveAllowed,');
+  out = replaceOnce(out, 'value: wTi,\n    onChange: setWTi,', 'value: wTi,\n    "data-m1-field": "al-liquid-inlet",\n    onChange: setWTi,', 'A/L inlet hook');
+  out = replaceOnce(out, 'value: wTo,\n    onChange: setWTo,', 'value: wTo,\n    "data-m1-field": "al-liquid-outlet",\n    onChange: setWTo,', 'A/L outlet hook');
+  out = replaceOnce(out, 'value: sT,\n    onChange: setST,', 'value: sT,\n    "data-m1-field": "ref-suction-temperature",\n    onChange: setST,', 'ref suction hook');
+  out = replaceOnce(out, 'value: liqT,\n    onChange: setLiqT || (v => {}),', 'value: liqT,\n    "data-m1-field": "ref-liquid-temperature",\n    onChange: setLiqT || (v => {}),', 'ref liquid hook');
+  out = replaceOnce(out, 'value: t2meas,\n      onChange: setT2meas,', 'value: t2meas,\n      "data-m1-field": "ref-discharge-temperature",\n      onChange: setT2meas,', 'ref discharge hook');
+  out = replaceOnce(out, 'React.createElement("div", {\n    className: "rv",\n    style: {\n      color: \'#0ea5e9\'\n    }\n  }, fmt(Qw, 4), " kW")', 'React.createElement("div", {\n    "data-m1-result": "al-liquid-q",\n    className: "rv",\n    style: {\n      color: \'#0ea5e9\'\n    }\n  }, fmt(Qw, 4), " kW")', 'A/L liquid Q hook');
+  out = replaceOnce(out, '"data-testid": "total-capacity"', '"data-testid": "total-capacity",\n    "data-m1-result": "aa-total-capacity"', 'A/A total capacity hook');
+  out = replaceOnce(out, 'onClick: save,\n    disabled: !_aaOK,', 'onClick: save,\n    "data-m1-save": "air-air",\n    disabled: !_aaOK,', 'A/A save hook');
+  out = replaceOnce(out, 'onClick: save,\n    disabled: !_eval.saveAllowed,', 'onClick: save,\n    "data-m1-save": "air-liquid",\n    disabled: !_eval.saveAllowed,', 'A/L save hook');
   return out;
+}
+
+const EXPECTED_M1_HOOKS = Object.freeze([
+  '"data-m1-field": "al-liquid-inlet"',
+  '"data-m1-field": "al-liquid-outlet"',
+  '"data-m1-field": "ref-suction-temperature"',
+  '"data-m1-field": "ref-liquid-temperature"',
+  '"data-m1-field": "ref-discharge-temperature"',
+  '"data-m1-result": "al-liquid-q"',
+  '"data-m1-result": "aa-total-capacity"',
+  '"data-m1-save": "air-air"',
+  '"data-m1-save": "air-liquid"',
+]);
+
+function assertMilestone1Hooks(html) {
+  for (const hook of EXPECTED_M1_HOOKS) {
+    const count = html.split(hook).length - 1;
+    if (count !== 1) throw new Error(`milestone1 hook post-condition: ${hook} must appear exactly once (found ${count})`);
+  }
+  return html;
 }
 
 const BUILD_IDENTITY = { version: 'Build 9.8-pc2', date: '2026-06-30' };
@@ -148,6 +161,7 @@ function applyMilestone1ArtifactFinalizer(html) {
   out = applyFieldSafetyArtifactFinalizer(out).html;
   const identity = applyBuildIdentity(out);
   out = identity.html;
+  assertMilestone1Hooks(out);
   const after = {
     airAir: sha256(section(out, 'function AirAir({', 'function AirLiquid({')),
     airLiquid: sha256(section(out, 'function AirLiquid({', 'function LiqLiq({')),
@@ -158,6 +172,8 @@ function applyMilestone1ArtifactFinalizer(html) {
 module.exports = {
   applyMilestone1ArtifactFinalizer,
   applyMilestone1Hooks,
+  assertMilestone1Hooks,
+  EXPECTED_M1_HOOKS,
   applyBuildIdentity,
   appScriptBounds,
   BUILD_IDENTITY,
