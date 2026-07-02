@@ -25,7 +25,9 @@ test('cutover transform is deterministic and injects reviewed browser API', () =
   const second = transformLiqLiqCutover(source);
   assert.equal(first, second);
   assert.match(first, /global\.NoditechLiquidLiquid=Object\.freeze/);
-  assert.match(first, /evaluateLegacyLiquidLiquidState\(_llState,\{glycolLookup:_llGlycolLookup\}\)/);
+  assert.match(first, /evaluateLegacyLiquidLiquidState\(_llState,_llOptions\(null\)\)/);
+  assert.match(first, /measurementConfirmation:_llExample\?"example":"confirmed"/);
+  assert.match(first, /balanceOverride:override\|\|\( _llOverrideActive\?llOverride:null\)/);
   assert.match(first, /typeof glyEval==='function'\?glyEval:null/);
   assert.doesNotMatch(first, /_llApi\.resolveLiquidProperties\(_llEval\.engineInput/);
   assert.match(first, /_llRecord=_llContract\.record/);
@@ -44,18 +46,20 @@ test('A/A and A/L component bytes remain identical', () => {
   );
 });
 
-test('cutover UI, Save, JSON, CSV and print all read from contract', () => {
+test('cutover UI, Save, JSON, CSV and print all read from reportable contract', () => {
   const ll = between(transformLiqLiqCutover(source), 'function LiqLiq(', 'function GuideAA(');
   assert.match(ll, /data-ll-cutover="true"/);
   assert.match(ll, /data-ll-save-allowed=\{_llContract\.saveAllowed\?"true":"false"\}/);
-  assert.match(ll, /if\(!_llContract\.saveAllowed\|\|!_llContract\.record\)return/);
-  assert.match(ll, /const r=_llContract\.record/);
+  assert.match(ll, /function _llReportableContract\(\)/);
+  assert.match(ll, /const c=_llReportableContract\(\)/);
+  assert.match(ll, /if\(!c\|\|!c\.saveAllowed\|\|!c\.record\)return/);
+  assert.match(ll, /const r=c\.record/);
   assert.match(ll, /mode:"Liq\/Liq "\+\(r\.operatingMode==="heating"\?"Heating":"Cooling"\)/);
   assert.match(ll, /Q:fmt\(r\.usefulCapacity_kW,4\)/);
   assert.match(ll, /Qcold:fmt\(r\.cold\.capacity_kW,4\),Qhot:fmt\(r\.hot\.capacity_kW,4\)/);
-  assert.match(ll, /ll_record:r,ll_json:_llContract\.json,ll_csv:_llContract\.csv,ll_print:_llContract\.print/);
-  assert.match(ll, /serializeLiquidLiquidJson\(_llContract\)/);
-  assert.match(ll, /serializeLiquidLiquidCsv\(_llContract\)/);
+  assert.match(ll, /ll_record:r,ll_json:c\.json,ll_csv:c\.csv,ll_print:c\.print/);
+  assert.match(ll, /serializeLiquidLiquidJson\(c\)/);
+  assert.match(ll, /serializeLiquidLiquidCsv\(c\)/);
   assert.match(ll, /data-ll-print-contract="true"/);
   assert.match(ll, /data-ll-action="save"[^>]*disabled=\{!_llContract\.saveAllowed\}/);
   assert.match(ll, /data-ll-action="json"/);
