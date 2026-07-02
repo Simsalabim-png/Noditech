@@ -20,6 +20,14 @@ const EXPECTED = Object.freeze({
     date: '2026-06-30',
     hash: 'a68741249e15',
   }),
+  // NOTE on the airLiquid hashes: they cover the compiled span
+  // 'function AirLiquid({' -> 'function LiqLiq({', and the L/L cutover transform
+  // inserts the build-generated L/L browser bundle between those two anchors.
+  // The airLiquid values therefore change whenever any reviewed L/L module
+  // embedded in the bundle changes (e.g. liquidLiquidContract.js), even when the
+  // AirLiquid component bytes are untouched. Byte-identity of the actual A/A and
+  // A/L components is separately enforced, fail-closed, by the freeze assertions
+  // inside transformLiqLiqCutover ('A/A freeze violation' / 'A/L freeze violation').
   before: Object.freeze({
     airAir: '6af7a16bb8adc2019f72f4f731900f16f9e1268dfb2d0a233049166ccd2b0275',
     airLiquid: '4f4897457f5f70fef7f9a124a4d0e256639974402ac37f5e2a22234d3e47ffa9',
