@@ -103,9 +103,9 @@ function applyMilestone1Hooks(html) {
   out = replaceOnce(out, "'aria-invalid': bad ? 'true' : 'false',", "'data-m1-field': props['data-m1-field'],\n    min: min,\n    max: max,\n    'aria-invalid': bad ? 'true' : 'false',", 'FloatInput data-m1-field forward');
   out = replaceOptional(out, 'value: wTi,\n    onChange: setWTi,', 'value: wTi,\n    "data-m1-field": "al-liquid-inlet",\n    onChange: setWTi,');
   out = replaceOptional(out, 'value: wTo,\n    onChange: setWTo,', 'value: wTo,\n    "data-m1-field": "al-liquid-outlet",\n    onChange: setWTo,');
-  out = replaceOnce(out, 'value: sT,\n    onChange: setST,', 'value: sT,\n    "data-m1-field": "ref-suction-temperature",\n    onChange: setST,', 'ref suction hook');
-  out = replaceOnce(out, 'value: liqT,\n    onChange: setLiqT || (v => {}),', 'value: liqT,\n    "data-m1-field": "ref-liquid-temperature",\n    onChange: setLiqT || (v => {}),', 'ref liquid hook');
-  out = replaceOnce(out, 'value: t2meas,\n      onChange: setT2meas,', 'value: t2meas,\n      "data-m1-field": "ref-discharge-temperature",\n      onChange: setT2meas,', 'ref discharge hook');
+  out = replaceOptional(out, 'value: sT,\n    onChange: setST,', 'value: sT,\n    "data-m1-field": "ref-suction-temperature",\n    onChange: setST,');
+  out = replaceOptional(out, 'value: liqT,\n    onChange: setLiqT || (v => {}),', 'value: liqT,\n    "data-m1-field": "ref-liquid-temperature",\n    onChange: setLiqT || (v => {}),');
+  out = replaceOptional(out, 'value: t2meas,\n      onChange: setT2meas,', 'value: t2meas,\n      "data-m1-field": "ref-discharge-temperature",\n      onChange: setT2meas,');
   out = replaceOnce(out, 'React.createElement("div", {\n    className: "rv",\n    style: {\n      color: \'#0ea5e9\'\n    }\n  }, fmt(Qw, 4), " kW")', 'React.createElement("div", {\n    "data-m1-result": "al-liquid-q",\n    className: "rv",\n    style: {\n      color: \'#0ea5e9\'\n    }\n  }, fmt(Qw, 4), " kW")', 'A/L liquid Q hook');
   out = replaceOnce(out, '"data-testid": "total-capacity"', '"data-testid": "total-capacity",\n    "data-m1-result": "aa-total-capacity"', 'A/A total capacity hook');
   out = replaceOnce(out, 'onClick: save,\n    disabled: !_aaOK,', 'onClick: save,\n    "data-m1-save": "air-air",\n    disabled: !_aaOK,', 'A/A save hook');
