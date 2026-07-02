@@ -54,7 +54,7 @@ function projectRange(body, value, setter, minC, maxC, label) {
   const minF = minC * 9 / 5 + 32;
   const maxF = maxC * 9 / 5 + 32;
   return body.replace(re, (match, indent, onChangeLine) => {
-    const onChange = onChangeLine || `${indent}onChange: ${setter},\n`;
+    const onChange = typeof onChangeLine === 'string' ? onChangeLine : `${indent}onChange: ${setter},\n`;
     return `${indent}value: ${value},\n${onChange}${indent}min: unit === "F" ? ${minF} : ${minC},\n${indent}max: unit === "F" ? ${maxF} : ${maxC},`;
   });
 }
