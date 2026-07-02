@@ -40,7 +40,7 @@ function transformLiqLiqCutover(source) {
   ll = replaceOnce(
     ll,
     'function LiqLiq({unit,job,uid,setLog,setShowLog,pAtm=101500,measDate=""}){\n  const [cFt,setCFt]=useState("water");const [cGp,setCGp]=useState(30);',
-    'function LiqLiq({unit,job,uid,setLog,setShowLog,pAtm=101500,measDate=""}){\n  const [operatingMode,setOperatingMode]=useState("cooling");\n  const [cFt,setCFt]=useState("water");const [cGp,setCGp]=useState(30);',
+    'function LiqLiq({unit,job,uid,setLog,setShowLog,pAtm=101500,measDate=""}){\n  const [operatingMode,setOperatingMode]=useState("cooling");\n  const [llTouched,setLlTouched]=useState({});\n  const [llConfirmed,setLlConfirmed]=useState(false);\n  const [llOverride,setLlOverride]=useState(null);\n  const [cFt,setCFt]=useState("water");const [cGp,setCGp]=useState(30);',
     'component state'
   );
   ll = replaceOnce(ll, 'const [cTi,setCTi]=useState(7);const [cTo,setCTo]=useState(12);', 'const [cTi,setCTi]=useState(12);const [cTo,setCTo]=useState(7);', 'cold defaults');
@@ -48,11 +48,38 @@ function transformLiqLiqCutover(source) {
 
   const evaluation = `  const C=v=>unit==="F"?(v-32)*5/9:v;const F=v=>unit==="F"?v*9/5+32:v;\n` +
     `  const cTiC=C(cTi),cToC=C(cTo),hTiC=C(hTi),hToC=C(hTo);\n` +
+    `  const _llTouch=(field,setter)=>(value)=>{setLlTouched(prev=>Object.assign({},prev,{[field]:true}));setLlConfirmed(false);setLlOverride(null);setter(value);};\n` +
     `  const _llApi=(typeof window!=="undefined"&&window.NoditechLiquidLiquid)?window.NoditechLiquidLiquid:null;\n` +
     `  ${productionProviderBrowserSource('_llGlycolLookup')}\n` +
     `  const _llState={unit,operatingMode,cFt,cGp,cGlyKind,cTi,cTo,cF,hFt,hGp,hGlyKind,hTi,hTo,hF,pw,job,uid,ref,measDate};\n` +
-    `  const _llEval=_llApi?_llApi.evaluateLegacyLiquidLiquidState(_llState,{glycolLookup:_llGlycolLookup}):{engineInput:null,result:{valid:false,code:"browser_bundle_missing",message:"Liquid/Liquid engine is unavailable.",saveAllowed:false,cold:null,hot:null},contract:{valid:false,status:"blocked",code:"browser_bundle_missing",message:"Liquid/Liquid engine is unavailable.",saveAllowed:false,ui:{resultVisible:false,status:"blocked",statusLabel:"BLOCKED",statusMessage:"Liquid/Liquid engine is unavailable.",usefulCapacity_kW:null,cop:null,balanceDeviation_pct:null,energyResidual_kW:null},record:null,json:null,csv:null,print:null}};\n` +
+    `  const _llRelevantFields=["operatingMode","cFt","cGp","cGlyKind","cTi","cTo","cF","hFt","hGp","hGlyKind","hTi","hTo","hF","pw"];\n` +
+    `  const _llFingerprint=JSON.stringify({operatingMode,cFt,cGp,cGlyKind,cTi,cTo,cF,hFt,hGp,hGlyKind,hTi,hTo,hF,pw});\n` +
+    `  const _llExample=!llConfirmed&&_llRelevantFields.some(k=>llTouched[k]!==true);\n` +
+    `  const _llOverrideActive=llOverride&&llOverride.inputsFingerprint===_llFingerprint;\n` +
+    `  const _llOptions=(override)=>({glycolLookup:_llGlycolLookup,measurementConfirmation:_llExample?"example":"confirmed",balanceOverride:override||( _llOverrideActive?llOverride:null)});\n` +
+    `  const _llEval=_llApi?_llApi.evaluateLegacyLiquidLiquidState(_llState,_llOptions(null)):{engineInput:null,result:{valid:false,code:"browser_bundle_missing",message:"Liquid/Liquid engine is unavailable.",saveAllowed:false,cold:null,hot:null},contract:{valid:false,status:"blocked",code:"browser_bundle_missing",message:"Liquid/Liquid engine is unavailable.",saveAllowed:false,ui:{resultVisible:false,status:"blocked",statusLabel:"BLOCKED",statusMessage:"Liquid/Liquid engine is unavailable.",usefulCapacity_kW:null,cop:null,balanceDeviation_pct:null,energyResidual_kW:null},record:null,json:null,csv:null,print:null}};\n` +
     `  const _llResult=_llEval.result,_llContract=_llEval.contract,_llUi=_llContract.ui,_llRecord=_llContract.record;\n` +
+    `  const _llContractWithOverride=(override)=>_llApi?_llApi.evaluateLegacyLiquidLiquidState(_llState,_llOptions(override)).contract:_llContract;\n` +
+    `  const _llTrustedLabel={liquid:"Liquid",air:"Air",none:"Neither / not applicable"};\n` +
+    `  function _llPromptOverride(){\n` +
+    `    const sideRaw=(window.prompt("Energy balance failed. Primary trusted side? Type liquid, air or none.","liquid")||"").trim().toLowerCase();\n` +
+    `    const trustedSide=sideRaw==="liquid"||sideRaw==="air"||sideRaw==="none"?sideRaw:null;\n` +
+    `    if(!trustedSide)return null;\n` +
+    `    const reasonText=(window.prompt("Reason for accepting failed balance?",trustedSide==="liquid"?"Liquid side is the primary trusted measurement":trustedSide==="air"?"Air side is the primary trusted measurement":"Troubleshooting / documentation only")||"").trim();\n` +
+    `    if(!reasonText)return null;\n` +
+    `    const ok=window.confirm("I understand this measurement failed balance validation and should not be used as a validated full-system performance claim without explanation.");\n` +
+    `    if(!ok)return null;\n` +
+    `    return {acknowledged:true,reasonId:"other",reasonLabel:reasonText,reasonText,trustedSide,deviationPct:_llUi.balanceDeviation_pct,acknowledgedAt:new Date().toISOString(),inputsFingerprint:_llFingerprint};\n` +
+    `  }\n` +
+    `  function _llReportableContract(){\n` +
+    `    if(!_llContract.valid)return null;\n` +
+    `    if(_llContract.status!=="failed")return _llContract;\n` +
+    `    if(_llOverrideActive)return _llContract;\n` +
+    `    const override=_llPromptOverride();\n` +
+    `    if(!override)return null;\n` +
+    `    setLlOverride(override);\n` +
+    `    return _llContractWithOverride(override);\n` +
+    `  }\n` +
     `  const _cold=_llRecord?_llRecord.cold:null,_hot=_llRecord?_llRecord.hot:null;\n` +
     `  const cpC=_cold?_cold.cpKJkgK:null,rC=_cold?_cold.densityKgL:null;\n` +
     `  const cpH=_hot?_hot.cpKJkgK:null,rH=_hot?_hot.densityKgL:null;\n` +
@@ -72,32 +99,53 @@ function transformLiqLiqCutover(source) {
   );
 
   const actions = `  function _llDownload(filename,mime,text){\n` +
-    `    if(!_llContract.valid||!text)return;\n` +
+    `    if(!text)return;\n` +
     `    const a=document.createElement("a");a.href="data:"+mime+";charset=utf-8,"+encodeURIComponent(text);a.download=filename;a.click();\n` +
     `  }\n` +
-    `  function exportLlJson(){_llDownload("noditech-liquid-liquid.json","application/json",_llApi.serializeLiquidLiquidJson(_llContract));}\n` +
-    `  function exportLlCsv(){_llDownload("noditech-liquid-liquid.csv","text/csv",_llApi.serializeLiquidLiquidCsv(_llContract));}\n` +
+    `  function exportLlJson(){const c=_llReportableContract();if(c)_llDownload("noditech-liquid-liquid.json","application/json",_llApi.serializeLiquidLiquidJson(c));}\n` +
+    `  function exportLlCsv(){const c=_llReportableContract();if(c)_llDownload("noditech-liquid-liquid.csv","text/csv",_llApi.serializeLiquidLiquidCsv(c));}\n` +
+    `  function printLl(){const c=_llReportableContract();if(c)setTimeout(()=>window.print(),0);}\n` +
     `  function save(){\n` +
-    `    if(!_llContract.saveAllowed||!_llContract.record)return;\n` +
-    `    const r=_llContract.record;\n` +
+    `    const c=_llReportableContract();\n` +
+    `    if(!c||!c.saveAllowed||!c.record)return;\n` +
+    `    const r=c.record;\n` +
     `    const _rs=refrigState(ref,sP,dP,(unit==="F"?C(sT):sT),(unit==="F"?C(liqT):liqT),pAtm/1000);\n` +
     `    const tE=_rs?_rs.tE:null,sh=_rs?_rs.sh:null,tCond=_rs?_rs.tC:null;\n` +
-    `    const entry={id:Date.now(),date:measDate||new Date().toLocaleString(),mode:"Liq/Liq "+(r.operatingMode==="heating"?"Heating":"Cooling"),operatingMode:r.operatingMode,capacityType:r.operatingMode,status:r.status,job:job||"--",uid:uid||"--",ref,` +
+    `    const entry={id:Date.now(),date:measDate||new Date().toLocaleString(),mode:"Liq/Liq "+(r.operatingMode==="heating"?"Heating":"Cooling"),operatingMode:r.operatingMode,capacityType:r.operatingMode,status:r.status,balanceValidation:r.balanceValidation,balanceOverride:r.balanceOverride,measurementConfirmation:r.measurementConfirmation,exampleNote:r.exampleNote,job:job||"--",uid:uid||"--",ref,` +
       `t1:fmt(F(r.cold.inletC),2),t2:fmt(F(r.cold.outletC),2),wb1:"--",wb2:"--",rh1:"--",rh2:"--",` +
       `wTi:fmt(F(r.hot.inletC),2),wTo:fmt(F(r.hot.outletC),2),wF:fmt(r.hot.flowLs,4),af:"--",pw:fmt(r.electricalPower_kW,4),` +
       `Q:fmt(r.usefulCapacity_kW,4),Qw:fmt(r.hot.capacity_kW,4),Qcold:fmt(r.cold.capacity_kW,4),Qhot:fmt(r.hot.capacity_kW,4),eer:fmt(r.cop,4),usefulCapacity_kW:r.usefulCapacity_kW,cop:r.cop,` +
       `energyResidual_kW:r.energyResidual_kW,balanceDeviation_pct:r.balanceDeviation_pct,` +
-      `ll_record:r,ll_json:_llContract.json,ll_csv:_llContract.csv,ll_print:_llContract.print,` +
+      `ll_record:r,ll_json:c.json,ll_csv:c.csv,ll_print:c.print,` +
       `tE:tE!=null?fmt(tE,4):"--",sh:sh!=null?fmt(sh,4):"--",tC:tCond!=null?fmt(tCond,4):"--",sP:fmt(sP,4),dP:fmt(dP,4),unit};\n` +
     `    setLog(p=>[entry,...p]);setShowLog(true);\n` +
     `  }\n`;
 
   ll = replaceBetween(ll, '  function save(){\n', '  const _dTc = Math.abs(cToC-cTiC), _dTh = Math.abs(hToC-hTiC);\n', actions, 'save and export');
 
+  const touchReplacements = [
+    ['onChange={setCFt}', 'onChange={_llTouch("cFt",setCFt)}'],
+    ['onChange={setCGp}', 'onChange={_llTouch("cGp",setCGp)}'],
+    ['onChange={e=>setCGlyKind(e.target.value)}', 'onChange={e=>_llTouch("cGlyKind",setCGlyKind)(e.target.value)}'],
+    ['onChange={setCTi}', 'onChange={_llTouch("cTi",setCTi)}'],
+    ['onChange={setCTo}', 'onChange={_llTouch("cTo",setCTo)}'],
+    ['onChange={setCF}', 'onChange={_llTouch("cF",setCF)}'],
+    ['onChange={setHFt}', 'onChange={_llTouch("hFt",setHFt)}'],
+    ['onChange={setHGp}', 'onChange={_llTouch("hGp",setHGp)}'],
+    ['onChange={e=>setHGlyKind(e.target.value)}', 'onChange={e=>_llTouch("hGlyKind",setHGlyKind)(e.target.value)}'],
+    ['onChange={setHTi}', 'onChange={_llTouch("hTi",setHTi)}'],
+    ['onChange={setHTo}', 'onChange={_llTouch("hTo",setHTo)}'],
+    ['onChange={setHF}', 'onChange={_llTouch("hF",setHF)}'],
+    ['onChange={setPw}', 'onChange={_llTouch("pw",setPw)}'],
+  ];
+  for (const [anchor, replacement] of touchReplacements) {
+    if (ll.indexOf(anchor) >= 0) ll = ll.split(anchor).join(replacement);
+  }
+
   ll = replaceOnce(
     ll,
     '  const _dTc = Math.abs(cToC-cTiC), _dTh = Math.abs(hToC-hTiC);\n  const _issues = validateInputs(\'ll\', {dTc:_dTc, dTh:_dTh, Qc, Qh, cF:cF, hF:hF, pw, eer});\n  return(<>\n    <ValidationBanner issues={_issues}/>',
-    '  const _dTc=Math.abs(cToC-cTiC),_dTh=Math.abs(hToC-hTiC);\n  const _issues=_llContract.valid?validateInputs(\'ll\',{dTc:_dTc,dTh:_dTh,Qc,Qh,cF,hF,pw,eer}):[{level:\'critical\',msg:_llContract.message||\'Liquid/Liquid result is blocked.\'}];\n  return(<div data-ll-cutover="true" data-ll-operating-mode={operatingMode} data-ll-status={_llContract.status} data-ll-code={_llContract.code} data-ll-save-allowed={_llContract.saveAllowed?"true":"false"}>\n    <div className="card no-print" data-ll-mode-select="true">\n      <div className="slbl">Operating Mode</div>\n      <div style={{display:\'flex\',gap:8}}>\n        <button type="button" data-ll-mode="cooling" aria-pressed={operatingMode==="cooling"} className={operatingMode==="cooling"?"bt bt-b":"bt"} onClick={()=>setOperatingMode("cooling")}>Cooling</button>\n        <button type="button" data-ll-mode="heating" aria-pressed={operatingMode==="heating"} className={operatingMode==="heating"?"bt bt-b":"bt"} onClick={()=>setOperatingMode("heating")}>Heating</button>\n      </div>\n    </div>\n    <ValidationBanner issues={_issues}/>',
+    '  const _dTc=Math.abs(cToC-cTiC),_dTh=Math.abs(hToC-hTiC);\n  const _issues=_llContract.valid?validateInputs(\'ll\',{dTc:_dTc,dTh:_dTh,Qc,Qh,cF,hF,pw,eer}):[{level:\'critical\',msg:_llContract.message||\'Liquid/Liquid result is blocked.\'}];\n  return(<div data-ll-cutover="true" data-ll-operating-mode={operatingMode} data-ll-status={_llContract.status} data-ll-code={_llContract.code} data-ll-save-allowed={_llContract.saveAllowed?"true":"false"}>\n    <div className="card no-print" data-ll-mode-select="true">\n      <div className="slbl">Operating Mode</div>\n      <div style={{display:\'flex\',gap:8}}>\n        <button type="button" data-ll-mode="cooling" aria-pressed={operatingMode==="cooling"} className={operatingMode==="cooling"?"bt bt-b":"bt"} onClick={()=>_llTouch("operatingMode",setOperatingMode)("cooling")}>Cooling</button>\n        <button type="button" data-ll-mode="heating" aria-pressed={operatingMode==="heating"} className={operatingMode==="heating"?"bt bt-b":"bt"} onClick={()=>_llTouch("operatingMode",setOperatingMode)("heating")}>Heating</button>\n      </div>\n    </div>\n    <ValidationBanner issues={_issues}/>\n    {_llExample&&<div className="warn" data-ll-example-banner="true">EXAMPLE VALUES — this result includes unmodified example inputs and is not a confirmed field measurement. <button type="button" className="bt bt-y" style={{marginLeft:8,padding:\'4px 8px\'}} onClick={()=>setLlConfirmed(true)}>Confirm measured values</button></div>}\n    {_llOverrideActive&&_llContract.status==="failed"&&<div className="warn" data-ll-override-active="true">Override active: failed balance accepted — {_llTrustedLabel[llOverride.trustedSide]||llOverride.trustedSide} primary — acknowledged {new Date(llOverride.acknowledgedAt).toLocaleString()}</div>}',
     'return and mode selector'
   );
 
@@ -113,12 +161,12 @@ function transformLiqLiqCutover(source) {
 
   ll = replaceOnce(ll, '    <div className="res">\n      <div className="rl2">Results</div>', '    {_llUi.resultVisible?(<div className="res" data-ll-result="visible">\n      <div className="rl2">Results · {_llUi.statusLabel}</div>', 'result open');
   ll = replaceOnce(ll, '<div className="ri big"><div className="rn">Q_cold - Cooling Output</div><div className="rv">{fmt(Qc,4)} kW</div><div className="ru">{fmt(Qc*3412.14,4)} BTU/h - {fmt(Qc/3.517,4)} tons</div></div>', '<div className="ri big" data-ll-useful-capacity="true"><div className="rn">{operatingMode==="cooling"?"Useful Cooling Capacity":"Useful Heating Capacity"}</div><div className="rv">{fmt(_llUi.usefulCapacity_kW,4)} kW</div><div className="ru">{fmt(_llUi.usefulCapacity_kW*3412.14,4)} BTU/h - {fmt(_llUi.usefulCapacity_kW/3.517,4)} tons</div></div>', 'useful capacity card');
-  ll = replaceOnce(ll, '    </div>\n        <SteadyStateChecker/>', '    </div>):(<div className="res" data-ll-result="blocked"><div className="rl2">Results · BLOCKED</div><div className="warn" style={{marginTop:0}}>{_llContract.message}</div><div className="fml"><strong>Code</strong> = {_llContract.code}<br/><strong>No calculated capacity, COP, record or export is available.</strong></div></div>)}\n    {_llUi.resultVisible&&<div className="card print-only" data-ll-print-contract="true"><div className="slbl">Liquid/Liquid Contract</div><div className="fml"><strong>Mode</strong> = {_llContract.print.operatingMode}<br/><strong>Status</strong> = {_llContract.print.status}<br/><strong>Useful capacity</strong> = {fmt(_llContract.print.usefulCapacity_kW,4)} kW<br/><strong>COP</strong> = {fmt(_llContract.print.cop,4)}<br/><strong>Residual</strong> = {fmt(_llContract.print.energyResidual_kW,4)} kW<br/><strong>Balance deviation</strong> = {fmt(_llContract.print.balanceDeviation_pct,4)}%<br/><strong>Cold properties</strong> = {_llContract.print.propertyProvenance.cold}<br/><strong>Hot properties</strong> = {_llContract.print.propertyProvenance.hot}</div></div>}\n        <SteadyStateChecker/>', 'result close and print projection');
+  ll = replaceOnce(ll, '    </div>\n        <SteadyStateChecker/>', '    </div>):(<div className="res" data-ll-result="blocked"><div className="rl2">Results · BLOCKED</div><div className="warn" style={{marginTop:0}}>{_llContract.message}</div><div className="fml"><strong>Code</strong> = {_llContract.code}<br/><strong>No calculated capacity, COP, record or export is available.</strong></div></div>)}\n    {_llUi.resultVisible&&<div className="card print-only" data-ll-print-contract="true"><div className="slbl">Liquid/Liquid Contract</div><div className="fml"><strong>Mode</strong> = {_llContract.print.operatingMode}<br/><strong>Status</strong> = {_llContract.print.status}<br/>{_llContract.print.exampleNote&&<><strong>Measurement confirmation</strong> = example<br/><strong>Example note</strong> = {_llContract.print.exampleNote}<br/></>}{_llContract.print.balanceOverride&&<><strong>{_llContract.print.balanceOverride.title}</strong><br/><strong>Trusted side</strong> = {_llContract.print.balanceOverride.trustedSide}<br/><strong>Reason</strong> = {_llContract.print.balanceOverride.reasonLabel}<br/><strong>Acknowledged</strong> = {_llContract.print.balanceOverride.acknowledgedAt}<br/><strong>Qualifier</strong> = {_llContract.print.balanceOverride.qualifier}<br/></>}<strong>Useful capacity</strong> = {fmt(_llContract.print.usefulCapacity_kW,4)} kW<br/><strong>COP</strong> = {fmt(_llContract.print.cop,4)}<br/><strong>Residual</strong> = {fmt(_llContract.print.energyResidual_kW,4)} kW<br/><strong>Balance deviation</strong> = {fmt(_llContract.print.balanceDeviation_pct,4)}%<br/><strong>Cold properties</strong> = {_llContract.print.propertyProvenance.cold}<br/><strong>Hot properties</strong> = {_llContract.print.propertyProvenance.hot}</div></div>}\n        <SteadyStateChecker/>', 'result close and print projection');
   ll = replaceOnce(ll, '    <UncertaintyPanel mode="ll" Q={Qc} EER={eer} params={{dT:Math.abs(cToC-cTiC)}}/>', '    {_llUi.resultVisible&&<UncertaintyPanel mode="ll" Q={_llUi.usefulCapacity_kW} EER={_llUi.cop} params={{dT:Math.abs(cToC-cTiC)}}/>}', 'uncertainty visibility');
   ll = replaceOnce(
     ll,
     '    <div className="brow no-print">\n      <button className="bt bt-g" onClick={save}>Save Measurement</button>\n      <button className="bt bt-b" onClick={()=>window.print()}>Print / PDF</button>\n    </div>\n  </>);',
-    '    <div className="brow no-print">\n      <button className="bt bt-g" data-ll-action="save" onClick={save} disabled={!_llContract.saveAllowed} style={!_llContract.saveAllowed?{opacity:.5,cursor:\'not-allowed\'}:undefined}>Save Measurement</button>\n      <button className="bt bt-b" data-ll-action="json" onClick={exportLlJson} disabled={!_llContract.saveAllowed}>Export L/L JSON</button>\n      <button className="bt bt-b" data-ll-action="csv" onClick={exportLlCsv} disabled={!_llContract.saveAllowed}>Export L/L CSV</button>\n      <button className="bt bt-b" data-ll-action="print" onClick={()=>window.print()}>Print / PDF</button>\n    </div>\n  </div>);',
+    '    <div className="brow no-print">\n      <button className="bt bt-g" data-ll-action="save" onClick={save} disabled={!_llContract.saveAllowed} style={!_llContract.saveAllowed?{opacity:.5,cursor:\'not-allowed\'}:undefined}>Save Measurement</button>\n      <button className="bt bt-b" data-ll-action="json" onClick={exportLlJson} disabled={!_llContract.saveAllowed}>Export L/L JSON</button>\n      <button className="bt bt-b" data-ll-action="csv" onClick={exportLlCsv} disabled={!_llContract.saveAllowed}>Export L/L CSV</button>\n      <button className="bt bt-b" data-ll-action="print" onClick={printLl}>Print / PDF</button>\n    </div>\n  </div>);',
     'actions and root close'
   );
 
