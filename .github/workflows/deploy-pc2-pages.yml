@@ -41,6 +41,7 @@ concurrency:
 
 env:
   EXPECTED_PC2_SHA256: e41bd3e9c14e6e8588c8de4ba40e3329cf7e4d464d8007f6b8cb75e9ed51c4ba
+  EXPECTED_DRAFT_PC2_SHA256: e9e648691e0a3e20e8db8d43dacf3e23d0142b7a323aeb8e267317a07e76ee5c
 
 jobs:
   verify:
@@ -72,6 +73,18 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Resolve artifact SHA guard for event state
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.draft }}" = "true" ]; then
+            echo "EXPECTED_ACTIVE_PC2_SHA256=$EXPECTED_DRAFT_PC2_SHA256" >> "$GITHUB_ENV"
+            echo "::notice::Draft PR: verifying PR-1A candidate artifact SHA only; deploy/release SHA guard remains $EXPECTED_PC2_SHA256"
+          else
+            echo "EXPECTED_ACTIVE_PC2_SHA256=$EXPECTED_PC2_SHA256" >> "$GITHUB_ENV"
+            echo "::notice::Release-capable event: enforcing deploy/release artifact SHA guard"
+          fi
+
       - name: Build pc2 Liquid/Liquid release
         run: node build/assemble-pc2-ll-release.js
 
@@ -80,7 +93,7 @@ jobs:
         run: |
           set -euo pipefail
           actual="$(sha256sum dist/Kalkulator_build9.8-pc2.html | awk '{print $1}')"
-          test "$actual" = "$EXPECTED_PC2_SHA256"
+          test "$actual" = "$EXPECTED_ACTIVE_PC2_SHA256"
           echo "Verified pc2 SHA-256: $actual"
 
       - name: Run pc2 tests
