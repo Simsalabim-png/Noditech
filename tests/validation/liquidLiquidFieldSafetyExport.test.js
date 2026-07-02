@@ -32,19 +32,22 @@ function waterSide(inletC, outletC, flowLs) {
 }
 
 function failedResult() {
+  // Valid but failed: Q_hot is larger than Q_cold + P_el, so the engine can
+  // compute a thermodynamically possible result while the balance still fails.
   const result = computeLiquidLiquid({
     operatingMode: 'cooling',
     electricalPower_kW: 1.2,
     cold: waterSide(12, 7, 0.5),
-    hot: waterSide(30, 35, 0.3),
+    hot: waterSide(30, 35, 0.8),
   });
   assert.equal(result.valid, true);
+  assert.equal(result.status, 'valid');
   assert.ok(Math.abs(result.balanceDeviation_pct) > 10, `expected failed balance, got ${result.balanceDeviation_pct}`);
   return result;
 }
 
 test('L/L contract carries failed-balance override in record json csv and print projections', () => {
-  const inputsFingerprint = fingerprintInputs({ cTi: 12, cTo: 7, cF: 0.5, hTi: 30, hTo: 35, hF: 0.3, pw: 1.2 });
+  const inputsFingerprint = fingerprintInputs({ cTi: 12, cTo: 7, cF: 0.5, hTi: 30, hTo: 35, hF: 0.8, pw: 1.2 });
   const override = createBalanceOverride({
     reasonId: 'liquid-primary',
     trustedSide: 'liquid',
