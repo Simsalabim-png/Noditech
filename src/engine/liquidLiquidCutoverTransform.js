@@ -65,11 +65,16 @@ function transformLiqLiqCutover(source) {
     `    const sideRaw=(window.prompt("Energy balance failed. Primary trusted side? Type liquid, air or none.","liquid")||"").trim().toLowerCase();\n` +
     `    const trustedSide=sideRaw==="liquid"||sideRaw==="air"||sideRaw==="none"?sideRaw:null;\n` +
     `    if(!trustedSide)return null;\n` +
-    `    const reasonText=(window.prompt("Reason for accepting failed balance?",trustedSide==="liquid"?"Liquid side is the primary trusted measurement":trustedSide==="air"?"Air side is the primary trusted measurement":"Troubleshooting / documentation only")||"").trim();\n` +
+    `    const _llCanonicalReason=trustedSide==="liquid"?"liquid-primary":trustedSide==="air"?"air-primary":"troubleshooting";\n` +
+    `    const _llCanonicalLabel=(_llApi.OVERRIDE_REASONS.find(r=>r.id===_llCanonicalReason)||{label:""}).label;\n` +
+    `    const reasonText=(window.prompt("Reason for accepting failed balance?",_llCanonicalLabel)||"").trim();\n` +
     `    if(!reasonText)return null;\n` +
-    `    const ok=window.confirm("I understand this measurement failed balance validation and should not be used as a validated full-system performance claim without explanation.");\n` +
+    `    const _llMatched=_llApi.OVERRIDE_REASONS.find(r=>r.id!=="other"&&r.label===reasonText)||null;\n` +
+    `    const ok=window.confirm(_llApi.ACK_TEXT);\n` +
     `    if(!ok)return null;\n` +
-    `    return {acknowledged:true,reasonId:"other",reasonLabel:reasonText,reasonText,trustedSide,deviationPct:_llUi.balanceDeviation_pct,acknowledgedAt:new Date().toISOString(),inputsFingerprint:_llFingerprint};\n` +
+    `    try{\n` +
+    `      return _llApi.createBalanceOverride({reasonId:_llMatched?_llMatched.id:"other",reasonText:_llMatched?"":reasonText,trustedSide:trustedSide,deviationPct:_llUi.balanceDeviation_pct,inputsFingerprint:_llFingerprint});\n` +
+    `    }catch(_llErr){return null;}\n` +
     `  }\n` +
     `  function _llReportableContract(){\n` +
     `    if(!_llContract.valid)return null;\n` +

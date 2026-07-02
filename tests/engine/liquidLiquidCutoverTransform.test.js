@@ -5,7 +5,9 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const vm = require('node:vm');
 const { transformLiqLiqCutover } = require('../../src/engine/liquidLiquidCutoverTransform.js');
+const { buildLiquidLiquidBrowserBundle } = require('../../src/engine/liquidLiquidBrowserBundle.js');
 
 const root = path.join(__dirname, '../..');
 const sourcePath = path.join(root, 'corrected/Kalkulator_build9.6-rc8_step3_4.src.html');
@@ -84,4 +86,59 @@ test('protected production files remain at the locked hash', () => {
 test('cutover transform fails closed when a LiqLiq anchor changes', () => {
   const modified = source.replace('function LiqLiq(', 'function LiqLiqChanged(');
   assert.throws(() => transformLiqLiqCutover(modified), /LiqLiq component section not found/);
+});
+
+test('browser bundle exposes the balance override domain factory', () => {
+  const bundle = buildLiquidLiquidBrowserBundle();
+  assert.match(bundle, /createBalanceOverride:_llBalanceOverride\.createBalanceOverride/);
+  assert.match(bundle, /OVERRIDE_REASONS:_llBalanceOverride\.OVERRIDE_REASONS/);
+  assert.match(bundle, /ACK_TEXT:_llBalanceOverride\.ACK_TEXT/);
+
+  const context = vm.createContext({});
+  vm.runInContext(bundle, context);
+  const api = context.NoditechLiquidLiquid;
+  assert.ok(api && typeof api.createBalanceOverride === 'function', 'API exposes createBalanceOverride');
+  assert.ok(Array.isArray(api.OVERRIDE_REASONS) && api.OVERRIDE_REASONS.some(r => r.id === 'troubleshooting'));
+  assert.equal(api.ACK_TEXT.includes('failed balance validation'), true);
+
+  const liquid = api.createBalanceOverride({
+    reasonId: 'liquid-primary',
+    trustedSide: 'liquid',
+    deviationPct: 14.2,
+    inputsFingerprint: 'fp-1',
+    nowIso: '2026-07-02T10:42:00Z',
+  });
+  assert.equal(liquid.reasonId, 'liquid-primary');
+  assert.equal(liquid.reasonLabel, 'Liquid side is the primary trusted measurement');
+  assert.equal(liquid.reasonText, '');
+  assert.ok(Object.isFrozen(liquid));
+
+  const air = api.createBalanceOverride({
+    reasonId: 'air-primary',
+    trustedSide: 'air',
+    deviationPct: -12.5,
+    inputsFingerprint: 'fp-2',
+  });
+  assert.equal(air.reasonId, 'air-primary');
+  assert.notEqual(air.reasonId, 'other');
+  assert.equal(air.reasonLabel, 'Air side is the primary trusted measurement');
+
+  assert.throws(() => api.createBalanceOverride({
+    reasonId: 'other',
+    reasonText: '',
+    trustedSide: 'none',
+    deviationPct: 11,
+    inputsFingerprint: 'fp-3',
+  }), /free text required/);
+});
+
+test('override prompt calls the domain factory instead of building a raw literal', () => {
+  const ll = between(transformLiqLiqCutover(source), 'function LiqLiq(', 'function GuideAA(');
+  assert.match(ll, /_llCanonicalReason=trustedSide==="liquid"\?"liquid-primary":trustedSide==="air"\?"air-primary":"troubleshooting"/);
+  assert.match(ll, /_llApi\.OVERRIDE_REASONS\.find\(r=>r\.id===_llCanonicalReason\)/);
+  assert.match(ll, /_llApi\.OVERRIDE_REASONS\.find\(r=>r\.id!=="other"&&r\.label===reasonText\)/);
+  assert.match(ll, /window\.confirm\(_llApi\.ACK_TEXT\)/);
+  assert.match(ll, /_llApi\.createBalanceOverride\(\{reasonId:_llMatched\?_llMatched\.id:"other",reasonText:_llMatched\?"":reasonText,trustedSide:trustedSide,deviationPct:_llUi\.balanceDeviation_pct,inputsFingerprint:_llFingerprint\}\)/);
+  assert.doesNotMatch(ll, /return \{acknowledged:true,reasonId:"other"/);
+  assert.doesNotMatch(ll, /window\.confirm\("I understand this measurement failed balance validation/);
 });

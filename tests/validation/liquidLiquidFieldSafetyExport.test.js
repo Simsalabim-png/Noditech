@@ -77,6 +77,38 @@ test('L/L contract carries failed-balance override in record json csv and print 
   assert.match(csv, /Liquid side is the primary trusted measurement/);
 });
 
+test('canonical reasonId and reasonLabel survive into every export projection', () => {
+  const override = createBalanceOverride({
+    reasonId: 'liquid-primary',
+    trustedSide: 'liquid',
+    deviationPct: failedResult().balanceDeviation_pct,
+    inputsFingerprint: 'fp-canonical',
+    nowIso: '2026-07-02T10:42:00Z',
+  });
+  const contract = createLiquidLiquidContract(failedResult(), {}, { balanceOverride: override });
+
+  assert.equal(contract.record.balanceOverride.reasonId, 'liquid-primary');
+  assert.equal(contract.json.balanceOverride.reasonId, 'liquid-primary');
+  assert.equal(contract.print.balanceOverride.reasonId, 'liquid-primary');
+  assert.equal(contract.record.balanceOverride.reasonLabel, 'Liquid side is the primary trusted measurement');
+  assert.equal(contract.print.balanceOverride.reasonLabel, 'Liquid side is the primary trusted measurement');
+  assert.notEqual(contract.record.balanceOverride.reasonId, 'other');
+
+  const json = serializeLiquidLiquidJson(contract);
+  assert.match(json, /liquid-primary/);
+
+  const airOverride = createBalanceOverride({
+    reasonId: 'air-primary',
+    trustedSide: 'air',
+    deviationPct: failedResult().balanceDeviation_pct,
+    inputsFingerprint: 'fp-air',
+  });
+  const airContract = createLiquidLiquidContract(failedResult(), {}, { balanceOverride: airOverride });
+  assert.equal(airContract.record.balanceOverride.reasonId, 'air-primary');
+  assert.notEqual(airContract.record.balanceOverride.reasonId, 'other');
+  assert.match(serializeLiquidLiquidCsv(airContract), /Air side is the primary trusted measurement/);
+});
+
 test('L/L contract carries example measurement confirmation without changing numbers', () => {
   const baseline = createLiquidLiquidContract(failedResult(), {}, {});
   const example = createLiquidLiquidContract(failedResult(), {}, { measurementConfirmation: 'example' });

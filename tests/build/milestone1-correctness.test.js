@@ -127,7 +127,7 @@ test('Milestone 1 release build contains canonical, range and result contracts',
   assert.match(a.html, /copCooling/);
   assert.match(a.html, /copHeating/);
   assert.match(a.html, /_aaRes\.entering\.humidityRatio/);
-  assert.match(a.html, /const BUILD_HASH = "a68741249e15";/);
+  assert.match(a.html, /const BUILD_HASH = "af0dd0577593";/);
   assert.doesNotMatch(a.html, /Q = _aaOK \? _aaRes\.totalCapacityKW : 0/);
   assert.doesNotMatch(a.html, /eer = _llUi\.cop,\n    copHeat/);
 });

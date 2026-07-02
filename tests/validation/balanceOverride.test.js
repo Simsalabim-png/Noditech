@@ -46,6 +46,29 @@ test('other reason requires free text and invalid trusted side is rejected', () 
   }), /invalid trustedSide/);
 });
 
+test('canonical reasons keep their ids and labels and never collapse to other', () => {
+  const air = createBalanceOverride({
+    reasonId: 'air-primary',
+    trustedSide: 'air',
+    deviationPct: 12.4,
+    inputsFingerprint: 'fp-air',
+    nowIso: '2026-07-02T10:42:00Z',
+  });
+  assert.equal(air.reasonId, 'air-primary');
+  assert.notEqual(air.reasonId, 'other');
+  assert.equal(air.reasonLabel, 'Air side is the primary trusted measurement');
+  assert.equal(air.reasonText, '');
+
+  const troubleshooting = createBalanceOverride({
+    reasonId: 'troubleshooting',
+    trustedSide: 'none',
+    deviationPct: 18,
+    inputsFingerprint: 'fp-none',
+  });
+  assert.equal(troubleshooting.reasonId, 'troubleshooting');
+  assert.equal(troubleshooting.reasonLabel, 'Troubleshooting / documentation only');
+});
+
 test('override stamp is deterministic and carries qualifier text', () => {
   const override = createBalanceOverride({
     reasonId: 'one-side-indicative',
