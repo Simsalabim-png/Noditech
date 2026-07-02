@@ -3,6 +3,7 @@ name: candidate-full-validation
 on:
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
 
 permissions:
   contents: read
@@ -86,6 +87,10 @@ jobs:
           actual="$(sha256sum "$artifact" | awk '{print $1}')"
           reported="$(awk '/^sha256 /{print $2}' required-main-build.log)"
           test "$reported" = "$actual"
+          if [ "$EXPECTED_ACTIVE_PC2_SHA256" = "$EXPECTED_PC2_SHA256" ] && [ "$actual" = "$EXPECTED_DRAFT_PC2_SHA256" ]; then
+            echo "::error::release-capable validation produced the DRAFT artifact (sha256 ${actual}); the draft artifact SHA is never valid for Ready/release/deploy"
+            exit 1
+          fi
           test "$actual" = "$EXPECTED_ACTIVE_PC2_SHA256"
           grep -q 'Build 9.8-pc2' "$artifact"
           grep -q 'NoditechLiquidLiquid' "$artifact"
