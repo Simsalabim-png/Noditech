@@ -1,13 +1,16 @@
 'use strict';
 
-const {
-  exportStampFromOverride,
-} = require('../domain/balanceOverride.js');
-const {
-  EXAMPLE_EXPORT_NOTE,
-} = require('../domain/measurementConfirmation.js');
-
 const CONTRACT_VERSION = '1';
+
+const EXAMPLE_EXPORT_NOTE =
+  'NOTE: One or more inputs were unmodified example values. This document is not a ' +
+  'confirmed field measurement.';
+
+const OVERRIDE_STAMP_TITLE = 'BALANCE VALIDATION: FAILED — ACCEPTED WITH USER OVERRIDE';
+
+const OVERRIDE_STAMP_QUALIFIER =
+  'This result is printable and storable for documentation purposes, but is not a ' +
+  'validated full-system performance claim without the qualification stated above.';
 
 function finiteOrNull(value) {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
@@ -15,6 +18,20 @@ function finiteOrNull(value) {
 
 function textOrNull(value) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function exportStampFromOverride(override) {
+  if (!override || override.acknowledged !== true) return null;
+  return Object.freeze({
+    title: OVERRIDE_STAMP_TITLE,
+    qualifier: OVERRIDE_STAMP_QUALIFIER,
+    deviationPct: finiteOrNull(override.deviationPct),
+    trustedSide: textOrNull(override.trustedSide),
+    reasonId: textOrNull(override.reasonId),
+    reasonLabel: textOrNull(override.reasonLabel),
+    reasonText: textOrNull(override.reasonText),
+    acknowledgedAt: textOrNull(override.acknowledgedAt),
+  });
 }
 
 function sideProjection(side) {
