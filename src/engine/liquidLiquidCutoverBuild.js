@@ -9,8 +9,7 @@ function buildLiquidLiquidCutoverSource(applicationSource) {
     throw new Error('Validated application source is required for L/L cutover build');
   }
   const dataset = extractProductionGlycolDataset();
-  const hookedApplication = addLiquidLiquidFieldHooks(applicationSource);
-  const transformedApplication = transformLiqLiqCutover(hookedApplication);
+  const transformedApplication = addLiquidLiquidFieldHooks(transformLiqLiqCutover(applicationSource));
   return {
     source: `${dataset.source}\n${transformedApplication}`,
     dataset,
