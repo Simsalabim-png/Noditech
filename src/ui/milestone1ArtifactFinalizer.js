@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const { applyFieldSafetyArtifactFinalizer } = require('./fieldSafetyArtifactFinalizer.js');
 
 function sha256(text) {
   return crypto.createHash('sha256').update(text, 'utf8').digest('hex');
@@ -170,6 +171,7 @@ function applyMilestone1ArtifactFinalizer(html) {
   out = applyLiquidLiquidRanges(out);
   out = applyAirAirFinalGuards(out);
   out = applyMilestone1Hooks(out);
+  out = applyFieldSafetyArtifactFinalizer(out).html;
   const identity = applyBuildIdentity(out);
   out = identity.html;
   const after = {
