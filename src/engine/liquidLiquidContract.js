@@ -1,5 +1,12 @@
 'use strict';
 
+const {
+  exportStampFromOverride,
+} = require('../domain/balanceOverride.js');
+const {
+  EXAMPLE_EXPORT_NOTE,
+} = require('../domain/measurementConfirmation.js');
+
 const CONTRACT_VERSION = '1';
 
 function finiteOrNull(value) {
@@ -38,6 +45,18 @@ function classifyBalance(deviationPct, thresholds) {
   if (absolute <= goodLimit) return 'good';
   if (absolute <= warnLimit) return 'warning';
   return 'failed';
+}
+
+function normalizeMeasurementConfirmation(options) {
+  if (!options || options.measurementConfirmation !== 'example') {
+    return { measurementConfirmation: 'confirmed', exampleNote: null };
+  }
+  return { measurementConfirmation: 'example', exampleNote: EXAMPLE_EXPORT_NOTE };
+}
+
+function normalizeBalanceOverride(options) {
+  const stamp = exportStampFromOverride(options && options.balanceOverride);
+  return stamp ? { balanceValidation: 'failed-override', balanceOverride: stamp } : { balanceValidation: null, balanceOverride: null };
 }
 
 function createLiquidLiquidContract(result, metadata, options) {
@@ -112,6 +131,9 @@ function createLiquidLiquidContract(result, metadata, options) {
   const job = textOrNull(metadata.job);
   const unit = textOrNull(metadata.unit);
   const reference = textOrNull(metadata.reference);
+  const confirmation = normalizeMeasurementConfirmation(options);
+  const overrideProjection = normalizeBalanceOverride(options);
+  const balanceValidation = overrideProjection.balanceValidation || balanceStatus;
 
   const record = {
     schema: 'noditech.liquid-liquid.record',
@@ -123,6 +145,10 @@ function createLiquidLiquidContract(result, metadata, options) {
     reference,
     operatingMode: mode,
     status: balanceStatus,
+    balanceValidation,
+    balanceOverride: overrideProjection.balanceOverride,
+    measurementConfirmation: confirmation.measurementConfirmation,
+    exampleNote: confirmation.exampleNote,
     code: 'ok',
     saveAllowed: true,
     cold,
@@ -158,17 +184,24 @@ function createLiquidLiquidContract(result, metadata, options) {
     tool: 'noditech-calculator',
     mode: 'Liquid/Liquid',
     schemaVersion: CONTRACT_VERSION,
+    balanceValidation,
+    balanceOverride: overrideProjection.balanceOverride,
+    measurementConfirmation: confirmation.measurementConfirmation,
+    exampleNote: confirmation.exampleNote,
     record,
   };
 
   const csvHeaders = [
     'Schema Version','Record ID','Measured At','Mode','Operating Mode','Job','Unit','Reference','Status',
+    'Balance Validation','Balance Override Title','Balance Override Qualifier','Override Trusted Side','Override Reason','Override Acknowledged At','Measurement Confirmation','Example Note',
     'Cold Fluid','Cold Glycol %','Cold Inlet C','Cold Outlet C','Cold Mean C','Cold Flow L/s','Cold Density kg/L','Cold Cp kJ/kgK','Cold Capacity kW','Cold Property Source',
     'Hot Fluid','Hot Glycol %','Hot Inlet C','Hot Outlet C','Hot Mean C','Hot Flow L/s','Hot Density kg/L','Hot Cp kJ/kgK','Hot Capacity kW','Hot Property Source',
     'Electrical Power kW','Useful Capacity kW','COP','COP Cooling','COP Heating','Expected Hot kW','Expected Cold kW','Energy Residual kW','Balance Deviation %'
   ];
+  const override = overrideProjection.balanceOverride || {};
   const csvRow = [
     CONTRACT_VERSION,recordId,measuredAt,'Liquid/Liquid',mode,job,unit,reference,balanceStatus,
+    balanceValidation,override.title || null,override.qualifier || null,override.trustedSide || null,override.reasonLabel || null,override.acknowledgedAt || null,confirmation.measurementConfirmation,confirmation.exampleNote,
     cold.fluid,cold.glycolPercent,cold.inletC,cold.outletC,cold.meanTemperatureC,cold.flowLs,cold.densityKgL,cold.cpKJkgK,cold.capacity_kW,cold.propertySource,
     hot.fluid,hot.glycolPercent,hot.inletC,hot.outletC,hot.meanTemperatureC,hot.flowLs,hot.densityKgL,hot.cpKJkgK,hot.capacity_kW,hot.propertySource,
     electricalPower,usefulCapacity,usefulCop,copCooling,copHeating,expectedHot,expectedCold,residual,deviation,
@@ -178,6 +211,10 @@ function createLiquidLiquidContract(result, metadata, options) {
     title: 'Liquid/Liquid Energy Rating',
     operatingMode: mode,
     status: balanceStatus,
+    balanceValidation,
+    balanceOverride: overrideProjection.balanceOverride,
+    measurementConfirmation: confirmation.measurementConfirmation,
+    exampleNote: confirmation.exampleNote,
     metadata: { recordId, measuredAt, job, unit, reference },
     cold,
     hot,
