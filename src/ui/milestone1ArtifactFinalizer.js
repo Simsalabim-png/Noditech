@@ -43,13 +43,20 @@ function escapeRegExp(value) {
 }
 
 function projectRange(body, value, setter, minC, maxC, label) {
+  const strict = new RegExp(`(^[ \\t]+)value: ${escapeRegExp(value)},\\n\\1onChange: ${escapeRegExp(setter)},\\n\\1min: ${minC},\\n\\1max: ${maxC},`, 'gm');
+  let matches = [...body.matchAll(strict)];
+  let re = strict;
+  if (matches.length !== 1) {
+    re = new RegExp(`(^[ \\t]+)value: ${escapeRegExp(value)},\\n(\\1onChange: [^\\n]+,\\n)\\1min: ${minC},\\n\\1max: ${maxC},`, 'gm');
+    matches = [...body.matchAll(re)];
+  }
+  if (matches.length !== 1) throw new Error(`${label}: anchor count ${matches.length}`);
   const minF = minC * 9 / 5 + 32;
   const maxF = maxC * 9 / 5 + 32;
-  const re = new RegExp(`(^[ \\t]+)value: ${escapeRegExp(value)},\\n(\\1(?:[^\\n]*\\n)*?\\1onChange: [^\\n]+,\\n)(\\1min: ${minC},\\n\\1max: ${maxC},)`, 'm');
-  const match = body.match(re);
-  if (!match) throw new Error(`${label}: anchor count 0`);
-  if (body.slice(match.index + match[0].length).match(re)) throw new Error(`${label}: anchor count >1`);
-  return body.replace(re, `${match[1]}value: ${value},\n${match[2]}${match[1]}min: unit === "F" ? ${minF} : ${minC},\n${match[1]}max: unit === "F" ? ${maxF} : ${maxC},`);
+  return body.replace(re, (match, indent, onChangeLine) => {
+    const onChange = onChangeLine || `${indent}onChange: ${setter},\n`;
+    return `${indent}value: ${value},\n${onChange}${indent}min: unit === "F" ? ${minF} : ${minC},\n${indent}max: unit === "F" ? ${maxF} : ${maxC},`;
+  });
 }
 
 function applyRefrigerantProjection(html) {
