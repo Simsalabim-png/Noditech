@@ -14,11 +14,11 @@ const releaseBuilder = require('../../build/assemble-pc2-ll-release.js');
 const transform = require('../../src/ui/milestone1ArtifactTransform.js');
 
 const EXPECTED = Object.freeze({
-  artifactSha256: '189808b7f3b0146b16fb41ee1042ae80609623189b73ea87b5db1314c06f84cd',
+  artifactSha256: 'dabe8957fe37dc5bced1a73398ae9b0bb872ceff5b462538b6428b0ec69a2910',
   identity: Object.freeze({
     version: 'Build 9.8-pc2',
     date: '2026-06-30',
-    hash: 'af0dd0577593',
+    hash: 'ac2413d9dc35',
   }),
   // NOTE on the airLiquid hashes: they cover the compiled span
   // 'function AirLiquid({' -> 'function LiqLiq({', and the L/L cutover transform
@@ -30,11 +30,11 @@ const EXPECTED = Object.freeze({
   // inside transformLiqLiqCutover ('A/A freeze violation' / 'A/L freeze violation').
   before: Object.freeze({
     airAir: '6af7a16bb8adc2019f72f4f731900f16f9e1268dfb2d0a233049166ccd2b0275',
-    airLiquid: '563279252f35e00913637596c31309c27ff0fc3249ba372abc9fcdd75a32d869',
+    airLiquid: '4b1fe7803487d80d81060377c9ba18a8e9c742a4551bc93e18512cb48f64699e',
   }),
   after: Object.freeze({
     airAir: '53734e338144b47751185b3a94394f6cb364e1dd6fc2754787212e0d42a34fbf',
-    airLiquid: '47a94664d9ebed6408dc1ba503f258a472de0fcbc9cc5d5eb751b019747cbcc3',
+    airLiquid: 'a5e32e9c4f5055d5533b38d341c32d2d89243c5a4a0e42fe8dea6e8a67672d02',
   }),
 });
 
@@ -97,7 +97,7 @@ test('Milestone 1 artifact presents the build-generated 9.8-pc2 identity', { ski
   const { html } = releaseBuilder.build();
   assert.match(html, /const BUILD_VERSION = "Build 9\.8-pc2";/);
   assert.match(html, /const BUILD_DATE = "2026-06-30";/);
-  assert.match(html, /const BUILD_HASH = "af0dd0577593";/);
+  assert.match(html, /const BUILD_HASH = "ac2413d9dc35";/);
   assert.doesNotMatch(html, /Build 9\.6-rc8/);
   assert.doesNotMatch(html, /b6ebc906e926/);
 });

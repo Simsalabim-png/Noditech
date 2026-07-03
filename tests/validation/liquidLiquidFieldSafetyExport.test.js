@@ -123,3 +123,39 @@ test('L/L contract carries example measurement confirmation without changing num
   assert.match(serializeLiquidLiquidJson(example), /unmodified example values/);
   assert.match(serializeLiquidLiquidCsv(example), /Measurement Confirmation/);
 });
+
+test('measurement confirmation fails safe for absent or unknown options', () => {
+  const noOptions = createLiquidLiquidContract(failedResult(), {}, undefined);
+  assert.notEqual(noOptions.record.measurementConfirmation, 'confirmed');
+  assert.equal(noOptions.record.measurementConfirmation, null);
+  assert.equal(noOptions.record.exampleNote, null);
+  assert.equal(noOptions.json.measurementConfirmation, null);
+  assert.equal(noOptions.print.measurementConfirmation, null);
+
+  const emptyOptions = createLiquidLiquidContract(failedResult(), {}, {});
+  assert.equal(emptyOptions.record.measurementConfirmation, null);
+  assert.notEqual(emptyOptions.json.measurementConfirmation, 'confirmed');
+
+  const unknown = createLiquidLiquidContract(failedResult(), {}, { measurementConfirmation: 'banana' });
+  assert.equal(unknown.record.measurementConfirmation, null);
+  assert.equal(unknown.json.measurementConfirmation, null);
+  assert.equal(unknown.print.measurementConfirmation, null);
+  assert.equal(unknown.record.exampleNote, null);
+
+  const confirmed = createLiquidLiquidContract(failedResult(), {}, { measurementConfirmation: 'confirmed' });
+  assert.equal(confirmed.record.measurementConfirmation, 'confirmed');
+  assert.equal(confirmed.json.measurementConfirmation, 'confirmed');
+  assert.equal(confirmed.print.measurementConfirmation, 'confirmed');
+  assert.equal(confirmed.record.exampleNote, null);
+
+  // the CSV projection follows the same normalization
+  assert.match(serializeLiquidLiquidCsv(confirmed), /Measurement Confirmation/);
+  assert.doesNotMatch(serializeLiquidLiquidCsv(noOptions), /\bconfirmed\b/);
+  assert.doesNotMatch(serializeLiquidLiquidCsv(unknown), /\bbanana\b/);
+
+  // numeric outputs are identical across all confirmation states
+  assert.equal(noOptions.record.usefulCapacity_kW, confirmed.record.usefulCapacity_kW);
+  assert.equal(unknown.record.cop, confirmed.record.cop);
+  assert.equal(noOptions.record.balanceDeviation_pct, unknown.record.balanceDeviation_pct);
+  assert.equal(emptyOptions.record.energyResidual_kW, confirmed.record.energyResidual_kW);
+});

@@ -65,10 +65,14 @@ function classifyBalance(deviationPct, thresholds) {
 }
 
 function normalizeMeasurementConfirmation(options) {
-  if (!options || options.measurementConfirmation !== 'example') {
-    return { measurementConfirmation: 'confirmed', exampleNote: null };
-  }
-  return { measurementConfirmation: 'example', exampleNote: EXAMPLE_EXPORT_NOTE };
+  // Fail-safe: only an explicit, known value may assert a confirmation state.
+  // Absent options and unknown values must never fabricate 'confirmed'.
+  const value = options && typeof options.measurementConfirmation === 'string'
+    ? options.measurementConfirmation
+    : null;
+  if (value === 'example') return { measurementConfirmation: 'example', exampleNote: EXAMPLE_EXPORT_NOTE };
+  if (value === 'confirmed') return { measurementConfirmation: 'confirmed', exampleNote: null };
+  return { measurementConfirmation: null, exampleNote: null };
 }
 
 function normalizeBalanceOverride(options) {
