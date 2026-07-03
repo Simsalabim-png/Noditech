@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const { computeLiquidLiquid } = require('../../src/engine/liquidLiquid.js');
 const {
   createLiquidLiquidContract,
+  csvCell,
   serializeLiquidLiquidCsv,
   serializeLiquidLiquidJson,
 } = require('../../src/engine/liquidLiquidContract.js');
@@ -44,6 +45,42 @@ function failedResult() {
   assert.equal(result.status, 'valid');
   assert.ok(Math.abs(result.balanceDeviation_pct) > 10, `expected failed balance, got ${result.balanceDeviation_pct}`);
   return result;
+}
+
+// Quote-aware CSV line parser (RFC 4180) for structural assertions.
+function parseCsvLine(line) {
+  const cells = [];
+  let cell = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"' && line[i + 1] === '"') { cell += '"'; i++; }
+      else if (ch === '"') inQuotes = false;
+      else cell += ch;
+    } else if (ch === '"') inQuotes = true;
+    else if (ch === ',') { cells.push(cell); cell = ''; }
+    else cell += ch;
+  }
+  cells.push(cell);
+  return cells;
+}
+
+function overrideWithReason(reasonText) {
+  return createBalanceOverride({
+    reasonId: 'other',
+    reasonText,
+    trustedSide: 'liquid',
+    deviationPct: failedResult().balanceDeviation_pct,
+    inputsFingerprint: 'fp-hostile',
+    nowIso: '2026-07-03T10:00:00Z',
+  });
+}
+
+function csvColumns(contract) {
+  const csv = serializeLiquidLiquidCsv(contract);
+  const lines = csv.split('\n');
+  return { csv, lines, headers: parseCsvLine(lines[0]), row: parseCsvLine(lines[1]) };
 }
 
 test('L/L contract carries failed-balance override in record json csv and print projections', () => {
@@ -158,4 +195,84 @@ test('measurement confirmation fails safe for absent or unknown options', () => 
   assert.equal(unknown.record.cop, confirmed.record.cop);
   assert.equal(noOptions.record.balanceDeviation_pct, unknown.record.balanceDeviation_pct);
   assert.equal(emptyOptions.record.energyResidual_kW, confirmed.record.energyResidual_kW);
+});
+
+// ---------------------------------------------------------------------------
+// M4 — CSV escaping / formula-injection hardening
+// ---------------------------------------------------------------------------
+
+test('csvCell neutralizes formula triggers in text and never in numbers', () => {
+  // formula triggers, incl. whitespace/control variants that spreadsheets trim
+  assert.equal(csvCell('=HYPERLINK("http://x","y")'), '"\'=HYPERLINK(""http://x"",""y"")"');
+  assert.equal(csvCell('+SUM(1)'), '"\'+SUM(1)"');
+  assert.equal(csvCell('-1+1'), '"\'-1+1"');
+  assert.equal(csvCell('@cmd'), '"\'@cmd"');
+  assert.equal(csvCell('\t=1'), '"\'\t=1"');
+  assert.equal(csvCell('  =1'), '"\'  =1"');
+  assert.equal(csvCell('  +A1'), '"\'  +A1"');
+  // leading tab / CR without a trigger character still neutralized (CR flattened)
+  assert.equal(csvCell('\tcmd'), '"\'\tcmd"');
+  assert.equal(csvCell('\rrun'), '"\' run"');
+  // benign text untouched
+  assert.equal(csvCell('Liquid side is the primary trusted measurement'), '"Liquid side is the primary trusted measurement"');
+  assert.equal(csvCell('a=b inside'), '"a=b inside"');
+  // numbers: bare (quoted, no apostrophe) — negatives stay parseable numbers
+  assert.equal(csvCell(-15.5), '"-15.5"');
+  assert.equal(csvCell(0.5), '"0.5"');
+  // null/undefined behavior unchanged
+  assert.equal(csvCell(null), '""');
+  assert.equal(csvCell(undefined), '""');
+  // RFC-4180: inner quotes doubled, CR/LF flattened to one physical line
+  assert.equal(csvCell('say "hi", ok\nnext'), '"say ""hi"", ok next"');
+});
+
+test('hostile override reason text stays one aligned CSV row and is neutralized', () => {
+  const hostile = ['=HYPERLINK("http://x","y")', '+SUM(1)', '-1+1', '@cmd'];
+  for (const reasonText of hostile) {
+    const contract = createLiquidLiquidContract(failedResult(), {}, { balanceOverride: overrideWithReason(reasonText) });
+    const { lines, headers, row } = csvColumns(contract);
+    assert.equal(lines.length, 2, `one header + one data line for ${reasonText}`);
+    assert.equal(row.length, headers.length, `column alignment for ${reasonText}`);
+    const reasonCell = row[headers.indexOf('Override Reason')];
+    assert.equal(reasonCell, `'${reasonText}`, `neutralized reason for ${reasonText}`);
+    // JSON export is not CSV-neutralized: domain value stays intact there
+    assert.equal(contract.json.balanceOverride.reasonLabel, reasonText);
+  }
+});
+
+test('reason text with comma, quote and newline keeps structure and alignment', () => {
+  const nasty = 'line1\nline2, includes "quotes", and, commas';
+  const contract = createLiquidLiquidContract(failedResult(), {}, { balanceOverride: overrideWithReason(nasty) });
+  const { lines, headers, row } = csvColumns(contract);
+  assert.equal(lines.length, 2, 'newline in text must not add physical CSV lines');
+  assert.equal(row.length, headers.length, 'column alignment preserved');
+  const reasonCell = row[headers.indexOf('Override Reason')];
+  assert.equal(reasonCell, 'line1 line2, includes "quotes", and, commas');
+  // neighbours intact
+  assert.equal(row[headers.indexOf('Override Trusted Side')], 'liquid');
+  assert.equal(row[headers.indexOf('Override Acknowledged At')], '2026-07-03T10:00:00Z');
+});
+
+test('job, unit and reference metadata are formula-neutralized in CSV', () => {
+  const contract = createLiquidLiquidContract(failedResult(), {
+    job: '=2+5', unit: '+A1', reference: '@x',
+  }, {});
+  const { headers, row } = csvColumns(contract);
+  assert.equal(row[headers.indexOf('Job')], "'=2+5");
+  assert.equal(row[headers.indexOf('Unit')], "'+A1");
+  assert.equal(row[headers.indexOf('Reference')], "'@x");
+  // record/json keep the raw metadata (CSV-only neutralization)
+  assert.equal(contract.record.job, '=2+5');
+});
+
+test('numeric CSV cells stay bare numbers and are never neutralized', () => {
+  const contract = createLiquidLiquidContract(failedResult(), {}, {});
+  const { headers, row } = csvColumns(contract);
+  for (const column of ['Balance Deviation %', 'Energy Residual kW', 'Cold Capacity kW', 'Hot Capacity kW', 'Electrical Power kW', 'COP']) {
+    const cell = row[headers.indexOf(column)];
+    assert.ok(!cell.startsWith("'"), `${column} must not be neutralized (got ${cell})`);
+    assert.ok(Number.isFinite(Number(cell)), `${column} must parse as a number (got ${cell})`);
+  }
+  // the failed deviation is a real negative-capable numeric path
+  assert.ok(Math.abs(Number(row[headers.indexOf('Balance Deviation %')])) > 10);
 });

@@ -267,15 +267,29 @@ function createLiquidLiquidContract(result, metadata, options) {
   };
 }
 
-function csvEscape(value) {
-  const text = value == null ? '' : String(value);
+// M4 — CSV hardening at the contract boundary.
+// Every cell is quoted (RFC 4180: inner double quotes doubled). Text cells additionally:
+//  - are formula-neutralized: if the cell starts with =, +, -, @ (optionally after
+//    leading whitespace/control characters that spreadsheet software may trim before
+//    interpreting), or starts with a tab or CR, a leading apostrophe is prefixed so
+//    spreadsheet software treats the cell as text;
+//  - have CR/LF sequences flattened to a single space so one record stays exactly
+//    one physical CSV line.
+// Numeric cells are serialized bare (String(number)) and are NEVER neutralized,
+// so negative numeric values remain parseable numbers.
+function csvCell(value) {
+  if (value == null) return '""';
+  if (typeof value === 'number') return `"${String(value)}"`;
+  let text = String(value);
+  if (/^[\s\u0000-\u001f]*[=+\-@]/.test(text) || /^[\t\r]/.test(text)) text = "'" + text;
+  text = text.replace(/\r\n|\r|\n/g, ' ');
   return `"${text.replace(/"/g, '""')}"`;
 }
 
 function serializeLiquidLiquidCsv(contract) {
   if (!contract || contract.valid !== true || !contract.csv) return null;
   return [contract.csv.headers, contract.csv.row]
-    .map((row) => row.map(csvEscape).join(','))
+    .map((row) => row.map(csvCell).join(','))
     .join('\n');
 }
 
@@ -288,6 +302,7 @@ module.exports = {
   CONTRACT_VERSION,
   classifyBalance,
   createLiquidLiquidContract,
+  csvCell,
   serializeLiquidLiquidCsv,
   serializeLiquidLiquidJson,
 };
