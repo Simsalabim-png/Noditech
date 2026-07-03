@@ -14,19 +14,27 @@ const releaseBuilder = require('../../build/assemble-pc2-ll-release.js');
 const transform = require('../../src/ui/milestone1ArtifactTransform.js');
 
 const EXPECTED = Object.freeze({
-  artifactSha256: 'e41bd3e9c14e6e8588c8de4ba40e3329cf7e4d464d8007f6b8cb75e9ed51c4ba',
+  artifactSha256: 'a6ab0f73b42377790a4d349eb22afac301dec0bd0d149a0fba91e7499801a8dd',
   identity: Object.freeze({
     version: 'Build 9.8-pc2',
     date: '2026-06-30',
-    hash: '4798e55eefee',
+    hash: '5a484fbae1a6',
   }),
+  // NOTE on the airLiquid hashes: they cover the compiled span
+  // 'function AirLiquid({' -> 'function LiqLiq({', and the L/L cutover transform
+  // inserts the build-generated L/L browser bundle between those two anchors.
+  // The airLiquid values therefore change whenever any reviewed L/L module
+  // embedded in the bundle changes (e.g. liquidLiquidContract.js), even when the
+  // AirLiquid component bytes are untouched. Byte-identity of the actual A/A and
+  // A/L components is separately enforced, fail-closed, by the freeze assertions
+  // inside transformLiqLiqCutover ('A/A freeze violation' / 'A/L freeze violation').
   before: Object.freeze({
     airAir: '6af7a16bb8adc2019f72f4f731900f16f9e1268dfb2d0a233049166ccd2b0275',
-    airLiquid: '364119e063e7fc58c2e04f96012bdebb29d8da4235db38c56668e8e6eb591aec',
+    airLiquid: 'f7fab9f56c4847ac82f1e62398c6626361c2e3819b4eaf809efed3d600fe36c3',
   }),
   after: Object.freeze({
     airAir: '53734e338144b47751185b3a94394f6cb364e1dd6fc2754787212e0d42a34fbf',
-    airLiquid: '9d666dfc903b0be65fb86b3d3ff4c48cb86434c6e1e9aa86d5f42a2d6b5652ba',
+    airLiquid: '665ea42c8601dcdb25c50299bde625311812bb100f25e0425fda689e561cc5ed',
   }),
 });
 
@@ -89,7 +97,7 @@ test('Milestone 1 artifact presents the build-generated 9.8-pc2 identity', { ski
   const { html } = releaseBuilder.build();
   assert.match(html, /const BUILD_VERSION = "Build 9\.8-pc2";/);
   assert.match(html, /const BUILD_DATE = "2026-06-30";/);
-  assert.match(html, /const BUILD_HASH = "4798e55eefee";/);
+  assert.match(html, /const BUILD_HASH = "5a484fbae1a6";/);
   assert.doesNotMatch(html, /Build 9\.6-rc8/);
   assert.doesNotMatch(html, /b6ebc906e926/);
 });

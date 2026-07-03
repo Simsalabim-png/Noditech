@@ -2,12 +2,36 @@
 
 const CONTRACT_VERSION = '1';
 
+const EXAMPLE_EXPORT_NOTE =
+  'NOTE: One or more inputs were unmodified example values. This document is not a ' +
+  'confirmed field measurement.';
+
+const OVERRIDE_STAMP_TITLE = 'BALANCE VALIDATION: FAILED — ACCEPTED WITH USER OVERRIDE';
+
+const OVERRIDE_STAMP_QUALIFIER =
+  'This result is printable and storable for documentation purposes, but is not a ' +
+  'validated full-system performance claim without the qualification stated above.';
+
 function finiteOrNull(value) {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
 function textOrNull(value) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function exportStampFromOverride(override) {
+  if (!override || override.acknowledged !== true) return null;
+  return Object.freeze({
+    title: OVERRIDE_STAMP_TITLE,
+    qualifier: OVERRIDE_STAMP_QUALIFIER,
+    deviationPct: finiteOrNull(override.deviationPct),
+    trustedSide: textOrNull(override.trustedSide),
+    reasonId: textOrNull(override.reasonId),
+    reasonLabel: textOrNull(override.reasonLabel),
+    reasonText: textOrNull(override.reasonText),
+    acknowledgedAt: textOrNull(override.acknowledgedAt),
+  });
 }
 
 function sideProjection(side) {
@@ -38,6 +62,22 @@ function classifyBalance(deviationPct, thresholds) {
   if (absolute <= goodLimit) return 'good';
   if (absolute <= warnLimit) return 'warning';
   return 'failed';
+}
+
+function normalizeMeasurementConfirmation(options) {
+  // Fail-safe: only an explicit, known value may assert a confirmation state.
+  // Absent options and unknown values must never fabricate 'confirmed'.
+  const value = options && typeof options.measurementConfirmation === 'string'
+    ? options.measurementConfirmation
+    : null;
+  if (value === 'example') return { measurementConfirmation: 'example', exampleNote: EXAMPLE_EXPORT_NOTE };
+  if (value === 'confirmed') return { measurementConfirmation: 'confirmed', exampleNote: null };
+  return { measurementConfirmation: null, exampleNote: null };
+}
+
+function normalizeBalanceOverride(options) {
+  const stamp = exportStampFromOverride(options && options.balanceOverride);
+  return stamp ? { balanceValidation: 'failed-override', balanceOverride: stamp } : { balanceValidation: null, balanceOverride: null };
 }
 
 function createLiquidLiquidContract(result, metadata, options) {
@@ -112,6 +152,9 @@ function createLiquidLiquidContract(result, metadata, options) {
   const job = textOrNull(metadata.job);
   const unit = textOrNull(metadata.unit);
   const reference = textOrNull(metadata.reference);
+  const confirmation = normalizeMeasurementConfirmation(options);
+  const overrideProjection = normalizeBalanceOverride(options);
+  const balanceValidation = overrideProjection.balanceValidation || balanceStatus;
 
   const record = {
     schema: 'noditech.liquid-liquid.record',
@@ -123,6 +166,10 @@ function createLiquidLiquidContract(result, metadata, options) {
     reference,
     operatingMode: mode,
     status: balanceStatus,
+    balanceValidation,
+    balanceOverride: overrideProjection.balanceOverride,
+    measurementConfirmation: confirmation.measurementConfirmation,
+    exampleNote: confirmation.exampleNote,
     code: 'ok',
     saveAllowed: true,
     cold,
@@ -158,17 +205,24 @@ function createLiquidLiquidContract(result, metadata, options) {
     tool: 'noditech-calculator',
     mode: 'Liquid/Liquid',
     schemaVersion: CONTRACT_VERSION,
+    balanceValidation,
+    balanceOverride: overrideProjection.balanceOverride,
+    measurementConfirmation: confirmation.measurementConfirmation,
+    exampleNote: confirmation.exampleNote,
     record,
   };
 
   const csvHeaders = [
     'Schema Version','Record ID','Measured At','Mode','Operating Mode','Job','Unit','Reference','Status',
+    'Balance Validation','Balance Override Title','Balance Override Qualifier','Override Trusted Side','Override Reason','Override Acknowledged At','Measurement Confirmation','Example Note',
     'Cold Fluid','Cold Glycol %','Cold Inlet C','Cold Outlet C','Cold Mean C','Cold Flow L/s','Cold Density kg/L','Cold Cp kJ/kgK','Cold Capacity kW','Cold Property Source',
     'Hot Fluid','Hot Glycol %','Hot Inlet C','Hot Outlet C','Hot Mean C','Hot Flow L/s','Hot Density kg/L','Hot Cp kJ/kgK','Hot Capacity kW','Hot Property Source',
     'Electrical Power kW','Useful Capacity kW','COP','COP Cooling','COP Heating','Expected Hot kW','Expected Cold kW','Energy Residual kW','Balance Deviation %'
   ];
+  const override = overrideProjection.balanceOverride || {};
   const csvRow = [
     CONTRACT_VERSION,recordId,measuredAt,'Liquid/Liquid',mode,job,unit,reference,balanceStatus,
+    balanceValidation,override.title || null,override.qualifier || null,override.trustedSide || null,override.reasonLabel || null,override.acknowledgedAt || null,confirmation.measurementConfirmation,confirmation.exampleNote,
     cold.fluid,cold.glycolPercent,cold.inletC,cold.outletC,cold.meanTemperatureC,cold.flowLs,cold.densityKgL,cold.cpKJkgK,cold.capacity_kW,cold.propertySource,
     hot.fluid,hot.glycolPercent,hot.inletC,hot.outletC,hot.meanTemperatureC,hot.flowLs,hot.densityKgL,hot.cpKJkgK,hot.capacity_kW,hot.propertySource,
     electricalPower,usefulCapacity,usefulCop,copCooling,copHeating,expectedHot,expectedCold,residual,deviation,
@@ -178,6 +232,10 @@ function createLiquidLiquidContract(result, metadata, options) {
     title: 'Liquid/Liquid Energy Rating',
     operatingMode: mode,
     status: balanceStatus,
+    balanceValidation,
+    balanceOverride: overrideProjection.balanceOverride,
+    measurementConfirmation: confirmation.measurementConfirmation,
+    exampleNote: confirmation.exampleNote,
     metadata: { recordId, measuredAt, job, unit, reference },
     cold,
     hot,
@@ -209,15 +267,29 @@ function createLiquidLiquidContract(result, metadata, options) {
   };
 }
 
-function csvEscape(value) {
-  const text = value == null ? '' : String(value);
+// M4 — CSV hardening at the contract boundary.
+// Every cell is quoted (RFC 4180: inner double quotes doubled). Text cells additionally:
+//  - are formula-neutralized: if the cell starts with =, +, -, @ (optionally after
+//    leading whitespace/control characters that spreadsheet software may trim before
+//    interpreting), or starts with a tab or CR, a leading apostrophe is prefixed so
+//    spreadsheet software treats the cell as text;
+//  - have CR/LF sequences flattened to a single space so one record stays exactly
+//    one physical CSV line.
+// Numeric cells are serialized bare (String(number)) and are NEVER neutralized,
+// so negative numeric values remain parseable numbers.
+function csvCell(value) {
+  if (value == null) return '""';
+  if (typeof value === 'number') return `"${String(value)}"`;
+  let text = String(value);
+  if (/^[\s\u0000-\u001f]*[=+\-@]/.test(text) || /^[\t\r]/.test(text)) text = "'" + text;
+  text = text.replace(/\r\n|\r|\n/g, ' ');
   return `"${text.replace(/"/g, '""')}"`;
 }
 
 function serializeLiquidLiquidCsv(contract) {
   if (!contract || contract.valid !== true || !contract.csv) return null;
   return [contract.csv.headers, contract.csv.row]
-    .map((row) => row.map(csvEscape).join(','))
+    .map((row) => row.map(csvCell).join(','))
     .join('\n');
 }
 
@@ -230,6 +302,7 @@ module.exports = {
   CONTRACT_VERSION,
   classifyBalance,
   createLiquidLiquidContract,
+  csvCell,
   serializeLiquidLiquidCsv,
   serializeLiquidLiquidJson,
 };

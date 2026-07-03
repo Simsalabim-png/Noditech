@@ -3,6 +3,7 @@ name: candidate-full-validation
 on:
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
 
 permissions:
   contents: read
@@ -13,6 +14,7 @@ concurrency:
 
 env:
   EXPECTED_PC2_SHA256: e41bd3e9c14e6e8588c8de4ba40e3329cf7e4d464d8007f6b8cb75e9ed51c4ba
+  EXPECTED_DRAFT_PC2_SHA256: a6ab0f73b42377790a4d349eb22afac301dec0bd0d149a0fba91e7499801a8dd
 
 jobs:
   candidate-full-validation:
@@ -44,6 +46,18 @@ jobs:
             echo "note: tested commit is the prospective merge result, not the branch head (expected for a merge gate)"
           fi
 
+      - name: Resolve artifact SHA guard for PR state
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event.pull_request.draft }}" = "true" ]; then
+            echo "EXPECTED_ACTIVE_PC2_SHA256=$EXPECTED_DRAFT_PC2_SHA256" >> "$GITHUB_ENV"
+            echo "::notice::Draft PR: validating PR-1A candidate artifact SHA only; production/release SHA guard remains $EXPECTED_PC2_SHA256"
+          else
+            echo "EXPECTED_ACTIVE_PC2_SHA256=$EXPECTED_PC2_SHA256" >> "$GITHUB_ENV"
+            echo "::notice::Ready PR: enforcing production/release artifact SHA guard"
+          fi
+
       - name: Verify trust-critical validation logic anchors
         shell: bash
         run: |
@@ -73,7 +87,11 @@ jobs:
           actual="$(sha256sum "$artifact" | awk '{print $1}')"
           reported="$(awk '/^sha256 /{print $2}' required-main-build.log)"
           test "$reported" = "$actual"
-          test "$actual" = "$EXPECTED_PC2_SHA256"
+          if [ "$EXPECTED_ACTIVE_PC2_SHA256" = "$EXPECTED_PC2_SHA256" ] && [ "$actual" = "$EXPECTED_DRAFT_PC2_SHA256" ]; then
+            echo "::error::release-capable validation produced the DRAFT artifact (sha256 ${actual}); the draft artifact SHA is never valid for Ready/release/deploy"
+            exit 1
+          fi
+          test "$actual" = "$EXPECTED_ACTIVE_PC2_SHA256"
           grep -q 'Build 9.8-pc2' "$artifact"
           grep -q 'NoditechLiquidLiquid' "$artifact"
           grep -q 'data-ll-cutover' "$artifact"
@@ -98,7 +116,7 @@ jobs:
           m1=dist-milestone1/Kalkulator_build9.8-pc2.html
           test -s "$m1"
           m1_actual="$(sha256sum "$m1" | awk '{print $1}')"
-          test "$m1_actual" = "$EXPECTED_PC2_SHA256"
+          test "$m1_actual" = "$EXPECTED_ACTIVE_PC2_SHA256"
 
       - name: Locate Chromium
         shell: bash
@@ -117,6 +135,9 @@ jobs:
 
       - name: Run Liquid/Liquid Chromium contract gate
         run: node chromium/run_ll_cutover_contract.js
+
+      - name: Run Liquid/Liquid field-safety behavior gate
+        run: node chromium/run_field_safety_gate.js
 
       - name: Make hook uniqueness assertion mode-aware
         shell: bash
